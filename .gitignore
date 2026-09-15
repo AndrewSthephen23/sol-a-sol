@@ -1,0 +1,40 @@
+# Documento de planificación local (no se versiona)
+plan.md
+
+# Dependencias
+node_modules/
+.pnpm-store/
+
+# Builds y cachés
+dist/
+build/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+
+# Pruebas
+coverage/
+reports/mutation/
+playwright-report/
+test-results/
+blob-report/
+.stryker-tmp/
+
+# Variables de entorno (solo .env.example se versiona)
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Sistema operativo y editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
