@@ -6,7 +6,7 @@ Plataforma personal para ordenar mis finanzas y avanzar hacia la libertad financ
 
 ## Estado
 
-🚧 **Hito H0 — Cimientos** (en curso). Esta versión contiene el esqueleto del monorepo, las configuraciones compartidas, la API con `/health` y `/health/ready`, Prisma con el modelo `User` y su primera migración, la página inicial de la web y el entorno completo con Docker Compose.
+🚧 **Hito H0 — Cimientos** (en curso). Esta versión contiene el esqueleto del monorepo, las configuraciones compartidas, la API con `/health` y `/health/ready`, Prisma con el modelo `User` y su primera migración, la página inicial de la web, el entorno completo con Docker Compose y los pipelines de CI y seguridad en GitHub Actions.
 
 ## Requisitos
 
@@ -106,6 +106,11 @@ Dockerfiles multi-stage en `docker/` (`pruner` → `deps` → `build` → `runti
 
 ```
 sol-a-sol/
+├── .github/
+│   ├── actions/setup/  # action compuesta: pnpm + Node.js + dependencias
+│   ├── workflows/      # ci.yml, security.yml
+│   └── dependabot.yml
+├── docker/        # Dockerfiles multi-stage e init.sql de PostgreSQL
 ├── apps/
 │   ├── api/       # @sol-a-sol/api: NestJS (ESM). Prefijo /api/v1; /health fuera del prefijo
 │   │   ├── prisma/  # schema.prisma y migraciones versionadas (nunca editar una ya aplicada)
@@ -118,6 +123,21 @@ sol-a-sol/
 ## Política de dependencias
 
 pnpm 12 aplica un **`minimumReleaseAge`** (las versiones publicadas hace menos de un día se rechazan) como defensa ante paquetes comprometidos. No se agregan excepciones en `minimumReleaseAgeExclude`: si una versión es demasiado nueva, se fija la anterior.
+
+- **Scripts de instalación:** solo se ejecutan los aprobados explícitamente en `allowBuilds` (`pnpm-workspace.yaml`), revisados uno por uno.
+- **Vulnerabilidades en dependencias transitivas:** `pnpm audit --audit-level high` corre en CI. Si el paquete que trae la dependencia vulnerable no se puede actualizar, se fuerza la versión corregida con `overrides` en `pnpm-workspace.yaml`, documentando el advisory y cómo se validó. Hay que revisar esos overrides al actualizar el paquete de origen.
+- **Dependabot** (`.github/dependabot.yml`) propone actualizaciones semanales de npm, GitHub Actions, Dockerfiles y Compose, agrupadas y con 3 días de espera desde la publicación.
+
+## CI/CD
+
+| Workflow       | Cuándo                                 | Jobs                                                                                                                                                                                                                                                                                                     |
+| -------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ci.yml`       | PR y push a `main`                     | commitlint (commits del PR) · formato + lint + tipos · pruebas unitarias con cobertura · integración (Testcontainers) · build · imágenes Docker: build, **Trivy** (bloquea CRITICAL con corrección disponible) y smoke test con `docker-compose.test.yml` · **CI OK** (check único para proteger `main`) |
+| `security.yml` | PR, push a `main` y lunes 06:00 (Lima) | **CodeQL** (JavaScript/TypeScript y GitHub Actions, `security-extended`) · **gitleaks** (commits del PR o historial completo) · **pnpm audit** (falla con high/critical)                                                                                                                                 |
+
+- Todas las actions de terceros están **fijadas por SHA de commit** (con la versión en un comentario); Dependabot las actualiza.
+- Trivy y gitleaks se ejecutan desde binarios o imágenes fijados por versión y checksum/digest.
+- Los workflows tienen permisos mínimos (`contents: read`; `security-events: write` solo para CodeQL).
 
 ## Versiones fijadas del stack
 

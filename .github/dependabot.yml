@@ -1,0 +1,117 @@
+# Actualizaciones automáticas de dependencias (plan, sección 11.4).
+# Los mensajes de commit cumplen commitlint: `chore(<scope>): ...` con scopes de commitlint.config.js.
+version: 2
+
+updates:
+  # Dependencias del monorepo (pnpm workspaces)
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: America/Lima
+    # Coherente con `minimumReleaseAge` de pnpm: no proponer versiones recién publicadas.
+    cooldown:
+      default-days: 3
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: chore(deps)
+    labels: [dependencies]
+    groups:
+      nestjs:
+        patterns: ['@nestjs/*', 'reflect-metadata', 'rxjs']
+      prisma:
+        patterns: ['prisma', '@prisma/*']
+      next-react:
+        patterns: ['next', '@next/*', 'react', 'react-dom', '@types/react', '@types/react-dom']
+      testing:
+        patterns:
+          [
+            'vitest',
+            '@vitest/*',
+            '@testing-library/*',
+            'jsdom',
+            'supertest',
+            '@types/supertest',
+            '@testcontainers/*',
+            'unplugin-swc',
+            '@swc/core',
+            '@vitejs/plugin-react',
+          ]
+      lint-format:
+        patterns:
+          [
+            'eslint',
+            '@eslint/*',
+            'eslint-*',
+            'typescript-eslint',
+            'globals',
+            'prettier',
+            '@commitlint/*',
+            'lint-staged',
+            'husky',
+          ]
+      styles:
+        patterns: ['tailwindcss', '@tailwindcss/*']
+      build-tooling:
+        patterns: ['turbo', 'typescript']
+    ignore:
+      # TypeScript 7 no es compatible con typescript-eslint 8 (ver README).
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
+      # Los tipos de Node siguen la línea LTS del runtime (24).
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: America/Lima
+    cooldown:
+      default-days: 3
+    commit-message:
+      prefix: chore(ci)
+    labels: [dependencies]
+    groups:
+      github-actions:
+        patterns: ['*']
+
+  # Imágenes base de los Dockerfiles
+  - package-ecosystem: docker
+    directory: /docker
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: America/Lima
+    cooldown:
+      default-days: 3
+    commit-message:
+      prefix: chore(docker)
+    labels: [dependencies]
+    ignore:
+      # Node se mantiene en la línea LTS 24 hasta que se decida migrar.
+      - dependency-name: node
+        update-types: ['version-update:semver-major']
+
+  # Imágenes de docker-compose.yml y docker-compose.test.yml
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: America/Lima
+    cooldown:
+      default-days: 3
+    commit-message:
+      prefix: chore(docker)
+    labels: [dependencies]
+    ignore:
+      # Una versión mayor de PostgreSQL requiere migración de datos planificada.
+      - dependency-name: postgres
+        update-types: ['version-update:semver-major']
