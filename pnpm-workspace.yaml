@@ -4,3 +4,9 @@ packages:
 
 saveExact: true
 engineStrict: true
+
+# Solo se ejecutan scripts de instalación explícitamente aprobados.
+# Ambos paquetes obtienen su binario nativo por dependencias opcionales; sus scripts no son necesarios.
+allowBuilds:
+  '@swc/core': false
+  unrs-resolver: false
