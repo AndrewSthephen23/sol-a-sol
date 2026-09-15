@@ -1,0 +1,27 @@
+# Todo lo que no debe entrar al contexto de build de Docker.
+# Las dependencias y los artefactos se generan dentro de la imagen.
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/coverage
+**/src/generated
+**/next-env.d.ts
+**/*.tsbuildinfo
+**/test-results
+**/playwright-report
+
+# Secretos y configuración local: nunca dentro de una imagen
+**/.env
+**/.env.*
+!**/.env.example
+
+# Control de versiones, editores y documentos locales
+.git
+.github
+.husky
+.vscode
+.idea
+**/.DS_Store
+**/*.log
+plan.md
