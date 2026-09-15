@@ -14,6 +14,9 @@ out/
 *.tsbuildinfo
 next-env.d.ts
 
+# Código generado (se regenera con `pnpm db:generate`)
+**/src/generated/
+
 # Pruebas
 coverage/
 reports/mutation/

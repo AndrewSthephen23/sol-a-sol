@@ -16,6 +16,10 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "test:integration": "turbo run test:integration",
+    "db:generate": "turbo run db:generate",
+    "db:migrate": "pnpm --filter @sol-a-sol/api db:migrate",
+    "db:studio": "pnpm --filter @sol-a-sol/api db:studio",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky"

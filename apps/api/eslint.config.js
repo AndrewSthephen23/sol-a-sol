@@ -1,7 +1,7 @@
 import base from '@sol-a-sol/config/eslint';
 import { defineConfig, globalIgnores } from 'eslint/config';
 
-export default defineConfig(globalIgnores(['dist/**', 'coverage/**']), base, {
+export default defineConfig(globalIgnores(['dist/**', 'coverage/**', 'src/generated/**']), base, {
   languageOptions: {
     parserOptions: { tsconfigRootDir: import.meta.dirname },
   },
