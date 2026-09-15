@@ -1,12 +1,12 @@
 # syntax=docker/dockerfile:1
 
-# Imagen base fijada por versión y digest (reproducible). Actualizar ambos juntos.
-ARG NODE_IMAGE=node:24.21.0-trixie-slim@sha256:db3ae80f5d8df06e04dabdf7b44cbf008d32de168205fa0294444aabbc08c590
+# Las imágenes base se fijan por versión y digest directamente en cada FROM
+# (Dependabot no puede actualizar imágenes declaradas mediante ARG).
 
 # ---------------------------------------------------------------------------
 # base: pnpm (vía corepack, versión de `packageManager`) y usuario sin privilegios
 # ---------------------------------------------------------------------------
-FROM ${NODE_IMAGE} AS base
+FROM node:24.21.0-trixie-slim@sha256:db3ae80f5d8df06e04dabdf7b44cbf008d32de168205fa0294444aabbc08c590 AS base
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
     TURBO_TELEMETRY_DISABLED=1 \
     NEXT_TELEMETRY_DISABLED=1
@@ -57,7 +57,7 @@ CMD ["pnpm", "exec", "prisma", "migrate", "deploy"]
 # ---------------------------------------------------------------------------
 # runtime: imagen final mínima. Archivos de root (solo lectura para `node`).
 # ---------------------------------------------------------------------------
-FROM ${NODE_IMAGE} AS runtime
+FROM node:24.21.0-trixie-slim@sha256:db3ae80f5d8df06e04dabdf7b44cbf008d32de168205fa0294444aabbc08c590 AS runtime
 ENV NODE_ENV=production \
     PORT=3001
 # Parches de seguridad del sistema base y fuera npm/corepack: no se usan en runtime
