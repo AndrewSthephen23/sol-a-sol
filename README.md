@@ -14,6 +14,7 @@ Plataforma personal para ordenar mis finanzas y avanzar hacia la libertad financ
 | ----------------------- | ------------------------------------------------ | ----------------- |
 | Node.js                 | 24.x LTS (recomendada **24.21.0**, ver `.nvmrc`) | `nvm use`         |
 | pnpm                    | **12.4.2** (fijada en `packageManager`)          | `corepack enable` |
+| gitleaks                | **8.30.1** (obligatorio para el hook pre-commit) | Ver abajo         |
 | Docker + Docker Compose | Se definirá en H0.5                              | —                 |
 
 ## Primeros pasos
@@ -21,8 +22,28 @@ Plataforma personal para ordenar mis finanzas y avanzar hacia la libertad financ
 ```bash
 nvm use
 corepack enable
-pnpm install
+pnpm install   # también activa los hooks de Git (husky)
 ```
+
+Instalar gitleaks sin sudo (Linux/WSL x64):
+
+```bash
+V=8.30.1
+curl -sSLO https://github.com/gitleaks/gitleaks/releases/download/v$V/gitleaks_${V}_linux_x64.tar.gz
+tar -xzf gitleaks_${V}_linux_x64.tar.gz gitleaks
+install -m 0755 gitleaks ~/.local/bin/gitleaks
+```
+
+En macOS: `brew install gitleaks`.
+
+## Hooks de Git
+
+| Hook         | Qué valida                                                                                                                   |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| `pre-commit` | **gitleaks** sobre los cambios en stage (bloquea secretos) y **lint-staged** (ESLint + Prettier sobre los archivos en stage) |
+| `commit-msg` | **commitlint**: Conventional Commits; el scope, si se usa, debe ser un módulo o área válida (ver `commitlint.config.js`)     |
+
+Ejemplos válidos: `feat(credit-cards): compute payment due date`, `chore(deps): bump prettier`, `docs: update readme`.
 
 ## Comandos
 
@@ -58,6 +79,10 @@ Verificadas el 2026-09-15.
 | TypeScript  | 6.0.3                   | Modo `strict`. **No se usa 7.x** porque `typescript-eslint` 8.70 solo soporta `<6.1.0` |
 | ESLint      | 10.10.0                 | Flat config con `typescript-eslint` 8.70.0 (reglas `strictTypeChecked`)                |
 | Prettier    | 3.9.6                   |                                                                                        |
+| husky       | 9.1.7                   | Hooks de Git                                                                           |
+| lint-staged | 17.5.1                  | Lint y formato solo sobre archivos en stage                                            |
+| commitlint  | 21.2.2                  | `@commitlint/config-conventional` con `scope-enum` por módulo                          |
+| gitleaks    | 8.30.1                  | Detección de secretos en pre-commit (y en CI desde H0.6)                               |
 
 Las versiones de Next.js, NestJS, Prisma, Vitest, etc. se registrarán aquí al incorporarlas.
 
