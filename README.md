@@ -6,7 +6,7 @@ Plataforma personal para ordenar mis finanzas y avanzar hacia la libertad financ
 
 ## Estado
 
-🚧 **Hito H0 — Cimientos** (en curso). Esta versión contiene el esqueleto del monorepo, las configuraciones compartidas, la API con `/health` y `/health/ready`, Prisma con el modelo `User` y su primera migración, y la página inicial de la web.
+🚧 **Hito H0 — Cimientos** (en curso). Esta versión contiene el esqueleto del monorepo, las configuraciones compartidas, la API con `/health` y `/health/ready`, Prisma con el modelo `User` y su primera migración, la página inicial de la web y el entorno completo con Docker Compose.
 
 ## Requisitos
 
@@ -15,7 +15,7 @@ Plataforma personal para ordenar mis finanzas y avanzar hacia la libertad financ
 | Node.js                 | ≥ 24.15 (recomendada **24.21.0**, ver `.nvmrc`)  | `nvm use`         |
 | pnpm                    | **12.4.2** (fijada en `packageManager`)          | `corepack enable` |
 | gitleaks                | **8.30.1** (obligatorio para el hook pre-commit) | Ver abajo         |
-| Docker + Docker Compose | Se definirá en H0.5                              | —                 |
+| Docker + Docker Compose | Docker 29+ / Compose v2 (probado con 5.3)        | Docker Desktop    |
 
 ## Primeros pasos
 
@@ -47,36 +47,60 @@ Ejemplos válidos: `feat(credit-cards): compute payment due date`, `chore(deps):
 
 ## Comandos
 
-| Comando                             | Qué hace                                                                               |
-| ----------------------------------- | -------------------------------------------------------------------------------------- |
-| `pnpm build`                        | Compila todos los paquetes (Turborepo)                                                 |
-| `pnpm dev`                          | Levanta las apps en modo desarrollo                                                    |
-| `pnpm lint`                         | ESLint en todos los paquetes                                                           |
-| `pnpm typecheck`                    | Verificación de tipos en todos los paquetes                                            |
-| `pnpm test`                         | Pruebas unitarias                                                                      |
-| `pnpm test:integration`             | Pruebas de integración de la API con PostgreSQL real (Testcontainers; requiere Docker) |
-| `pnpm db:generate`                  | Genera el cliente de Prisma (`apps/api/src/generated`, no versionado)                  |
-| `pnpm db:migrate`                   | Crea/aplica migraciones en desarrollo (`prisma migrate dev`)                           |
-| `pnpm db:studio`                    | Abre Prisma Studio                                                                     |
-| `pnpm format` / `pnpm format:check` | Formatea / verifica formato con Prettier                                               |
+| Comando                             | Qué hace                                                                                  |
+| ----------------------------------- | ----------------------------------------------------------------------------------------- |
+| `pnpm build`                        | Compila todos los paquetes (Turborepo)                                                    |
+| `pnpm dev`                          | Levanta todo con Docker Compose (db, api, web) con hot reload                             |
+| `pnpm dev:local`                    | Levanta las apps sin Docker (necesita un PostgreSQL accesible)                            |
+| `pnpm docker:test`                  | Levanta las imágenes de producción (`docker-compose.test.yml`) y espera a que estén sanas |
+| `pnpm lint`                         | ESLint en todos los paquetes                                                              |
+| `pnpm typecheck`                    | Verificación de tipos en todos los paquetes                                               |
+| `pnpm test`                         | Pruebas unitarias                                                                         |
+| `pnpm test:integration`             | Pruebas de integración de la API con PostgreSQL real (Testcontainers; requiere Docker)    |
+| `pnpm db:generate`                  | Genera el cliente de Prisma (`apps/api/src/generated`, no versionado)                     |
+| `pnpm db:migrate`                   | Crea/aplica migraciones en desarrollo (`prisma migrate dev`)                              |
+| `pnpm db:studio`                    | Abre Prisma Studio                                                                        |
+| `pnpm format` / `pnpm format:check` | Formatea / verifica formato con Prettier                                                  |
 
 Más comandos (`test:e2e`, `db:seed`, `gen:module`, etc.) se irán agregando en los hitos siguientes.
 
 Para trabajar en una sola app: `pnpm --filter @sol-a-sol/api dev` (http://localhost:3001/health) o `pnpm --filter @sol-a-sol/web dev` (http://localhost:3000).
 
-### Base de datos local
+La API expone `GET /health` (liveness) y `GET /health/ready` (readiness: 503 si PostgreSQL no responde).
 
-Hasta que llegue Docker Compose (H0.5), PostgreSQL se levanta a mano:
+## Docker
+
+### Desarrollo (`docker-compose.yml`)
 
 ```bash
-docker run -d --name sol-a-sol-db \
-  -e POSTGRES_USER=sol_a_sol -e POSTGRES_PASSWORD=sol_a_sol -e POSTGRES_DB=sol_a_sol \
-  -p 127.0.0.1:5432:5432 postgres:18.6-alpine3.24
-cp apps/api/.env.example apps/api/.env
-pnpm --filter @sol-a-sol/api db:deploy
+cp .env.example .env   # una sola vez; Compose falla si falta una variable obligatoria
+pnpm dev               # = docker compose up --build
 ```
 
-La API expone `GET /health` (liveness) y `GET /health/ready` (readiness: 503 si PostgreSQL no responde).
+| Servicio | URL (solo 127.0.0.1)               | Notas                                                                       |
+| -------- | ---------------------------------- | --------------------------------------------------------------------------- |
+| `db`     | `localhost:5432`                   | PostgreSQL 18.6; volumen `db-data`; healthcheck por TCP                     |
+| `api`    | http://localhost:3001/health/ready | Al iniciar: `prisma migrate dev` + `prisma generate` + `nest start --watch` |
+| `web`    | http://localhost:3000              | `next dev`; arranca cuando la API está sana                                 |
+
+- **Hot reload:** se montan `apps/api/src`, `apps/api/prisma` y `apps/web/src`. Si cambian dependencias: `docker compose build`.
+- **Herramientas opcionales:** `docker compose --profile tools up -d` → Adminer (http://localhost:8080) y Mailpit (http://localhost:8025).
+- **Sin Docker:** `cp apps/api/.env.example apps/api/.env`, apuntar `DATABASE_URL` a un PostgreSQL y usar `pnpm dev:local`.
+
+### Imágenes de producción y CI (`docker-compose.test.yml`)
+
+```bash
+pnpm docker:test        # build + up --wait: db (tmpfs) → migrate (un solo uso) → api → web
+pnpm docker:test:down
+```
+
+Dockerfiles multi-stage en `docker/` (`pruner` → `deps` → `build` → `runtime`; más `dev` y `migrate`):
+
+- Base `node:24.21.0-trixie-slim` y `postgres:18.6-alpine3.24` **fijadas por digest**.
+- `turbo prune --docker` + caché del store de pnpm: la instalación de dependencias solo se repite si cambia el lockfile.
+- Imagen final con **usuario `node`**, archivos de la app propiedad de root (solo lectura), `HEALTHCHECK`, parches de seguridad de Debian aplicados y **sin npm ni corepack**.
+- API: solo dependencias de producción (`pnpm deploy --prod`) y `dist/`. Web: salida `standalone` de Next.js.
+- Las credenciales del entorno de pruebas no son secretas (base efímera) y se pueden sobrescribir por variables de entorno.
 
 ## Estructura
 
