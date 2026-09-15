@@ -1,0 +1,29 @@
+{
+  "name": "sol-a-sol",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Plataforma personal para ordenar mis finanzas y avanzar hacia la libertad financiera, sol a sol.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "packageManager": "pnpm@12.4.2",
+  "engines": {
+    "node": ">=24.11.0 <25",
+    "pnpm": ">=12.4.2 <13"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "prettier": "@sol-a-sol/config/prettier",
+  "devDependencies": {
+    "@sol-a-sol/config": "workspace:*",
+    "prettier": "3.9.6",
+    "turbo": "2.10.13",
+    "typescript": "6.0.3"
+  }
+}
