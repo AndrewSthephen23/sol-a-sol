@@ -1,0 +1,27 @@
+generator client {
+  provider               = "prisma-client"
+  output                 = "../src/generated/prisma"
+  runtime                = "nodejs"
+  moduleFormat           = "esm"
+  generatedFileExtension = "ts"
+  importFileExtension    = "js"
+}
+
+// La URL de conexión vive en prisma.config.ts (Prisma 7).
+datasource db {
+  provider = "postgresql"
+}
+
+/// Usuario de la plataforma. El modelo es multiusuario desde el día 1:
+/// todas las tablas de negocio referenciarán `User.id`.
+model User {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  totpSecret   String?  @map("totp_secret")
+  locale       String   @default("es-PE")
+  timezone     String   @default("America/Lima")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@map("users")
+}

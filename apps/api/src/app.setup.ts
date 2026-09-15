@@ -7,6 +7,6 @@ export const API_PREFIX = 'api/v1';
  * para que ambas levanten la API exactamente igual.
  */
 export function configureApp(app: INestApplication): void {
-  // `/health` queda fuera del prefijo: lo consultan Docker y el balanceador, no los clientes.
-  app.setGlobalPrefix(API_PREFIX, { exclude: ['health'] });
+  // Los health checks quedan fuera del prefijo: los consultan Docker y el balanceador, no los clientes.
+  app.setGlobalPrefix(API_PREFIX, { exclude: ['health', 'health/ready'] });
 }

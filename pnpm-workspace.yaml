@@ -5,8 +5,17 @@ packages:
 saveExact: true
 engineStrict: true
 
-# Solo se ejecutan scripts de instalación explícitamente aprobados.
-# Ambos paquetes obtienen su binario nativo por dependencias opcionales; sus scripts no son necesarios.
+# Solo se ejecutan scripts de instalación explícitamente aprobados (revisados uno por uno).
 allowBuilds:
+  # Descarga el schema engine que usan `prisma migrate` y `prisma studio`.
+  '@prisma/engines': true
+  # Solo verifica la versión de Node (ya garantizada por `engines`).
+  prisma: false
+  # Binario nativo vía dependencias opcionales; el script no es necesario.
   '@swc/core': false
   unrs-resolver: false
+  # Dependencias transitivas de Testcontainers: aceleración nativa opcional de SSH
+  # (ssh2 tiene implementación en JS) y un aviso de versión de protobufjs.
+  cpu-features: false
+  ssh2: false
+  protobufjs: false
