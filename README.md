@@ -6,13 +6,13 @@ Plataforma personal para ordenar mis finanzas y avanzar hacia la libertad financ
 
 ## Estado
 
-🚧 **Hito H0 — Cimientos** (en curso). Esta versión contiene solo el esqueleto del monorepo y las configuraciones compartidas.
+🚧 **Hito H0 — Cimientos** (en curso). Esta versión contiene el esqueleto del monorepo, las configuraciones compartidas, la API con `/health` y la página inicial de la web.
 
 ## Requisitos
 
 | Herramienta             | Versión                                          | Cómo              |
 | ----------------------- | ------------------------------------------------ | ----------------- |
-| Node.js                 | 24.x LTS (recomendada **24.21.0**, ver `.nvmrc`) | `nvm use`         |
+| Node.js                 | ≥ 24.15 (recomendada **24.21.0**, ver `.nvmrc`)  | `nvm use`         |
 | pnpm                    | **12.4.2** (fijada en `packageManager`)          | `corepack enable` |
 | gitleaks                | **8.30.1** (obligatorio para el hook pre-commit) | Ver abajo         |
 | Docker + Docker Compose | Se definirá en H0.5                              | —                 |
@@ -58,33 +58,45 @@ Ejemplos válidos: `feat(credit-cards): compute payment due date`, `chore(deps):
 
 Más comandos (`test:e2e`, `db:migrate`, `gen:module`, etc.) se irán agregando en los hitos siguientes.
 
+Para trabajar en una sola app: `pnpm --filter @sol-a-sol/api dev` (http://localhost:3001/health) o `pnpm --filter @sol-a-sol/web dev` (http://localhost:3000).
+
 ## Estructura
 
 ```
 sol-a-sol/
-├── apps/          # web (Next.js PWA) y api (NestJS) — a partir de H0.3
+├── apps/
+│   ├── api/       # @sol-a-sol/api: NestJS (ESM). Prefijo /api/v1; /health fuera del prefijo
+│   └── web/       # @sol-a-sol/web: Next.js App Router + Tailwind CSS
 └── packages/
     └── config/    # @sol-a-sol/config: tsconfig, ESLint y Prettier compartidos
 ```
+
+## Política de dependencias
+
+pnpm 12 aplica un **`minimumReleaseAge`** (las versiones publicadas hace menos de un día se rechazan) como defensa ante paquetes comprometidos. No se agregan excepciones en `minimumReleaseAgeExclude`: si una versión es demasiado nueva, se fija la anterior.
 
 ## Versiones fijadas del stack
 
 Verificadas el 2026-09-15.
 
-| Herramienta | Versión                 | Notas                                                                                  |
-| ----------- | ----------------------- | -------------------------------------------------------------------------------------- |
-| Node.js     | 24.21.0 (LTS "Krypton") | Node 26 aún no es LTS                                                                  |
-| pnpm        | 12.4.2                  | Workspaces                                                                             |
-| Turborepo   | 2.10.13                 | Orquestación y caché de tareas                                                         |
-| TypeScript  | 6.0.3                   | Modo `strict`. **No se usa 7.x** porque `typescript-eslint` 8.70 solo soporta `<6.1.0` |
-| ESLint      | 10.10.0                 | Flat config con `typescript-eslint` 8.70.0 (reglas `strictTypeChecked`)                |
-| Prettier    | 3.9.6                   |                                                                                        |
-| husky       | 9.1.7                   | Hooks de Git                                                                           |
-| lint-staged | 17.5.1                  | Lint y formato solo sobre archivos en stage                                            |
-| commitlint  | 21.2.2                  | `@commitlint/config-conventional` con `scope-enum` por módulo                          |
-| gitleaks    | 8.30.1                  | Detección de secretos en pre-commit (y en CI desde H0.6)                               |
+| Herramienta  | Versión                 | Notas                                                                                  |
+| ------------ | ----------------------- | -------------------------------------------------------------------------------------- |
+| Node.js      | 24.21.0 (LTS "Krypton") | Node 26 aún no es LTS                                                                  |
+| pnpm         | 12.4.2                  | Workspaces                                                                             |
+| Turborepo    | 2.10.13                 | Orquestación y caché de tareas                                                         |
+| TypeScript   | 6.0.3                   | Modo `strict`. **No se usa 7.x** porque `typescript-eslint` 8.70 solo soporta `<6.1.0` |
+| ESLint       | 10.10.0                 | Flat config con `typescript-eslint` 8.70.0 (reglas `strictTypeChecked`)                |
+| Prettier     | 3.9.6                   |                                                                                        |
+| husky        | 9.1.7                   | Hooks de Git                                                                           |
+| lint-staged  | 17.5.1                  | Lint y formato solo sobre archivos en stage                                            |
+| commitlint   | 21.2.2                  | `@commitlint/config-conventional` con `scope-enum` por módulo                          |
+| gitleaks     | 8.30.1                  | Detección de secretos en pre-commit (y en CI desde H0.6)                               |
+| NestJS       | 12.0.2                  | ESM; CLI 12.0.1. Pruebas con SWC (`unplugin-swc`) para la metadata de decoradores      |
+| Next.js      | 16.3.5                  | App Router, `output: 'standalone'` para Docker; React 19.3.0                           |
+| Tailwind CSS | 4.3.3                   | Vía `@tailwindcss/postcss`                                                             |
+| Vitest       | 5.0.0                   | API en entorno `node` (+ supertest); web con `jsdom` y Testing Library                 |
 
-Las versiones de Next.js, NestJS, Prisma, Vitest, etc. se registrarán aquí al incorporarlas.
+Las versiones de Prisma, Playwright, Cucumber, etc. se registrarán aquí al incorporarlas.
 
 ## Convenciones
 

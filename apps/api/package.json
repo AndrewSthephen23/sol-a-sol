@@ -1,0 +1,37 @@
+{
+  "name": "@sol-a-sol/api",
+  "version": "0.0.0",
+  "private": true,
+  "description": "API de Sol a Sol (NestJS).",
+  "type": "module",
+  "scripts": {
+    "build": "nest build",
+    "dev": "nest start --watch",
+    "start": "node dist/main.js",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@nestjs/common": "12.0.2",
+    "@nestjs/core": "12.0.2",
+    "@nestjs/platform-express": "12.0.2",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "12.0.1",
+    "@nestjs/testing": "12.0.2",
+    "@sol-a-sol/config": "workspace:*",
+    "@swc/core": "1.16.2",
+    "@types/node": "24.13.4",
+    "@types/supertest": "7.2.1",
+    "@vitest/coverage-v8": "5.0.0",
+    "eslint": "10.10.0",
+    "supertest": "7.2.2",
+    "typescript": "6.0.3",
+    "unplugin-swc": "1.6.0",
+    "vitest": "5.0.0"
+  }
+}

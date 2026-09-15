@@ -12,6 +12,7 @@ build/
 out/
 .turbo/
 *.tsbuildinfo
+next-env.d.ts
 
 # Pruebas
 coverage/
