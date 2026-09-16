@@ -1,4 +1,5 @@
-# Actualizaciones automáticas de dependencias (plan, sección 11.4).
+# Actualizaciones automáticas de dependencias.
+# Política de dependencias: ver la sección correspondiente del README.
 # Los mensajes de commit cumplen commitlint: `chore(<scope>): ...` con scopes de commitlint.config.js.
 version: 2
 

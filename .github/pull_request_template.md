@@ -19,7 +19,7 @@
 <!-- Qué atributo mejora o protege este cambio: adecuación funcional, seguridad, fiabilidad,
      mantenibilidad, usabilidad, eficiencia o portabilidad. -->
 
-## Definition of Done (plan, sección 11.5)
+## Definition of Done (ver [CONTRIBUTING.md](../CONTRIBUTING.md))
 
 - [ ] Cumple los criterios de aceptación del issue (escenarios Gherkin en verde)
 - [ ] Pruebas unitarias y de integración; umbrales de cobertura cumplidos
