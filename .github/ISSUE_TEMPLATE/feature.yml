@@ -1,0 +1,63 @@
+name: ✨ Funcionalidad
+description: Una capacidad nueva dentro de un módulo que ya existe.
+labels: ['type:feature']
+body:
+  - type: textarea
+    id: objetivo
+    attributes:
+      label: Qué necesito y para qué
+      description: Qué decisión financiera permite tomar o qué problema resuelve.
+      placeholder: Como usuario quiero ... para ...
+    validations:
+      required: true
+  - type: dropdown
+    id: modulo
+    attributes:
+      label: Módulo
+      options:
+        - identity
+        - catalog
+        - transactions
+        - budgeting
+        - credit-cards
+        - goals
+        - reports
+        - capture
+    validations:
+      required: true
+  - type: textarea
+    id: reglas
+    attributes:
+      label: Reglas de negocio
+      description: Cálculos, redondeos, casos borde (meses cortos, monto cero, varias monedas).
+    validations:
+      required: true
+  - type: textarea
+    id: criterios
+    attributes:
+      label: Criterios de aceptación (escenarios Gherkin en español)
+      description: Se convierten en los `.feature` del módulo.
+      value: |
+        ```gherkin
+        # language: es
+        Característica:
+
+          Escenario:
+            Dado ...
+            Cuando ...
+            Entonces ...
+        ```
+    validations:
+      required: true
+  - type: textarea
+    id: ui
+    attributes:
+      label: Notas de interfaz (móvil primero)
+  - type: checkboxes
+    id: alcance
+    attributes:
+      label: Alcance
+      options:
+        - label: Requiere migración de base de datos
+        - label: Requiere endpoints nuevos (documentar en OpenAPI)
+        - label: Entra detrás de un feature flag

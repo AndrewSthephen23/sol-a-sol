@@ -1,0 +1,64 @@
+name: 🐞 Bug
+description: Algo no funciona como debería.
+labels: ['type:bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Recuerda: **un bug corregido = una prueba que lo reproduce primero** (plan, sección 11.2).
+  - type: textarea
+    id: descripcion
+    attributes:
+      label: Qué pasa
+      description: Qué observaste y qué esperabas que pasara.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduccion
+    attributes:
+      label: Cómo reproducirlo
+      placeholder: |
+        1. Ir a...
+        2. Registrar una transacción con...
+        3. El total muestra...
+    validations:
+      required: true
+  - type: dropdown
+    id: modulo
+    attributes:
+      label: Módulo
+      options:
+        - identity
+        - catalog
+        - transactions
+        - budgeting
+        - credit-cards
+        - goals
+        - reports
+        - capture
+        - infraestructura (docker, ci, config)
+        - no lo sé
+    validations:
+      required: true
+  - type: dropdown
+    id: donde
+    attributes:
+      label: Dónde ocurre
+      multiple: true
+      options:
+        - API
+        - Web (escritorio)
+        - Web (móvil)
+        - Base de datos / migraciones
+        - CI
+    validations:
+      required: true
+  - type: textarea
+    id: datos
+    attributes:
+      label: Datos de ejemplo (montos, fechas, moneda)
+      description: Con montos y fechas reales del caso. **Sin datos sensibles** (nunca números completos de tarjeta ni tokens).
+  - type: textarea
+    id: extra
+    attributes:
+      label: Logs, capturas o contexto adicional

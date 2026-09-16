@@ -135,9 +135,33 @@ pnpm 12 aplica un **`minimumReleaseAge`** (las versiones publicadas hace menos d
 | `ci.yml`       | PR y push a `main`                     | commitlint (commits del PR) · formato + lint + tipos · pruebas unitarias con cobertura · integración (Testcontainers) · build · imágenes Docker: build, **Trivy** (bloquea CRITICAL con corrección disponible) y smoke test con `docker-compose.test.yml` · **CI OK** (check único para proteger `main`) |
 | `security.yml` | PR, push a `main` y lunes 06:00 (Lima) | **CodeQL** (JavaScript/TypeScript y GitHub Actions, `security-extended`) · **gitleaks** (commits del PR o historial completo) · **pnpm audit** (falla con high/critical)                                                                                                                                 |
 
+El job **SonarQube Cloud** ejecuta el análisis estático con el quality gate bloqueante (`sonar.qualitygate.wait=true`) sobre la cobertura `lcov` que generan los dos paquetes. Mientras no exista el secreto `SONAR_TOKEN`, sus pasos se omiten con un aviso.
+
+**Conectar SonarQube Cloud** (una sola vez):
+
+1. Entrar a [sonarcloud.io](https://sonarcloud.io) con la cuenta de GitHub y crear la organización a partir del repositorio.
+2. Analizar el proyecto con **GitHub Actions** como método; anotar `projectKey` y `organization`.
+3. Si no coinciden con `sonar-project.properties`, corregir ese archivo.
+4. Generar un token y guardarlo como secreto del repositorio: `gh secret set SONAR_TOKEN`.
+5. En SonarQube Cloud, desactivar el análisis automático para que solo analice el workflow.
+
 - Todas las actions de terceros están **fijadas por SHA de commit** (con la versión en un comentario); Dependabot las actualiza.
 - Trivy y gitleaks se ejecutan desde binarios o imágenes fijados por versión y checksum/digest.
+- `.gitleaks.toml` mantiene **todas** las reglas por defecto y solo agrega excepciones puntuales y justificadas (hoy: `sonar.projectKey`, que es un identificador público). Cada excepción debe indicar archivo y patrón exactos.
 - Los workflows tienen permisos mínimos (`contents: read`; `security-events: write` solo para CodeQL).
+
+## Flujo de trabajo en GitHub
+
+GitHub Flow: `main` siempre desplegable y ramas cortas `feat/…`, `fix/…`, `chore/…`, `docs/…`, `test/…`, `ci/…`.
+
+**`main` está protegida:**
+
+- PR obligatorio; no se puede hacer push directo ni forzado, ni borrar la rama.
+- Checks requeridos en verde y la rama al día con `main`: **CI OK**, **CodeQL (javascript-typescript)**, **CodeQL (actions)**, **Secretos (gitleaks)** y **Dependencias (pnpm audit)**.
+- Historial lineal y **solo squash merge**; la rama se borra al fusionar.
+- Conversaciones resueltas antes de fusionar.
+
+**Plantillas** en `.github/`: issues de bug, funcionalidad, nuevo módulo y deuda técnica (con etiquetas `type:*` y `tech-debt`), plantilla de PR con el checklist de la Definition of Done, y `CODEOWNERS` para que las revisiones se pidan automáticamente.
 
 ## Versiones fijadas del stack
 
