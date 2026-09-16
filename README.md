@@ -8,6 +8,15 @@ Plataforma personal para ordenar mis finanzas y avanzar hacia la libertad financ
 
 🚧 **Hito H0 — Cimientos** (en curso). Esta versión contiene el esqueleto del monorepo, las configuraciones compartidas, la API con `/health` y `/health/ready`, Prisma con el modelo `User` y su primera migración, la página inicial de la web, el entorno completo con Docker Compose y los pipelines de CI y seguridad en GitHub Actions.
 
+## Documentación
+
+| Documento                            | Para qué                                                              |
+| ------------------------------------ | --------------------------------------------------------------------- |
+| [CONTRIBUTING.md](CONTRIBUTING.md)   | Flujo de trabajo, commits, pruebas y Definition of Done               |
+| [CLAUDE.md](CLAUDE.md)               | Reglas del dominio: dinero, fechas, `userId`, fronteras entre módulos |
+| [docs/adr/](docs/adr/)               | Decisiones de arquitectura y por qué se tomaron                       |
+| [docs/glosario.md](docs/glosario.md) | Equivalencias entre los términos del negocio (ES) y del código (EN)   |
+
 ## Requisitos
 
 | Herramienta             | Versión                                          | Cómo              |
@@ -111,6 +120,11 @@ sol-a-sol/
 │   ├── workflows/      # ci.yml, security.yml
 │   └── dependabot.yml
 ├── docker/        # Dockerfiles multi-stage e init.sql de PostgreSQL
+├── docs/
+│   ├── adr/       # Architecture Decision Records
+│   └── glosario.md
+├── CONTRIBUTING.md # Flujo de trabajo, commits, pruebas y Definition of Done
+├── CLAUDE.md       # Reglas del dominio para agentes y personas nuevas
 ├── apps/
 │   ├── api/       # @sol-a-sol/api: NestJS (ESM). Prefijo /api/v1; /health fuera del prefijo
 │   │   ├── prisma/  # schema.prisma y migraciones versionadas (nunca editar una ya aplicada)
