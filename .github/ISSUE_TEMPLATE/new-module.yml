@@ -1,0 +1,59 @@
+name: 🧩 Nuevo módulo
+description: Una capacidad de negocio nueva y autocontenida (plan, sección 5.5).
+labels: ['type:module']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Un módulo nuevo **no debe obligar a modificar los módulos existentes**: se comunica por la API
+        pública de otros módulos o por eventos de dominio.
+  - type: input
+    id: nombre
+    attributes:
+      label: Nombre del módulo (en inglés, kebab-case)
+      placeholder: investments-us
+    validations:
+      required: true
+  - type: textarea
+    id: objetivo
+    attributes:
+      label: Objetivo financiero
+      description: Qué permite entender o decidir sobre mis finanzas.
+    validations:
+      required: true
+  - type: textarea
+    id: reglas
+    attributes:
+      label: Reglas y cálculos principales
+      description: Fórmulas, redondeos y casos borde. Todo cálculo vive en `@sol-a-sol/domain`.
+    validations:
+      required: true
+  - type: textarea
+    id: fuentes
+    attributes:
+      label: Fuentes aprendidas
+      description: De dónde salen las reglas (libros, normativa, SUNAT, BVL...). Con enlaces verificables.
+    validations:
+      required: true
+  - type: textarea
+    id: integracion
+    attributes:
+      label: Integración con módulos existentes
+      description: Qué eventos de dominio escucha o qué APIs públicas consume.
+      placeholder: Escucha TransactionCreated de tipo INVESTMENT para...
+    validations:
+      required: true
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist de la sección 5.5 del plan
+      options:
+        - label: ADR si introduce una decisión técnica nueva
+        - label: Ficha en `docs/modules/<modulo>.md`
+        - label: Escenarios Gherkin en `features/<modulo>/`
+        - label: TDD de la lógica en `packages/domain/src/<modulo>/`
+        - label: Esqueleto con `pnpm gen:module`
+        - label: Migración Prisma nueva
+        - label: Endpoints en OpenAPI y cliente web regenerado
+        - label: Carpeta en `apps/web/src/features/` y entrada en navegación
+        - label: Feature flag `FEATURE_<MODULO>`

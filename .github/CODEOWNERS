@@ -1,0 +1,11 @@
+# Propietarios del código: se piden automáticamente como revisores en cada PR.
+# El autor trabaja solo, pero el flujo de revisión se practica igual (plan, sección 11.3).
+
+* @AndrewSthephen23
+
+# Áreas sensibles: cambios aquí requieren una revisión especialmente cuidadosa
+# (seguridad, datos y pipeline).
+/.github/                     @AndrewSthephen23
+/docker/                      @AndrewSthephen23
+/apps/api/prisma/             @AndrewSthephen23
+/packages/config/             @AndrewSthephen23

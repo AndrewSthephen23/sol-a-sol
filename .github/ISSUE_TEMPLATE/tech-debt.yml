@@ -1,0 +1,45 @@
+name: 🧹 Deuda técnica
+description: Algo que funciona pero conviene arreglar, con su impacto estimado.
+labels: ['tech-debt']
+body:
+  - type: textarea
+    id: contexto
+    attributes:
+      label: Contexto
+      description: Qué es, dónde está y cuándo se detectó (hito, PR o issue).
+    validations:
+      required: true
+  - type: textarea
+    id: evidencia
+    attributes:
+      label: Evidencia
+      description: Medidas, salidas de herramientas, tamaños, tiempos o advisories.
+    validations:
+      required: true
+  - type: textarea
+    id: impacto
+    attributes:
+      label: Impacto estimado
+      description: Qué atributo de calidad (ISO/IEC 25010) afecta y con qué gravedad.
+      value: |
+        | Atributo | Impacto | Detalle |
+        | --- | --- | --- |
+        |  | Bajo / Medio / Alto |  |
+
+        **Urgencia:**
+    validations:
+      required: true
+  - type: textarea
+    id: opciones
+    attributes:
+      label: Opciones a evaluar
+    validations:
+      required: true
+  - type: textarea
+    id: aceptacion
+    attributes:
+      label: Criterios de aceptación
+      value: |
+        - [ ]
+    validations:
+      required: true

@@ -155,11 +155,39 @@ jobs:
         if: always()
         run: docker compose down --volumes
 
+  sonarcloud:
+    name: SonarQube Cloud (quality gate)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      # El contexto `secrets` no se puede usar en el `if` de un job: se expone aquí
+      # para que los pasos se salten mientras el proyecto no esté conectado (ver README).
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Historial completo: Sonar lo usa para atribuir código nuevo (new code).
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        if: env.SONAR_TOKEN != ''
+      - name: Cobertura para el análisis
+        if: env.SONAR_TOKEN != ''
+        run: pnpm turbo run test -- --coverage
+      - name: Análisis y quality gate (bloqueante)
+        if: env.SONAR_TOKEN != ''
+        uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
+        with:
+          args: -Dsonar.qualitygate.wait=true
+      - name: Aviso si SonarQube Cloud no está configurado
+        if: env.SONAR_TOKEN == ''
+        run: echo "::warning title=SonarQube Cloud::Falta el secreto SONAR_TOKEN; el análisis se omitió (ver README)."
+
   ci-ok:
     name: CI OK
     # Check único para la protección de rama: falla si algún job falló o se canceló.
     if: always()
-    needs: [commitlint, quality, unit, integration, build, docker]
+    needs: [commitlint, quality, unit, integration, build, docker, sonarcloud]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:

@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Pregunta o idea sin definir
+    url: https://github.com/AndrewSthephen23/sol-a-sol/discussions
+    about: Para explorar algo que todavía no es un bug ni una funcionalidad concreta.

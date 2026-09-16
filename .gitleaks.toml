@@ -1,0 +1,21 @@
+title = "sol-a-sol"
+# Versión mínima con la que se validó esta configuración.
+minVersion = "8.30.1"
+
+# Se parte de todas las reglas por defecto de gitleaks; aquí solo se agregan
+# excepciones puntuales y justificadas.
+[extend]
+useDefault = true
+
+# El project key de SonarQube Cloud es un identificador público (aparece en la URL
+# del proyecto), pero la regla `generic-api-key` lo marca por la palabra "key" y su
+# entropía. La excepción exige que se cumplan AMBAS condiciones: ese archivo exacto
+# y esa clave exacta, así que cualquier otro valor del archivo se sigue analizando.
+# Sin ancla `^`: al escanear commits, gitleaks evalúa las líneas del diff, que llegan
+# con el prefijo `+`.
+[[allowlists]]
+description = "sonar.projectKey no es un secreto"
+condition = "AND"
+paths = ['''^sonar-project\.properties$''']
+regexes = ['''sonar\.projectKey=[A-Za-z0-9_.:-]+$''']
+regexTarget = "line"
