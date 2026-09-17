@@ -15,3 +15,11 @@ export {
   PERCENTAGE_DECIMAL_PLACES,
   roundPercentage,
 } from './money/money.js';
+export {
+  AmbiguousAmountError,
+  AmountNotFoundError,
+  findAmountInText,
+  InvalidAmountTextError,
+  parseAmount,
+  type ParseAmountOptions,
+} from './money/parse-amount.js';
