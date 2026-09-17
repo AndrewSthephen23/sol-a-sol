@@ -80,7 +80,7 @@ services:
 
   adminer:
     profiles: [tools]
-    image: adminer:5.5.1
+    image: adminer:6.0.1
     environment:
       ADMINER_DEFAULT_SERVER: db
     ports:
