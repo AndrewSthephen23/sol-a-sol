@@ -22,6 +22,8 @@ Las reglas de negocio (dinero, fechas, monedas) están en [`CLAUDE.md`](../../CL
 | `currency/currency`     | Monedas soportadas (`PEN`, `USD`) y su validación                                                  |
 | `money/money`           | `Money`: montos exactos con `decimal.js`, operaciones, repartos sin perder céntimos y porcentajes  |
 | `money/parse-amount`    | `parseAmount` (texto que es solo un monto) y `findAmountInText` (monto dentro de una notificación) |
+| `time/local-date`       | `LocalDate`: fecha de negocio sin hora, aritmética de días y meses, y zona horaria                 |
+| `time/clock`            | Puerto `Clock` para leer el "hoy" y `FixedClock` para pruebas deterministas                        |
 | `errors/describe-value` | Describe el valor rechazado en los mensajes de error                                               |
 
 ## Comandos

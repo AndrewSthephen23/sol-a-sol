@@ -21,6 +21,10 @@ Cada funcionalidad entra **con** su capa de calidad (pruebas, documentación, se
 2. **Nunca `new Date()` en la lógica de dominio.** El "hoy" entra como parámetro o por un puerto `Clock`.
 3. **Montos de transacción siempre positivos**; el signo lo determina el tipo de transacción. `Money` sí admite negativos, porque diferencias y saldos pueden serlo (presupuesto S/ 500 − gasto S/ 550 = −S/ 50): la regla se valida en la transacción, no en el dinero.
 4. **Fechas de negocio sin hora** (`LocalDate`); los timestamps técnicos (`createdAt`) en UTC.
+   - Un instante se convierte a fecha de negocio **siempre con una zona explícita**, normalmente `America/Lima`: a las 21:30 de Lima ya es el día siguiente en UTC, y el gasto quedaría en el día equivocado.
+   - **Día de corte que no existe en el mes:** se ajusta al último día (un corte 31 cierra el 30 de abril y el 28 o 29 de febrero). Lo mismo al sumar meses.
+   - **Sin ajuste por fines de semana ni feriados:** un vencimiento que cae domingo se queda en domingo. Mover al siguiente día hábil exigiría mantener el calendario de feriados de Perú; se evaluará cuando haga falta.
+   - **Fechas escritas como texto:** ISO (`2026-09-17`) por defecto; el formato peruano (`17/09/2026`) solo cuando quien llama sabe que el origen lo usa, porque `03/04/2026` es ambiguo.
 5. **Toda consulta filtra por `userId`** del token, y cada endpoint nuevo lleva una **prueba de acceso denegado** a recursos ajenos (anti-IDOR).
 6. **Nunca datos sensibles de tarjetas:** solo alias, banco y últimos 4 dígitos. Jamás número completo, CVV ni fecha de vencimiento.
 7. **Nunca secretos** en código, fixtures, logs, Dockerfiles ni compose. Si agregas una variable de entorno, actualiza el `.env.example` correspondiente.
