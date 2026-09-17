@@ -6,7 +6,9 @@ Plataforma personal para ordenar mis finanzas y avanzar hacia la libertad financ
 
 ## Estado
 
-🚧 **Hito H0 — Cimientos** (en curso). Esta versión contiene el esqueleto del monorepo, las configuraciones compartidas, la API con `/health` y `/health/ready`, Prisma con el modelo `User` y su primera migración, la página inicial de la web, el entorno completo con Docker Compose y los pipelines de CI y seguridad en GitHub Actions.
+✅ **H0 — Cimientos** publicado en [v0.1.0](https://github.com/AndrewSthephen23/sol-a-sol/releases/tag/v0.1.0): monorepo, API con health checks, web, Prisma, Docker Compose y pipelines de CI, seguridad y releases.
+
+🚧 **H1 — Dominio base** (en curso): paquete `@sol-a-sol/domain` con TDD y mutation testing; siguen `Money`, `parseAmount`, `LocalDate` y el puerto `Clock`.
 
 ## Documentación
 
@@ -66,6 +68,7 @@ Ejemplos válidos: `feat(credit-cards): compute payment due date`, `chore(deps):
 | `pnpm typecheck`                    | Verificación de tipos en todos los paquetes                                               |
 | `pnpm test`                         | Pruebas unitarias                                                                         |
 | `pnpm test:integration`             | Pruebas de integración de la API con PostgreSQL real (Testcontainers; requiere Docker)    |
+| `pnpm test:mutation`                | Mutation testing con Stryker sobre `@sol-a-sol/domain` (falla bajo 80 %)                  |
 | `pnpm db:generate`                  | Genera el cliente de Prisma (`apps/api/src/generated`, no versionado)                     |
 | `pnpm db:migrate`                   | Crea/aplica migraciones en desarrollo (`prisma migrate dev`)                              |
 | `pnpm db:studio`                    | Abre Prisma Studio                                                                        |
@@ -133,7 +136,8 @@ sol-a-sol/
 │   │   └── test/    # integración con Testcontainers
 │   └── web/       # @sol-a-sol/web: Next.js App Router + Tailwind CSS
 └── packages/
-    └── config/    # @sol-a-sol/config: tsconfig, ESLint y Prettier compartidos
+    ├── config/    # @sol-a-sol/config: tsconfig, ESLint y Prettier compartidos
+    └── domain/    # @sol-a-sol/domain: lógica de negocio pura (TDD + Stryker)
 ```
 
 ## Política de dependencias
@@ -206,6 +210,7 @@ Verificadas el 2026-09-15.
 | PostgreSQL     | 18.6 (`18.6-alpine3.24`) | Imagen usada en pruebas de integración y desarrollo                                      |
 | Testcontainers | 12.1.0                   | `@testcontainers/postgresql` para integración                                            |
 | Changesets     | 3.0.3                    | Versión única del producto (grupo `fixed`), CHANGELOG y etiquetas                        |
+| Stryker        | 10.0.0                   | Mutation testing del dominio con `vitest-runner` y `typescript-checker`                  |
 
 Las versiones de Playwright, Cucumber, Stryker, etc. se registrarán aquí al incorporarlas.
 

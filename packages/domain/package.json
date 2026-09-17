@@ -1,0 +1,35 @@
+{
+  "name": "@sol-a-sol/domain",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Lógica de negocio pura de Sol a Sol: value objects y cálculos, sin framework ni base de datos.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:mutation": "stryker run"
+  },
+  "devDependencies": {
+    "@sol-a-sol/config": "workspace:*",
+    "@stryker-mutator/core": "10.0.0",
+    "@stryker-mutator/typescript-checker": "10.0.0",
+    "@stryker-mutator/vitest-runner": "10.0.0",
+    "@vitest/coverage-v8": "5.0.0",
+    "eslint": "10.10.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.0"
+  }
+}
