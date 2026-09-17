@@ -16,6 +16,8 @@ Cada funcionalidad entra **con** su capa de calidad (pruebas, documentación, se
    - Un monto de entrada con **más de 2 decimales se rechaza** (no se redondea en silencio: suele ser un dato mal leído).
    - Los repartos (cuotas) usan `allocate`, que no pierde céntimos: **los céntimos sobrantes van a las primeras partes** (S/ 100.00 en 3 → 33.34, 33.33, 33.33).
    - Los porcentajes (`percentageOf`) se calculan sin redondear y **se muestran con 2 decimales** (36.67 %); con base cero no hay porcentaje (`null`).
+   - **Textos con montos:** `parseAmount` interpreta un texto que solo contiene el monto (`"S/ 1,234.50"`, `"US$ 20"`). Solo acepta **punto decimal** con coma de miles, el formato peruano; `1.234,50` se rechaza por ambiguo en vez de adivinar. Un `$` suelto es **USD** (los soles se escriben `S/`). Si el texto no trae moneda, **la indica quien llama** (`defaultCurrency`): el dominio no supone soles.
+   - **Notificaciones completas:** `findAmountInText` extrae el monto de un texto libre, pero solo si está **pegado a una moneda**, para no confundirlo con los últimos dígitos de la tarjeta, una fecha o el número de cuotas. Si hay montos distintos no elige: la captura va a la bandeja de revisión.
 2. **Nunca `new Date()` en la lógica de dominio.** El "hoy" entra como parámetro o por un puerto `Clock`.
 3. **Montos de transacción siempre positivos**; el signo lo determina el tipo de transacción. `Money` sí admite negativos, porque diferencias y saldos pueden serlo (presupuesto S/ 500 − gasto S/ 550 = −S/ 50): la regla se valida en la transacción, no en el dinero.
 4. **Fechas de negocio sin hora** (`LocalDate`); los timestamps técnicos (`createdAt`) en UTC.
