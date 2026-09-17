@@ -76,6 +76,16 @@ pnpm test:mutation      # si tocaste packages/domain (también corre en CI)
 
 En el PR, explica también **qué atributo de calidad** (ISO/IEC 25010) mejora o protege el cambio.
 
+## Agregar un módulo
+
+```bash
+pnpm gen:module budgeting --title "Presupuesto"
+```
+
+Crea el módulo en la API (con sus cinco capas), la funcionalidad en la web con su manifest, la ficha en `docs/modules/` y el esqueleto Gherkin; y lo registra en la navegación, en el `AppModule`, en `.env.example` (flag apagado) y en los scopes de commitlint. Con `--dry-run` muestra qué haría sin escribir nada.
+
+Después: completa la ficha y los escenarios, escribe la lógica en `packages/domain` con TDD, y **activa el flag (`FEATURE_<MODULO>=true`) solo cuando el módulo cumpla la Definition of Done**.
+
 ## Versionado y releases
 
 El proyecto usa [Changesets](https://github.com/changesets/changesets) con **una sola versión para todo el producto**: todos los paquetes `@sol-a-sol/*` suben juntos.

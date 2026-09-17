@@ -25,6 +25,7 @@
     "db:generate": "turbo run db:generate",
     "db:migrate": "pnpm --filter @sol-a-sol/api db:migrate",
     "db:studio": "pnpm --filter @sol-a-sol/api db:studio",
+    "gen:module": "pnpm --filter @sol-a-sol/tooling build && node packages/tooling/dist/main.js",
     "changeset": "changeset",
     "version-packages": "changeset version",
     "format": "prettier --write .",

@@ -28,6 +28,7 @@ export default {
         'capture-parsers',
         'ui',
         'config',
+        'tooling',
         // Transversales
         'db',
         'docker',
