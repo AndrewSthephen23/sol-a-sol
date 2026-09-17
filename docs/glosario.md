@@ -4,6 +4,10 @@ La interfaz y la documentación van en español; el código, en inglés. Esta ta
 
 | Español                                         | Código                                              |
 | ----------------------------------------------- | --------------------------------------------------- |
+| Monto / Dinero                                  | `Money`                                             |
+| Moneda (soles / dólares)                        | `Currency` (`PEN` / `USD`)                          |
+| Repartir en cuotas                              | `allocate`                                          |
+| Porcentaje de un total                          | `percentageOf`                                      |
 | Transacción                                     | `Transaction`                                       |
 | Ingreso / Gasto fijo / Gasto variable           | `INCOME` / `FIXED_EXPENSE` / `VARIABLE_EXPENSE`     |
 | Ahorro / Inversión / Deuda                      | `SAVING` / `INVESTMENT` / `DEBT`                    |

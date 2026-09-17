@@ -16,10 +16,12 @@ Las reglas de negocio (dinero, fechas, monedas) están en [`CLAUDE.md`](../../CL
 
 ## Contenido
 
-| Módulo                | Qué es                                                          |
-| --------------------- | --------------------------------------------------------------- |
-| `errors/domain-error` | Base de los errores de negocio, con un `code` estable en inglés |
-| `currency/currency`   | Monedas soportadas (`PEN`, `USD`) y su validación               |
+| Módulo                  | Qué es                                                                                            |
+| ----------------------- | ------------------------------------------------------------------------------------------------- |
+| `errors/domain-error`   | Base de los errores de negocio, con un `code` estable en inglés                                   |
+| `currency/currency`     | Monedas soportadas (`PEN`, `USD`) y su validación                                                 |
+| `money/money`           | `Money`: montos exactos con `decimal.js`, operaciones, repartos sin perder céntimos y porcentajes |
+| `errors/describe-value` | Describe el valor rechazado en los mensajes de error                                              |
 
 ## Comandos
 

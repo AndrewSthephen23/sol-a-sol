@@ -10,9 +10,14 @@ Cada funcionalidad entra **con** su capa de calidad (pruebas, documentación, se
 
 ## Reglas no negociables
 
-1. **Nunca `number` para dinero.** Se usa el value object `Money { amount: Decimal; currency: 'PEN' | 'USD' }`. Redondeo bancario (half-even) a 2 decimales solo al presentar o persistir; sumar monedas distintas lanza error; los repartos (cuotas) usan `allocate`, que no pierde céntimos.
+1. **Nunca `number` para dinero.** Se usa el value object `Money { amount: Decimal; currency: 'PEN' | 'USD' }`:
+   - Los cálculos conservan toda la precisión; el **redondeo bancario (half-even) a 2 decimales** se aplica solo al presentar o persistir (`toFixed()`).
+   - Sumar o comparar monedas distintas lanza error.
+   - Un monto de entrada con **más de 2 decimales se rechaza** (no se redondea en silencio: suele ser un dato mal leído).
+   - Los repartos (cuotas) usan `allocate`, que no pierde céntimos: **los céntimos sobrantes van a las primeras partes** (S/ 100.00 en 3 → 33.34, 33.33, 33.33).
+   - Los porcentajes (`percentageOf`) se calculan sin redondear y **se muestran con 2 decimales** (36.67 %); con base cero no hay porcentaje (`null`).
 2. **Nunca `new Date()` en la lógica de dominio.** El "hoy" entra como parámetro o por un puerto `Clock`.
-3. **Montos siempre positivos**; el signo lo determina el tipo de transacción.
+3. **Montos de transacción siempre positivos**; el signo lo determina el tipo de transacción. `Money` sí admite negativos, porque diferencias y saldos pueden serlo (presupuesto S/ 500 − gasto S/ 550 = −S/ 50): la regla se valida en la transacción, no en el dinero.
 4. **Fechas de negocio sin hora** (`LocalDate`); los timestamps técnicos (`createdAt`) en UTC.
 5. **Toda consulta filtra por `userId`** del token, y cada endpoint nuevo lleva una **prueba de acceso denegado** a recursos ajenos (anti-IDOR).
 6. **Nunca datos sensibles de tarjetas:** solo alias, banco y últimos 4 dígitos. Jamás número completo, CVV ni fecha de vencimiento.
