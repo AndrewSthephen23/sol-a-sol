@@ -39,6 +39,25 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: pnpm exec commitlint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose
 
+  changeset:
+    name: Changeset
+    # Dependabot no escribe changesets y los PR de release (release/vX.Y.Z) los consumen.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.actor != 'dependabot[bot]' &&
+      !startsWith(github.head_ref, 'release/')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: El PR incluye un changeset si cambia algún paquete
+        # Si el cambio no necesita versión: `pnpm changeset --empty`.
+        run: pnpm exec changeset status --since=origin/main
+
   quality:
     name: Formato, lint y tipos
     runs-on: ubuntu-24.04
@@ -174,11 +193,18 @@ jobs:
       - name: Cobertura para el análisis
         if: env.SONAR_TOKEN != ''
         run: pnpm turbo run test -- --coverage
+      - name: Versión del producto
+        id: version
+        if: env.SONAR_TOKEN != ''
+        # Con la definición de código nuevo "Previous version", Sonar compara contra la versión anterior.
+        run: echo "version=$(node -p "require('./apps/api/package.json').version")" >> "$GITHUB_OUTPUT"
       - name: Análisis y quality gate (bloqueante)
         if: env.SONAR_TOKEN != ''
         uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
         with:
-          args: -Dsonar.qualitygate.wait=true
+          args: >-
+            -Dsonar.qualitygate.wait=true
+            -Dsonar.projectVersion=${{ steps.version.outputs.version }}
       - name: Aviso si SonarQube Cloud no está configurado
         if: env.SONAR_TOKEN == ''
         run: echo "::warning title=SonarQube Cloud::Falta el secreto SONAR_TOKEN; el análisis se omitió (ver README)."
@@ -187,7 +213,7 @@ jobs:
     name: CI OK
     # Check único para la protección de rama: falla si algún job falló o se canceló.
     if: always()
-    needs: [commitlint, quality, unit, integration, build, docker, sonarcloud]
+    needs: [commitlint, changeset, quality, unit, integration, build, docker, sonarcloud]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:

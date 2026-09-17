@@ -56,7 +56,7 @@ updates:
       styles:
         patterns: ['tailwindcss', '@tailwindcss/*']
       build-tooling:
-        patterns: ['turbo', 'typescript']
+        patterns: ['turbo', 'typescript', '@changesets/*']
     ignore:
       # TypeScript 7 no es compatible con typescript-eslint 8 (ver README).
       - dependency-name: typescript
