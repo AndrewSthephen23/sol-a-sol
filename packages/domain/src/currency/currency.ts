@@ -1,3 +1,4 @@
+import { describeValue } from '../errors/describe-value.js';
 import { DomainError } from '../errors/domain-error.js';
 
 /** Monedas soportadas: soles (principal) y dólares estadounidenses. Códigos ISO 4217. */
@@ -9,7 +10,7 @@ export class InvalidCurrencyError extends DomainError {
   readonly code = 'INVALID_CURRENCY';
 
   constructor(readonly value: unknown) {
-    super(`Unsupported currency: ${describe(value)}`);
+    super(`Unsupported currency: ${describeValue(value)}`);
   }
 }
 
@@ -29,8 +30,4 @@ export function toCurrency(value: unknown): Currency {
     throw new InvalidCurrencyError(value);
   }
   return value;
-}
-
-function describe(value: unknown): string {
-  return typeof value === 'string' ? JSON.stringify(value) : String(value);
 }

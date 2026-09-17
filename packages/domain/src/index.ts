@@ -6,3 +6,12 @@ export {
   isCurrency,
   toCurrency,
 } from './currency/currency.js';
+export {
+  CurrencyMismatchError,
+  type DecimalInput,
+  InvalidAllocationError,
+  InvalidAmountError,
+  Money,
+  PERCENTAGE_DECIMAL_PLACES,
+  roundPercentage,
+} from './money/money.js';

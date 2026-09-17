@@ -365,6 +365,10 @@ importers:
         version: 6.0.3
 
   packages/domain:
+    dependencies:
+      decimal.js:
+        specifier: 10.6.0
+        version: 10.6.0
     devDependencies:
       '@sol-a-sol/config':
         specifier: workspace:*
