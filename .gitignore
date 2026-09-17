@@ -22,7 +22,7 @@ next-env.d.ts
 
 # Pruebas
 coverage/
-reports/mutation/
+**/reports/mutation/
 playwright-report/
 test-results/
 blob-report/

@@ -20,6 +20,10 @@
       "dependsOn": ["^build", "db:generate"],
       "outputs": ["coverage/**"]
     },
+    "test:mutation": {
+      "dependsOn": ["^build"],
+      "outputs": ["reports/mutation/**"]
+    },
     "test:integration": {
       "dependsOn": ["^build", "db:generate"],
       "cache": false

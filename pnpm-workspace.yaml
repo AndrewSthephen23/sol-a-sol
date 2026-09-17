@@ -15,6 +15,10 @@ overrides:
   # Mayor compatible con su uso (combinar objetos de configuración planos); validado con
   # prisma validate/generate y migrate deploy en las pruebas de integración.
   deepmerge-ts: 8.0.2
+  # typed-rest-client@2.3.1 (dependencia de @stryker-mutator/core, solo desarrollo) fija qs@6.15.1.
+  # GHSA-q8mj-m7cp-5q26, GHSA-x5fp-wj9c-mxmx y GHSA-4mjr-xmp4-gh2g (moderate), corregidos en 6.16.0
+  # (misma versión mayor); validado corriendo Stryker.
+  qs: 6.16.0
 
 # Solo se ejecutan scripts de instalación explícitamente aprobados (revisados uno por uno).
 allowBuilds:
@@ -30,3 +34,9 @@ allowBuilds:
   cpu-features: false
   ssh2: false
   protobufjs: false
+# Parches a dependencias. Cada uno debe quitarse cuando exista la corrección oficial.
+patchedDependencies:
+  # Con Vitest 5, el runner de Stryker filtra las pruebas por nombre uniendo la cadena
+  # describe/it con espacios, pero Vitest compara contra la cadena unida con ' > ': no se ejecuta
+  # ninguna prueba por mutante y todos "sobreviven". Upstream: stryker-js#6210. Seguimiento: issue #14.
+  '@stryker-mutator/vitest-runner@10.0.0': patches/@stryker-mutator__vitest-runner@10.0.0.patch

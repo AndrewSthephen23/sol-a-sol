@@ -58,6 +58,7 @@ El hook `commit-msg` los valida localmente y CI los vuelve a validar en el PR.
 ```bash
 pnpm lint && pnpm typecheck && pnpm test && pnpm build
 pnpm test:integration   # si tocaste API, base de datos o migraciones
+pnpm test:mutation      # si tocaste packages/domain (también corre en CI)
 ```
 
 ### Definition of Done

@@ -39,6 +39,7 @@ updates:
             'unplugin-swc',
             '@swc/core',
             '@vitejs/plugin-react',
+            '@stryker-mutator/*',
           ]
       lint-format:
         patterns:

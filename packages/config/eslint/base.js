@@ -19,7 +19,8 @@ export default defineConfig(
     },
   },
   {
-    files: ['**/*.{js,mjs,cjs}'],
+    // Archivos de configuración de herramientas: no forman parte de ningún tsconfig de código.
+    files: ['**/*.{js,mjs,cjs}', '**/*.config.{ts,mts}'],
     extends: [tseslint.configs.disableTypeChecked],
   },
   prettier,

@@ -21,6 +21,7 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:integration": "turbo run test:integration",
+    "test:mutation": "turbo run test:mutation",
     "db:generate": "turbo run db:generate",
     "db:migrate": "pnpm --filter @sol-a-sol/api db:migrate",
     "db:studio": "pnpm --filter @sol-a-sol/api db:studio",
