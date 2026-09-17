@@ -51,6 +51,8 @@ apps/api/src/modules/<modulo>/
 
 Módulos de la fase 1: `identity`, `catalog`, `transactions`, `budgeting`, `credit-cards`, `goals`, `reports`, `capture`. Fases posteriores (no implementar aún): `investments-us`, `funds`, `investments-pe`, `retirement`.
 
+**Feature flags.** Un módulo en construcción se integra a `main` **apagado**: se activa solo si su variable vale exactamente `true` (`FEATURE_BUDGETING=true`); cualquier otro valor lo deja apagado. En la API, las rutas del módulo llevan `@RequiresFeature('<modulo>')` y responden **404** cuando está apagado (un 403 confirmaría que existe). En la web, cada funcionalidad declara su `manifest` (`id`, `title`, `route`, `icon`, `flag`) y la navegación se arma leyendo el registro: **no se edita el layout** para agregar un módulo.
+
 ## Convenciones de la API
 
 - Base `/api/v1`; los cambios incompatibles van a `/api/v2`. `/health` y `/health/ready` quedan **fuera** del prefijo.

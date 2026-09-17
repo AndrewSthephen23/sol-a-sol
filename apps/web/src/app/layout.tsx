@@ -1,4 +1,8 @@
 import type { Metadata, Viewport } from 'next';
+
+import { isFeatureEnabled } from '@/shared/navigation/feature-flags';
+import { featureManifests } from '@/shared/navigation/registry';
+import { Sidebar } from '@/shared/navigation/sidebar';
 import type { ReactNode } from 'react';
 
 import './globals.css';
@@ -16,7 +20,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="es-PE">
-      <body className="min-h-dvh bg-stone-50 text-stone-900 antialiased">{children}</body>
+      <body className="min-h-dvh bg-stone-50 text-stone-900 antialiased">
+        <Sidebar manifests={featureManifests} isEnabled={isFeatureEnabled} />
+        {children}
+      </body>
     </html>
   );
 }

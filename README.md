@@ -8,7 +8,7 @@ Plataforma personal para ordenar mis finanzas y avanzar hacia la libertad financ
 
 ✅ **H0 — Cimientos** publicado en [v0.1.0](https://github.com/AndrewSthephen23/sol-a-sol/releases/tag/v0.1.0): monorepo, API con health checks, web, Prisma, Docker Compose y pipelines de CI, seguridad y releases.
 
-🚧 **H1 — Dominio base** (en curso): paquete `@sol-a-sol/domain` con TDD y mutation testing; siguen `Money`, `parseAmount`, `LocalDate` y el puerto `Clock`.
+🚧 **H1 — Dominio base** (en curso): `@sol-a-sol/domain` con `Money`, `parseAmount`, `LocalDate` y el puerto `Clock` (TDD y mutation testing al 100 %), más feature flags por módulo y navegación por manifests. Falta el generador `pnpm gen:module`.
 
 ## Documentación
 
@@ -82,6 +82,10 @@ Para trabajar en una sola app: `pnpm --filter @sol-a-sol/api dev` (http://localh
 
 La API expone `GET /health` (liveness) y `GET /health/ready` (readiness: 503 si PostgreSQL no responde).
 
+### Feature flags
+
+Cada módulo de negocio se activa con su propia variable (`FEATURE_BUDGETING`, `FEATURE_CREDIT_CARDS`, …), **solo** con el valor exacto `true`. En desarrollo se definen en `apps/api/.env` (ver `apps/api/.env.example`), que Docker Compose carga si existe. Un módulo apagado no aparece en la navegación de la web y sus rutas de API responden 404.
+
 ## Docker
 
 ### Desarrollo (`docker-compose.yml`)
@@ -135,6 +139,7 @@ sol-a-sol/
 │   │   ├── prisma/  # schema.prisma y migraciones versionadas (nunca editar una ya aplicada)
 │   │   └── test/    # integración con Testcontainers
 │   └── web/       # @sol-a-sol/web: Next.js App Router + Tailwind CSS
+│       └── src/features/  # una carpeta por módulo, cada una con su manifest de navegación
 └── packages/
     ├── config/    # @sol-a-sol/config: tsconfig, ESLint y Prettier compartidos
     └── domain/    # @sol-a-sol/domain: lógica de negocio pura (TDD + Stryker)
