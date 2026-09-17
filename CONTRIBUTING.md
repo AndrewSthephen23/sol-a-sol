@@ -75,6 +75,33 @@ pnpm test:integration   # si tocaste API, base de datos o migraciones
 
 En el PR, explica también **qué atributo de calidad** (ISO/IEC 25010) mejora o protege el cambio.
 
+## Versionado y releases
+
+El proyecto usa [Changesets](https://github.com/changesets/changesets) con **una sola versión para todo el producto**: todos los paquetes `@sol-a-sol/*` suben juntos.
+
+### En cada PR
+
+```bash
+pnpm changeset
+```
+
+Elige los paquetes, el tipo de cambio y escribe un resumen **en español** (se copia tal cual al `CHANGELOG.md`). Se crea un archivo en `.changeset/` que va en el mismo PR. El job **Changeset** de CI falla si el PR cambia un paquete y no lo trae.
+
+| Tipo de cambio | Mientras la versión sea `0.x`                    | Ejemplo           |
+| -------------- | ------------------------------------------------ | ----------------- |
+| `minor`        | Cierre de un hito del plan                       | H1 → `0.2.0`      |
+| `patch`        | Corrección o avance dentro de un hito            | `0.2.0` → `0.2.1` |
+| `major`        | Reservado para `1.0.0` (salida a producción, H8) | —                 |
+
+Si el cambio no necesita versión (refactor interno, pruebas, CI): `pnpm changeset --empty`.
+
+### Publicar una versión
+
+1. Crea la rama `release/vX.Y.Z` desde `main` actualizado.
+2. Ejecuta `pnpm version-packages`: consume los changesets, sube las versiones y escribe los `CHANGELOG.md`.
+3. Revisa los cambios y abre el PR con el commit `chore(release): vX.Y.Z` (el job Changeset se salta en ramas `release/*`).
+4. Al fusionarlo, el workflow **Release** crea las etiquetas `vX.Y.Z` y `@sol-a-sol/<paquete>@X.Y.Z` y publica el **GitHub Release** con las notas del changelog. Las versiones `0.x` se publican como _pre-release_.
+
 ## Dependencias
 
 No agregues dependencias sin justificarlo en el PR (y en un ADR si es estructural); prefiere lo que ya está en el stack. La política completa (antigüedad mínima de versiones, scripts de instalación aprobados, `overrides`) está en el [`README.md`](README.md#política-de-dependencias).

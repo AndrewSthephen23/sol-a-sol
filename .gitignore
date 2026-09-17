@@ -1,6 +1,9 @@
 # Documento de planificación local (no se versiona)
 plan.md
 
+# Borradores y guías personales (no se versionan)
+Borrador/
+
 # Dependencias
 node_modules/
 .pnpm-store/

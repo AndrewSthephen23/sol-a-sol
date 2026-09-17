@@ -70,6 +70,8 @@ Ejemplos válidos: `feat(credit-cards): compute payment due date`, `chore(deps):
 | `pnpm db:migrate`                   | Crea/aplica migraciones en desarrollo (`prisma migrate dev`)                              |
 | `pnpm db:studio`                    | Abre Prisma Studio                                                                        |
 | `pnpm format` / `pnpm format:check` | Formatea / verifica formato con Prettier                                                  |
+| `pnpm changeset`                    | Describe el cambio del PR y cuánto sube la versión (ver `CONTRIBUTING.md`)                |
+| `pnpm version-packages`             | Consume los changesets: sube la versión y escribe los `CHANGELOG.md` (PR de release)      |
 
 Más comandos (`test:e2e`, `db:seed`, `gen:module`, etc.) se irán agregando en los hitos siguientes.
 
@@ -148,6 +150,9 @@ pnpm 12 aplica un **`minimumReleaseAge`** (las versiones publicadas hace menos d
 | -------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ci.yml`       | PR y push a `main`                     | commitlint (commits del PR) · formato + lint + tipos · pruebas unitarias con cobertura · integración (Testcontainers) · build · imágenes Docker: build, **Trivy** (bloquea CRITICAL con corrección disponible) y smoke test con `docker-compose.test.yml` · **CI OK** (check único para proteger `main`) |
 | `security.yml` | PR, push a `main` y lunes 06:00 (Lima) | **CodeQL** (JavaScript/TypeScript y GitHub Actions, `security-extended`) · **gitleaks** (commits del PR o historial completo) · **pnpm audit** (falla con high/critical)                                                                                                                                 |
+| `release.yml`  | Push a `main`                          | Si llegó una versión nueva (PR `release/vX.Y.Z`): etiquetas `vX.Y.Z` y `@sol-a-sol/<paquete>@X.Y.Z`, y **GitHub Release** con las notas del `CHANGELOG.md`                                                                                                                                               |
+
+`ci.yml` incluye además el job **Changeset**: en cada PR que cambia un paquete exige un changeset (salvo Dependabot y las ramas `release/*`).
 
 El job **SonarQube Cloud** ejecuta el análisis estático con el quality gate bloqueante (`sonar.qualitygate.wait=true`) sobre la cobertura `lcov` que generan los dos paquetes. Mientras no exista el secreto `SONAR_TOKEN`, sus pasos se omiten con un aviso.
 
@@ -200,6 +205,7 @@ Verificadas el 2026-09-15.
 | Prisma         | 7.10.0                   | Generador `prisma-client` (ESM) + `@prisma/adapter-pg`. No 8.x: aún es release candidate |
 | PostgreSQL     | 18.6 (`18.6-alpine3.24`) | Imagen usada en pruebas de integración y desarrollo                                      |
 | Testcontainers | 12.1.0                   | `@testcontainers/postgresql` para integración                                            |
+| Changesets     | 3.0.3                    | Versión única del producto (grupo `fixed`), CHANGELOG y etiquetas                        |
 
 Las versiones de Playwright, Cucumber, Stryker, etc. se registrarán aquí al incorporarlas.
 

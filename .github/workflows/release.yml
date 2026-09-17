@@ -1,0 +1,78 @@
+name: Release
+
+# Etiqueta y publica un GitHub Release cuando llega a `main` una versión nueva
+# (un PR `release/vX.Y.Z` que ejecutó `pnpm version-packages`).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  HUSKY: '0'
+
+jobs:
+  tag:
+    name: Etiquetar versión
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Historial y etiquetas completos para saber qué versiones ya existen.
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+
+      - name: Detectar versión pendiente de etiquetar
+        id: version
+        run: |
+          version="$(node -p "require('./apps/api/package.json').version")"
+          pending="$(find .changeset -name '*.md' ! -name README.md | wc -l)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [ "$version" = "0.0.0" ]; then
+            echo "should_tag=false" >> "$GITHUB_OUTPUT"
+            echo "Sin versión publicada todavía (0.0.0)."
+          elif [ "$pending" -gt 0 ]; then
+            echo "should_tag=false" >> "$GITHUB_OUTPUT"
+            echo "Hay $pending changeset(s) sin versionar: se etiqueta al fusionar el PR release/v…"
+          elif git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
+            echo "should_tag=false" >> "$GITHUB_OUTPUT"
+            echo "La versión v$version ya está etiquetada."
+          else
+            echo "should_tag=true" >> "$GITHUB_OUTPUT"
+            echo "Versión nueva: v$version"
+          fi
+
+      - name: Crear etiquetas (producto y paquetes)
+        if: steps.version.outputs.should_tag == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Etiquetas por paquete (@sol-a-sol/api@X.Y.Z, ...)
+          pnpm exec changeset tag
+          # Etiqueta del producto (vX.Y.Z)
+          git tag -a "v$VERSION" -m "Sol a Sol v$VERSION"
+          git push origin --tags
+
+      - name: Publicar GitHub Release
+        if: steps.version.outputs.should_tag == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          prerelease=""
+          case "$VERSION" in 0.*) prerelease="--prerelease" ;; esac
+          gh release create "v$VERSION" \
+            --title "Sol a Sol v$VERSION" \
+            --notes-file <(awk -v v="## $VERSION" '$0 == v {found=1; next} found && /^## / {exit} found' apps/api/CHANGELOG.md) \
+            --verify-tag $prerelease

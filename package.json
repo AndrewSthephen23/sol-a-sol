@@ -24,12 +24,15 @@
     "db:generate": "turbo run db:generate",
     "db:migrate": "pnpm --filter @sol-a-sol/api db:migrate",
     "db:studio": "pnpm --filter @sol-a-sol/api db:studio",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky"
   },
   "prettier": "@sol-a-sol/config/prettier",
   "devDependencies": {
+    "@changesets/cli": "3.0.3",
     "@commitlint/cli": "21.2.2",
     "@commitlint/config-conventional": "21.2.2",
     "@commitlint/types": "21.2.0",
