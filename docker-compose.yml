@@ -33,6 +33,10 @@ services:
     environment:
       DATABASE_URL: *database-url
       PORT: 3001
+    # Feature flags de desarrollo, en un solo archivo (opcional).
+    env_file:
+      - path: apps/api/.env
+        required: false
     # Aplica/crea migraciones, genera el cliente y arranca en modo watch.
     command: sh -c "pnpm exec prisma migrate dev && pnpm exec prisma generate && pnpm exec nest start --watch"
     ports:
@@ -62,6 +66,10 @@ services:
     environment:
       # URL interna de la API para llamadas desde el servidor de Next.js (se usará desde H2).
       API_URL: http://api:3001
+    # Los mismos feature flags que la API, para que la navegación coincida.
+    env_file:
+      - path: apps/api/.env
+        required: false
     ports:
       - 127.0.0.1:${WEB_PORT:-3000}:3000
     volumes:
