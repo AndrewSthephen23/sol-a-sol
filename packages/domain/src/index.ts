@@ -15,6 +15,13 @@ export {
   PERCENTAGE_DECIMAL_PLACES,
   roundPercentage,
 } from './money/money.js';
+export { type Clock, FixedClock, PERU_TIME_ZONE, today } from './time/clock.js';
+export {
+  InvalidInstantError,
+  InvalidLocalDateError,
+  InvalidTimeZoneError,
+  LocalDate,
+} from './time/local-date.js';
 export {
   AmbiguousAmountError,
   AmountNotFoundError,
