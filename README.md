@@ -118,7 +118,9 @@ Dockerfiles multi-stage en `docker/` (`pruner` → `deps` → `build` → `runti
 - Base `node:24.21.0-trixie-slim` y `postgres:18.6-alpine3.24` **fijadas por digest**.
 - `turbo prune --docker` + caché del store de pnpm: la instalación de dependencias solo se repite si cambia el lockfile.
 - Imagen final con **usuario `node`**, archivos de la app propiedad de root (solo lectura), `HEALTHCHECK`, parches de seguridad de Debian aplicados y **sin npm ni corepack**.
-- API: solo dependencias de producción (`pnpm deploy --prod`) y `dist/`. Web: salida `standalone` de Next.js.
+- API: solo dependencias de producción (`pnpm deploy --prod --no-optional`) y `dist/`. `--no-optional` descarta
+  los peers opcionales que la API no ejecuta —la CLI de Prisma y `typescript`, que pnpm resuelve por estar en
+  el workspace—: `node_modules` pasa de 362 MB a 98 MB. Web: salida `standalone` de Next.js.
 - Las credenciales del entorno de pruebas no son secretas (base efímera) y se pueden sobrescribir por variables de entorno.
 
 ## Estructura
