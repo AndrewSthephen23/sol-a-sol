@@ -23,5 +23,56 @@ model User {
   timezone     String   @default("America/Lima")
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
+  personalAccessTokens PersonalAccessToken[]
+
   @@map("users")
+}
+
+/// Token de larga duración para que un dispositivo (el celular) use la API sin la contraseña.
+/// Solo se guarda su hash: el valor se muestra una vez al crearlo y no se puede recuperar.
+model PersonalAccessToken {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  /// Nombre del dispositivo ("iPhone"), para poder revocar uno solo.
+  name       String
+  tokenHash  String    @map("token_hash")
+  /// Permisos mínimos del token; el primero será `captures:write`.
+  scopes     String[]
+  /// Última vez que se usó, para saber si el token sigue vivo.
+  lastUsedAt DateTime? @map("last_used_at") @db.Timestamptz(3)
+  /// Nulo significa que no caduca; por defecto se proponen 90 días.
+  expiresAt  DateTime? @map("expires_at") @db.Timestamptz(3)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("personal_access_tokens")
+}
+
+/// Bitácora de seguridad: login (con éxito y fallido), cambios de 2FA, alta y revocación
+/// de tokens, y borrados.
+///
+/// A propósito **sin clave foránea** hacia `User`. Una entrada de auditoría es un hecho
+/// inmutable sobre algo que ya pasó y debe sobrevivir al borrado de quien lo provocó: con
+/// `onDelete: SetNull` perderíamos quién hizo qué, y con `Cascade` quien borra su cuenta
+/// borraría la evidencia. La integridad la garantiza la aplicación, no la base.
+///
+/// `userId` es opcional porque un intento de login contra un correo inexistente no tiene
+/// usuario conocido.
+model AuditLog {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  /// Qué se hizo, en inglés y en pasado: `login.succeeded`, `token.revoked`.
+  action    String
+  /// Sobre qué tipo de entidad: `user`, `personal_access_token`.
+  entity    String
+  /// Identificador de esa entidad. Texto libre: no toda entidad tendrá un UUID.
+  entityId  String?  @map("entity_id")
+  at        DateTime @default(now()) @db.Timestamptz(3)
+  ip        String?
+  userAgent String?  @map("user_agent")
+
+  @@index([userId, at])
+  @@map("audit_logs")
 }
