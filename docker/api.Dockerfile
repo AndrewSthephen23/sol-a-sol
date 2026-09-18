@@ -67,6 +67,12 @@ CMD ["pnpm", "exec", "prisma", "migrate", "deploy"]
 FROM node:24.21.0-trixie-slim@sha256:db3ae80f5d8df06e04dabdf7b44cbf008d32de168205fa0294444aabbc08c590 AS runtime
 ENV NODE_ENV=production \
     PORT=3001
+# `image.source` es lo que hace que GHCR vincule el paquete publicado con este repositorio
+# (y que herede sus permisos). Ver el job `images` de `release.yml`.
+LABEL org.opencontainers.image.source="https://github.com/AndrewSthephen23/sol-a-sol" \
+      org.opencontainers.image.title="sol-a-sol-api" \
+      org.opencontainers.image.description="API de Sol a Sol (NestJS)." \
+      org.opencontainers.image.licenses="UNLICENSED"
 # Parches de seguridad del sistema base y fuera npm/corepack: no se usan en runtime
 # y sus dependencias empaquetadas arrastran vulnerabilidades (detectadas por Trivy).
 RUN apt-get update \

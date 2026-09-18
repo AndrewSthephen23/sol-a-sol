@@ -163,9 +163,22 @@ pnpm 12 aplica un **`minimumReleaseAge`** (las versiones publicadas hace menos d
 | -------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ci.yml`       | PR y push a `main`                     | commitlint (commits del PR) · formato + lint + tipos · pruebas unitarias con cobertura · integración (Testcontainers) · build · imágenes Docker: build, **Trivy** (bloquea CRITICAL con corrección disponible) y smoke test con `docker-compose.test.yml` · **CI OK** (check único para proteger `main`) |
 | `security.yml` | PR, push a `main` y lunes 06:00 (Lima) | **CodeQL** (JavaScript/TypeScript y GitHub Actions, `security-extended`) · **gitleaks** (commits del PR o historial completo) · **pnpm audit** (falla con high/critical)                                                                                                                                 |
-| `release.yml`  | Push a `main`                          | Si llegó una versión nueva (PR `release/vX.Y.Z`): etiquetas `vX.Y.Z` y `@sol-a-sol/<paquete>@X.Y.Z`, y **GitHub Release** con las notas del `CHANGELOG.md`                                                                                                                                               |
+| `release.yml`  | Push a `main`                          | Si llegó una versión nueva (PR `release/vX.Y.Z`): etiquetas `vX.Y.Z` y `@sol-a-sol/<paquete>@X.Y.Z`, **GitHub Release** con las notas del `CHANGELOG.md` y publicación de las **imágenes en GHCR**                                                                                                       |
 
 `ci.yml` incluye además el job **Changeset**: en cada PR que cambia un paquete exige un changeset (salvo Dependabot y las ramas `release/*`).
+
+### Imágenes publicadas
+
+Cada versión publica en GHCR las mismas imágenes de producción que construye `docker-compose.test.yml`:
+
+```bash
+docker pull ghcr.io/andrewsthephen23/sol-a-sol-api:0.2.0
+docker pull ghcr.io/andrewsthephen23/sol-a-sol-web:0.2.0
+```
+
+Cada imagen lleva dos etiquetas: `X.Y.Z` y `sha-<commit>`. No hay `latest`: obliga a decir qué versión se despliega. El job solo corre cuando el push a `main` trae una versión nueva, tiene `packages: write` únicamente para él, y **no publica nada** hasta que las imágenes pasan el bloqueo de Trivy y un smoke test que las arranca.
+
+> **La primera vez.** GHCR crea los paquetes **privados**: hasta hacerlos públicos en _Packages → Package settings → Change visibility_, `docker pull` exige autenticarse (`docker login ghcr.io` con un token con `read:packages`). La etiqueta `org.opencontainers.image.source` de los Dockerfiles es la que vincula cada paquete con este repositorio.
 
 El job **SonarQube Cloud** ejecuta el análisis estático con el quality gate bloqueante (`sonar.qualitygate.wait=true`) sobre la cobertura `lcov` que generan los dos paquetes. Mientras no exista el secreto `SONAR_TOKEN`, sus pasos se omiten con un aviso.
 

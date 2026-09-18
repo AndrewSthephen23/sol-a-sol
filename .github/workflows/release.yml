@@ -16,6 +16,9 @@ concurrency:
 
 env:
   HUSKY: '0'
+  # Trivy fijado por versión y digest (no se usa trivy-action: menos superficie de cadena de
+  # suministro). Mismo pin que `ci.yml`: al actualizarlo, cambiar los dos workflows.
+  TRIVY_IMAGE: aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
 
 jobs:
   tag:
@@ -24,6 +27,9 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      should_tag: ${{ steps.version.outputs.should_tag }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -76,3 +82,121 @@ jobs:
             --title "Sol a Sol v$VERSION" \
             --notes-file <(awk -v v="## $VERSION" '$0 == v {found=1; next} found && /^## / {exit} found' apps/api/CHANGELOG.md) \
             --verify-tag $prerelease
+
+  images:
+    name: Imágenes en GHCR
+    needs: tag
+    # Solo cuando el push a `main` trae una versión nueva: un push normal no publica nada.
+    if: needs.tag.outputs.should_tag == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      # `packages: write` vive solo aquí; `contents: write` es para enlazar las imágenes
+      # en las notas del release que acaba de crear el job `tag`.
+      contents: write
+      packages: write
+    env:
+      COMPOSE_FILE: docker-compose.test.yml
+      TRIVY_DB_REPOSITORIES: mirror.gcr.io/aquasec/trivy-db:2,ghcr.io/aquasecurity/trivy-db:2
+      VERSION: ${{ needs.tag.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # GHCR exige minúsculas en el nombre del repositorio; el del propietario no lo está.
+      - name: Nombres de las imágenes
+        id: images
+        env:
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          owner="$(printf '%s' "$OWNER" | tr '[:upper:]' '[:lower:]')"
+          echo "api=ghcr.io/$owner/sol-a-sol-api" >> "$GITHUB_OUTPUT"
+          echo "web=ghcr.io/$owner/sol-a-sol-web" >> "$GITHUB_OUTPUT"
+
+      - name: Build de imágenes de producción
+        run: docker compose build
+
+      - name: Trivy — reporte HIGH/CRITICAL
+        run: |
+          for image in sol-a-sol-test-api sol-a-sol-test-web; do
+            echo "::group::$image"
+            docker run --rm \
+              -v /var/run/docker.sock:/var/run/docker.sock \
+              -v "$RUNNER_TEMP/trivy-cache:/root/.cache/" \
+              "$TRIVY_IMAGE" image --quiet --scanners vuln \
+              --db-repository "$TRIVY_DB_REPOSITORIES" \
+              --severity HIGH,CRITICAL --exit-code 0 "$image:latest"
+            echo "::endgroup::"
+          done
+
+      - name: Trivy — bloquea vulnerabilidades CRITICAL con corrección disponible
+        run: |
+          for image in sol-a-sol-test-api sol-a-sol-test-web; do
+            docker run --rm \
+              -v /var/run/docker.sock:/var/run/docker.sock \
+              -v "$RUNNER_TEMP/trivy-cache:/root/.cache/" \
+              "$TRIVY_IMAGE" image --quiet --scanners vuln --skip-db-update \
+              --severity CRITICAL --ignore-unfixed --exit-code 1 "$image:latest"
+          done
+
+      # Nada se publica sin comprobar antes que estas mismas imágenes arrancan.
+      - name: Smoke test antes de publicar
+        run: |
+          docker compose up --wait --wait-timeout 180
+          curl --fail --silent --show-error http://127.0.0.1:3001/health/ready
+          echo
+          curl --fail --silent --show-error --output /dev/null http://127.0.0.1:3000/
+          echo "web OK"
+
+      - name: Logs de contenedores
+        if: failure()
+        run: docker compose logs --no-color
+
+      - name: Apagar entorno
+        if: always()
+        run: docker compose down --volumes
+
+      - name: Autenticación en GHCR
+        env:
+          GHCR_TOKEN: ${{ github.token }}
+          GHCR_USER: ${{ github.actor }}
+        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+
+      - name: Publicar en GHCR
+        env:
+          API_IMAGE: ${{ steps.images.outputs.api }}
+          WEB_IMAGE: ${{ steps.images.outputs.web }}
+        run: |
+          for pair in "sol-a-sol-test-api=$API_IMAGE" "sol-a-sol-test-web=$WEB_IMAGE"; do
+            built="${pair%%=*}"
+            remote="${pair#*=}"
+            for tag in "$VERSION" "sha-$GITHUB_SHA"; do
+              docker tag "$built:latest" "$remote:$tag"
+              docker push "$remote:$tag"
+            done
+          done
+
+      # Se enlazan después de publicar, para que las notas nunca apunten a algo que no existe.
+      # Si este job falla, «Re-run failed jobs» lo repite conservando las salidas del job `tag`.
+      - name: Enlazar las imágenes en las notas del release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          API_IMAGE: ${{ steps.images.outputs.api }}
+          WEB_IMAGE: ${{ steps.images.outputs.web }}
+        run: |
+          {
+            gh release view "v$VERSION" --json body --jq .body
+            cat <<NOTES
+
+          ## Imágenes
+
+          \`\`\`bash
+          docker pull $API_IMAGE:$VERSION
+          docker pull $WEB_IMAGE:$VERSION
+          \`\`\`
+
+          También publicadas como \`sha-$GITHUB_SHA\`.
+          NOTES
+          } > "$RUNNER_TEMP/notes.md"
+          gh release edit "v$VERSION" --notes-file "$RUNNER_TEMP/notes.md"
