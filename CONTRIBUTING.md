@@ -112,6 +112,9 @@ Si el cambio no necesita versión (refactor interno, pruebas, CI): `pnpm changes
 2. Ejecuta `pnpm version-packages`: consume los changesets, sube las versiones y escribe los `CHANGELOG.md`.
 3. Revisa los cambios y abre el PR con el commit `chore(release): vX.Y.Z` (el job Changeset se salta en ramas `release/*`).
 4. Al fusionarlo, el workflow **Release** crea las etiquetas `vX.Y.Z` y `@sol-a-sol/<paquete>@X.Y.Z` y publica el **GitHub Release** con las notas del changelog. Las versiones `0.x` se publican como _pre-release_.
+5. El mismo workflow publica después las imágenes de producción en GHCR (`ghcr.io/andrewsthephen23/sol-a-sol-api` y `…-web`), con las etiquetas `X.Y.Z` y `sha-<commit>`, y las enlaza en las notas del release. Antes de subirlas las escanea con Trivy y las arranca en un smoke test: si algo falla, no se publica ninguna.
+
+Un push a `main` que no traiga una versión nueva no etiqueta ni publica nada.
 
 ## Dependencias
 

@@ -54,6 +54,12 @@ ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \
     HOSTNAME=0.0.0.0
+# `image.source` es lo que hace que GHCR vincule el paquete publicado con este repositorio
+# (y que herede sus permisos). Ver el job `images` de `release.yml`.
+LABEL org.opencontainers.image.source="https://github.com/AndrewSthephen23/sol-a-sol" \
+      org.opencontainers.image.title="sol-a-sol-web" \
+      org.opencontainers.image.description="Interfaz web de Sol a Sol (Next.js)." \
+      org.opencontainers.image.licenses="UNLICENSED"
 # Parches de seguridad del sistema base y fuera npm/corepack: no se usan en runtime
 # y sus dependencias empaquetadas arrastran vulnerabilidades (detectadas por Trivy).
 RUN apt-get update \
