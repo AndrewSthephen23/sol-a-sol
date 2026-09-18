@@ -8,7 +8,7 @@ Plataforma personal para ordenar mis finanzas y avanzar hacia la libertad financ
 
 ✅ **H0 — Cimientos** publicado en [v0.1.0](https://github.com/AndrewSthephen23/sol-a-sol/releases/tag/v0.1.0): monorepo, API con health checks, web, Prisma, Docker Compose y pipelines de CI, seguridad y releases.
 
-🚧 **H1 — Dominio base** (completo, pendiente de publicar como v0.2.0): `@sol-a-sol/domain` con `Money`, `parseAmount`, `LocalDate` y el puerto `Clock` (TDD y mutation testing al 100 %), feature flags por módulo, navegación por manifests y el generador `pnpm gen:module`.
+✅ **H1 — Dominio base** publicado en [v0.2.0](https://github.com/AndrewSthephen23/sol-a-sol/releases/tag/v0.2.0): `@sol-a-sol/domain` con `Money`, `parseAmount`, `LocalDate` y el puerto `Clock` (TDD y mutation testing al 100 %), feature flags por módulo, navegación por manifests y el generador `pnpm gen:module`. Primera versión con [imágenes en GHCR](#imágenes-publicadas).
 
 ## Documentación
 

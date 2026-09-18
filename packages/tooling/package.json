@@ -1,6 +1,6 @@
 {
   "name": "@sol-a-sol/tooling",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Herramientas de desarrollo del monorepo: generador de módulos.",
   "type": "module",
