@@ -60,7 +60,17 @@ Módulos de la fase 1: `identity`, `catalog`, `transactions`, `budgeting`, `cred
 - Base `/api/v1`; los cambios incompatibles van a `/api/v2`. `/health` y `/health/ready` quedan **fuera** del prefijo.
 - JSON en camelCase; **los montos viajan como string decimal** (`"1234.50"`), nunca como número.
 - Errores con **Problem Details (RFC 9457)**: `type`, `title`, `status`, `detail`, `errors[]`.
-- Paginación por cursor (`?cursor=&limit=`); validación de entrada con esquemas Zod compartidos.
+  - `type` es un **URN estable**, no una URL: `urn:sol-a-sol:error:invalid-amount`. No promete una página que haya que mantener viva.
+  - `title` y `detail` van **en inglés**, para quien depura. La interfaz en español la arma la web traduciendo el `code`, que es estable y no se cambia sin pensarlo.
+  - Cada elemento de `errors[]` es `{ field, code, message }`, con `field` como ruta con puntos (`card.last4`).
+  - Un error inesperado responde **500 genérico**: nunca salen stack traces ni mensajes de la base de datos.
+- Paginación por cursor (`?cursor=&limit=`); validación de entrada con esquemas Zod de `@sol-a-sol/contracts`, que describen **la forma** del mensaje; la política de negocio se queda en el dominio.
+
+**Agregar un error nuevo:**
+
+1. Si lo provoca una regla de negocio, crea la clase en `@sol-a-sol/domain` heredando de `DomainError`, con un `code` en inglés y `UPPER_SNAKE_CASE` (`PASSWORD_TOO_SHORT`). Lánzala desde el dominio o el caso de uso: el filtro global la traduce sola.
+2. Por defecto responde **422**. Si ese error significa otra cosa (por ejemplo, "no encontrado"), agrega su `code` al mapa `STATUS_BY_DOMAIN_CODE` de `problem-details.filter.ts`.
+3. Si la web debe mostrarlo, agrega la traducción del `code` al español allí. Nunca mandes el texto en español desde la API.
 
 ## Idioma
 

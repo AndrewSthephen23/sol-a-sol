@@ -1,5 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 
+import { ProblemDetailsFilter } from './shared/http/problem-details.filter.js';
+
 export const API_PREFIX = 'api/v1';
 
 /**
@@ -9,4 +11,6 @@ export const API_PREFIX = 'api/v1';
 export function configureApp(app: INestApplication): void {
   // Los health checks quedan fuera del prefijo: los consultan Docker y el balanceador, no los clientes.
   app.setGlobalPrefix(API_PREFIX, { exclude: ['health', 'health/ready'] });
+  // Todo error sale en Problem Details (RFC 9457), incluidos los 404 de rutas que no existen.
+  app.useGlobalFilters(new ProblemDetailsFilter());
 }
