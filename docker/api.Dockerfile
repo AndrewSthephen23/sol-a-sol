@@ -44,8 +44,15 @@ CMD ["pnpm", "exec", "nest", "start", "--watch"]
 # ---------------------------------------------------------------------------
 FROM deps AS build
 COPY --from=pruner --chown=node:node /repo/out/full/ .
+# `--no-optional` deja fuera las dependencias opcionales. Aquí son solo peers opcionales de
+# desarrollo: `@prisma/client` declara `prisma` (la CLI) y `typescript`, y pnpm los resuelve porque
+# existen en el workspace, aunque en runtime la API solo use el cliente generado y `@prisma/adapter-pg`.
+# Sin ellos `node_modules` baja de 362 MB a ~98 MB y desaparecen vulnerabilidades de código que
+# nunca se ejecuta (issue #6). Si algún día una dependencia de producción necesitara una opcional
+# real (un binario nativo), habría que instalarla aparte; lo detecta el smoke test de
+# `docker-compose.test.yml`, que arranca esta misma imagen.
 RUN pnpm turbo run build --filter=@sol-a-sol/api \
- && pnpm --filter @sol-a-sol/api deploy --prod /repo/deploy
+ && pnpm --filter @sol-a-sol/api deploy --prod --no-optional /repo/deploy
 
 # ---------------------------------------------------------------------------
 # migrate: aplica migraciones versionadas (`prisma migrate deploy`). Contenedor de un solo uso.
