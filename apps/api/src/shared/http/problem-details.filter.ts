@@ -24,6 +24,8 @@ import {
 const STATUS_BY_DOMAIN_CODE = new Map<string, number>([
   // El correo ya está tomado: es un conflicto con el estado actual, no un dato mal formado.
   ['EMAIL_ALREADY_REGISTERED', HttpStatus.CONFLICT],
+  // No son datos mal formados: están bien escritos y aun así no autentican.
+  ['INVALID_CREDENTIALS', HttpStatus.UNAUTHORIZED],
 ]);
 
 /** Una regla de negocio rechazó una petición bien formada: contenido no procesable. */

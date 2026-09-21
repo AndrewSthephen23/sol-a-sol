@@ -44,3 +44,8 @@ export {
   REGISTRATION_MODES,
   toRegistrationMode,
 } from './identity/registration-policy.js';
+export {
+  ACCESS_TOKEN_TTL_SECONDS,
+  type AccessTokenExpiry,
+  accessTokenExpiry,
+} from './identity/session-policy.js';

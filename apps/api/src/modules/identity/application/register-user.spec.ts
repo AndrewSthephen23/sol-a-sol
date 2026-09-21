@@ -13,6 +13,7 @@ function fakeRepository() {
   return {
     created,
     hasAnyUser: (): Promise<boolean> => Promise.resolve(false),
+    findCredentialsByEmail: () => Promise.resolve(null),
     create: (user: NewUser): Promise<UserAccount> => {
       created.push(user);
 

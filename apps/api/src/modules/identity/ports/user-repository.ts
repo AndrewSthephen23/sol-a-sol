@@ -10,9 +10,21 @@ export interface NewUser {
   passwordHash: string;
 }
 
+/**
+ * Lo mínimo para comprobar un inicio de sesión. Tiene su propio tipo, y no se mezcla con
+ * `UserAccount`, para que el hash solo salga del repositorio cuando alguien lo pide a propósito.
+ */
+export interface UserCredentials {
+  id: string;
+  passwordHash: string;
+}
+
 export interface UserRepository {
   /** Si existe alguna cuenta. Es lo que decide el registro en modo `closed`. */
   hasAnyUser(): Promise<boolean>;
+
+  /** `null` si no hay cuenta con ese correo. Quien llama no debe delatar la diferencia. */
+  findCredentialsByEmail(email: string): Promise<UserCredentials | null>;
 
   /**
    * @throws {EmailAlreadyRegisteredError} si el correo ya está tomado. Se apoya en la

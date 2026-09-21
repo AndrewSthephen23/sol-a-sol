@@ -55,6 +55,24 @@ Característica: Identidad
       Cuando elijo una contraseña que aparece en la lista de filtradas
       Entonces se rechaza aunque tenga 12 caracteres o más
 
+  Regla: Entrar devuelve un pase de corta duración
+
+    Escenario: Entro con mi contraseña
+      Dado que tengo una cuenta
+      Cuando inicio sesión con mi correo y mi contraseña
+      Entonces recibo un token de acceso que vale 15 minutos
+      Y el token dice quién soy, pero no lleva mi correo ni ningún dato personal
+
+    Escenario: La contraseña no es la mía
+      Dado que tengo una cuenta
+      Cuando inicio sesión con una contraseña equivocada
+      Entonces se me niega el acceso sin decir qué parte falló
+
+    Escenario: El correo no tiene cuenta
+      Cuando inicio sesión con un correo que no existe
+      Entonces se me niega el acceso con exactamente la misma respuesta que si la contraseña fuera errónea
+      # Y tarda lo mismo: si no, cronometrando se sabría qué correos tienen cuenta.
+
   Regla: Los intentos fallidos se frenan con un bloqueo que crece
 
     Escenario: El quinto fallo bloquea un minuto
