@@ -114,7 +114,7 @@ Se registran: login (con éxito y fallido), cambios de 2FA, alta y revocación d
 
 ## Endpoints
 
-Previstos para H2; ninguno existe todavía. Todos bajo `/api/v1` y con `@RequiresFeature('identity')`.
+Todos bajo `/api/v1` y con `@RequiresFeature('identity')`. Los que ya existen se describen en [`/api/v1/openapi.json`](../../README.md#api), que solo los muestra con el flag encendido.
 
 | Método | Ruta               | Qué hace                                                                  |
 | ------ | ------------------ | ------------------------------------------------------------------------- |

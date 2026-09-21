@@ -5,7 +5,11 @@
  * la arma la web traduciendo `code`, que es estable. Por eso `code` nunca cambia sin pensarlo.
  */
 
-export const PROBLEM_CONTENT_TYPE = 'application/problem+json';
+export {
+  PROBLEM_CONTENT_TYPE,
+  type ProblemDetails,
+  type ProblemFieldError,
+} from '@sol-a-sol/contracts';
 
 const PROBLEM_TYPE_PREFIX = 'urn:sol-a-sol:error:';
 
@@ -18,24 +22,7 @@ export function problemType(code: string): string {
   return `${PROBLEM_TYPE_PREFIX}${code.toLowerCase().replaceAll('_', '-')}`;
 }
 
-/** Un fallo concreto en un campo de la petición. */
-export interface ProblemFieldError {
-  /** Ruta del campo con puntos: `email`, `card.last4`, `items.0.amount`. */
-  field: string;
-  /** Código estable en inglés que la web traduce: `too_big`, `invalid_format`. */
-  code: string;
-  /** Texto de apoyo para depurar. No se muestra al usuario. */
-  message: string;
-}
-
-export interface ProblemDetails {
-  type: string;
-  title: string;
-  status: number;
-  detail: string;
-  /** Solo en errores de validación: un elemento por campo que falló. */
-  errors?: ProblemFieldError[];
-}
+import type { ProblemDetails, ProblemFieldError } from '@sol-a-sol/contracts';
 
 export interface BuildProblemInput {
   status: number;

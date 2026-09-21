@@ -66,6 +66,8 @@ Módulos de la fase 1: `identity`, `catalog`, `transactions`, `budgeting`, `cred
   - Un error inesperado responde **500 genérico**: nunca salen stack traces ni mensajes de la base de datos.
 - Paginación por cursor (`?cursor=&limit=`); validación de entrada con esquemas Zod de `@sol-a-sol/contracts`, que describen **la forma** del mensaje; la política de negocio se queda en el dominio.
 
+- **OpenAPI** en `/api/v1/openapi.json`, generado desde los mismos esquemas Zod con los que la API valida, así que no puede desincronizarse. Un módulo con su feature flag apagado **no aparece** en el documento: describirlo confirmaría justo lo que su 404 oculta. Una prueba comprueba que toda ruta registrada esté documentada y que no se documente ninguna que no exista.
+
 **Agregar un error nuevo:**
 
 1. Si lo provoca una regla de negocio, crea la clase en `@sol-a-sol/domain` heredando de `DomainError`, con un `code` en inglés y `UPPER_SNAKE_CASE` (`PASSWORD_TOO_SHORT`). Lánzala desde el dominio o el caso de uso: el filtro global la traduce sola.

@@ -157,6 +157,18 @@ pnpm 12 aplica un **`minimumReleaseAge`** (las versiones publicadas hace menos d
 - **Vulnerabilidades en dependencias transitivas:** `pnpm audit --audit-level high` corre en CI. Si el paquete que trae la dependencia vulnerable no se puede actualizar, se fuerza la versión corregida con `overrides` en `pnpm-workspace.yaml`, documentando el advisory y cómo se validó. Hay que revisar esos overrides al actualizar el paquete de origen.
 - **Dependabot** (`.github/dependabot.yml`) propone actualizaciones semanales de npm, GitHub Actions, Dockerfiles y Compose, agrupadas y con 3 días de espera desde la publicación.
 
+## API
+
+El contrato vive en `/api/v1/openapi.json`, un documento **OpenAPI 3.0** que se arma con los mismos esquemas Zod de [`@sol-a-sol/contracts`](packages/contracts/) con los que la API valida la entrada: la documentación no puede decir una cosa y el código aceptar otra.
+
+```bash
+curl -s http://127.0.0.1:3001/api/v1/openapi.json | jq .paths
+```
+
+No se sirve una interfaz de Swagger: `@nestjs/swagger` habría sumado unos 17 MB a la imagen (sobre todo `swagger-ui-dist`) solo para eso. El JSON se abre con el visor que se prefiera (Scalar, Redoc, la extensión de OpenAPI de VS Code).
+
+Las rutas de un módulo con su feature flag apagado **no aparecen** en el documento, porque describirlas confirmaría justo lo que su 404 oculta.
+
 ## CI/CD
 
 | Workflow       | Cuándo                                 | Jobs                                                                                                                                                                                                                                                                                                     |
