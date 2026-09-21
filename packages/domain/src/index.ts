@@ -60,3 +60,10 @@ export {
   totpCounter,
   totpCountersToAccept,
 } from './identity/totp-policy.js';
+export {
+  formatRecoveryCode,
+  normalizeRecoveryCode,
+  RECOVERY_CODE_ALPHABET,
+  RECOVERY_CODE_COUNT,
+  RECOVERY_CODE_LENGTH,
+} from './identity/recovery-code.js';

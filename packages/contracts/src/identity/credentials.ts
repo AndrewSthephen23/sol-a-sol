@@ -37,6 +37,8 @@ export const loginRequestSchema = z.object({
   password: passwordSchema,
   /** Código del segundo factor. Solo llega si la cuenta lo tiene activado. */
   totpCode: z.string().trim().optional(),
+  /** Código de recuperación, cuando no se tiene el teléfono a mano. */
+  recoveryCode: z.string().trim().optional(),
 });
 
 export type RegisterRequest = z.infer<typeof registerRequestSchema>;

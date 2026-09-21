@@ -31,8 +31,26 @@ model User {
 
   personalAccessTokens PersonalAccessToken[]
   refreshTokens        RefreshToken[]
+  recoveryCodes        RecoveryCode[]
 
   @@map("users")
+}
+
+/// Código de recuperación del segundo factor: la salida cuando se pierde el teléfono.
+///
+/// Se guarda solo su hash SHA-256, como los refrescos y por el mismo motivo: son símbolos
+/// aleatorios, no un secreto que alguien elija, y hay que poder buscarlos en un índice.
+model RecoveryCode {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  codeHash  String    @unique @map("code_hash")
+  /// Cada código sirve una sola vez.
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("recovery_codes")
 }
 
 /// Sesión abierta en un navegador. El valor solo existe en la cookie del cliente: aquí se guarda

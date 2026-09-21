@@ -22,6 +22,7 @@ import { RequiresFeature } from '../../../shared/feature-flags/feature-flag.guar
 import { ZodValidationPipe } from '../../../shared/http/zod-validation.pipe.js';
 import { IssueSession, type Session } from '../application/issue-session.js';
 import { ConfirmTotp, DisableTotp, SetupTotp, type TotpSetup } from '../application/manage-totp.js';
+import { RegenerateRecoveryCodes } from '../application/recovery-codes.js';
 import { LoginUser } from '../application/login-user.js';
 import { Logout } from '../application/logout.js';
 import { RefreshSession } from '../application/refresh-session.js';
@@ -35,6 +36,11 @@ import {
 } from './refresh-cookie.js';
 import { AccessTokenGuard, CurrentUser } from './access-token.guard.js';
 import { RegistrationAllowedGuard } from './registration-allowed.guard.js';
+
+export interface RecoveryCodesResponse {
+  /** Diez códigos en claro. Es la única vez que se pueden leer. */
+  recoveryCodes: string[];
+}
 
 export interface AccessTokenResponse {
   accessToken: string;
@@ -55,6 +61,7 @@ export class AuthController {
     private readonly setupTotp: SetupTotp,
     private readonly confirmTotp: ConfirmTotp,
     private readonly disableTotp: DisableTotp,
+    private readonly regenerateRecoveryCodes: RegenerateRecoveryCodes,
   ) {}
 
   /** La respuesta lleva solo datos públicos de la cuenta: nunca el hash ni el secreto TOTP. */
@@ -115,14 +122,26 @@ export class AuthController {
     return this.setupTotp.execute(userId);
   }
 
+  /** Devuelve los códigos de recuperación, que se muestran **una sola vez**. */
   @Post('2fa/verify')
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   @UseGuards(AccessTokenGuard)
   async verifyTotp(
     @CurrentUser() userId: string,
     @Body(new ZodValidationPipe(totpCodeRequestSchema)) body: TotpCodeRequest,
-  ): Promise<void> {
-    await this.confirmTotp.execute(userId, body.code);
+  ): Promise<RecoveryCodesResponse> {
+    return { recoveryCodes: await this.confirmTotp.execute(userId, body.code) };
+  }
+
+  /** Rehace los códigos y **invalida los anteriores**. También se muestran una sola vez. */
+  @Post('2fa/recovery-codes')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AccessTokenGuard)
+  async newRecoveryCodes(
+    @CurrentUser() userId: string,
+    @Body(new ZodValidationPipe(totpCodeRequestSchema)) body: TotpCodeRequest,
+  ): Promise<RecoveryCodesResponse> {
+    return { recoveryCodes: await this.regenerateRecoveryCodes.execute(userId, body.code) };
   }
 
   /** Pide un código válido: quitar el segundo factor es una rebaja de seguridad. */

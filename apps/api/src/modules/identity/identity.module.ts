@@ -6,6 +6,11 @@ import { IssueSession } from './application/issue-session.js';
 import { LoginUser } from './application/login-user.js';
 import { Logout } from './application/logout.js';
 import { ConfirmTotp, DisableTotp, SetupTotp } from './application/manage-totp.js';
+import {
+  IssueRecoveryCodes,
+  RegenerateRecoveryCodes,
+  UseRecoveryCode,
+} from './application/recovery-codes.js';
 import { RefreshSession } from './application/refresh-session.js';
 import { RegisterUser } from './application/register-user.js';
 import { AuthController } from './http/auth.controller.js';
@@ -15,12 +20,15 @@ import { Argon2PasswordHasher } from './infrastructure/argon2-password-hasher.js
 import { DecoyPasswordHash } from './infrastructure/decoy-password-hash.js';
 import { OtpAuthTotp } from './infrastructure/otpauth-totp.js';
 import { PrismaAuditLogger } from './infrastructure/prisma-audit-logger.js';
+import { PrismaRecoveryCodeRepository } from './infrastructure/prisma-recovery-code-repository.js';
 import { PrismaRefreshTokenRepository } from './infrastructure/prisma-refresh-token-repository.js';
 import { JoseAccessTokens } from './infrastructure/jose-access-tokens.js';
 import { PrismaUserRepository } from './infrastructure/prisma-user-repository.js';
+import { RecoveryCodeGenerator } from './infrastructure/recovery-code-generator.js';
 import { SecretBox } from './infrastructure/secret-box.js';
 import { ACCESS_TOKENS } from './ports/access-tokens.js';
 import { AUDIT_LOGGER } from './ports/audit-logger.js';
+import { RECOVERY_CODE_REPOSITORY } from './ports/recovery-code-repository.js';
 import { TOTP } from './ports/totp.js';
 import { REFRESH_TOKEN_REPOSITORY } from './ports/refresh-token-repository.js';
 import { PASSWORD_HASHER } from './ports/password-hasher.js';
@@ -44,6 +52,10 @@ import { USER_REPOSITORY } from './ports/user-repository.js';
     SetupTotp,
     ConfirmTotp,
     DisableTotp,
+    IssueRecoveryCodes,
+    RegenerateRecoveryCodes,
+    UseRecoveryCode,
+    RecoveryCodeGenerator,
     RegistrationAllowedGuard,
     AccessTokenGuard,
     SecretBox,
@@ -54,6 +66,7 @@ import { USER_REPOSITORY } from './ports/user-repository.js';
     { provide: REFRESH_TOKEN_REPOSITORY, useClass: PrismaRefreshTokenRepository },
     { provide: AUDIT_LOGGER, useClass: PrismaAuditLogger },
     { provide: TOTP, useClass: OtpAuthTotp },
+    { provide: RECOVERY_CODE_REPOSITORY, useClass: PrismaRecoveryCodeRepository },
   ],
   exports: [PASSWORD_HASHER],
 })
