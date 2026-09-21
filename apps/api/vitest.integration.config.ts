@@ -8,6 +8,10 @@ export default defineConfig({
     environment: 'node',
     include: ['test/**/*.spec.ts'],
     globalSetup: ['./test/setup/postgres.global-setup.ts'],
+    // Todos los archivos comparten el mismo PostgreSQL, así que corren en serie: en paralelo,
+    // una prueba que consulta el estado global de una tabla (por ejemplo, si existe algún
+    // usuario) vería las filas que otro archivo acaba de crear.
+    fileParallelism: false,
     hookTimeout: 120_000,
     testTimeout: 30_000,
   },

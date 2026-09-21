@@ -20,6 +20,24 @@ Característica: Identidad
       Entonces la respuesta es 404
       # 404 y no 403: un 403 confirmaría que la ruta existe.
 
+    Escenario: El correo no distingue mayúsculas
+      Dado que no existe ningún usuario
+      Cuando me registro con "Ana@Example.COM"
+      Entonces la cuenta queda guardada como "ana@example.com"
+      # users.email es único: si no, serían dos cuentas distintas.
+
+  Regla: Con invitación, solo entra quien trae el código
+
+    Escenario: Llego con el código correcto
+      Dado que el registro está en modo invitación
+      Cuando me registro con el código configurado
+      Entonces la cuenta queda creada
+
+    Escenario: Llego sin código
+      Dado que el registro está en modo invitación
+      Cuando me registro sin código
+      Entonces la respuesta es 404, la misma que si el registro no existiera
+
   Regla: Una contraseña vale por su longitud, no por sus símbolos
 
     Escenario: Se acepta una contraseña larga sin números ni mayúsculas

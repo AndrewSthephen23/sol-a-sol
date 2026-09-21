@@ -28,6 +28,8 @@ export const passwordSchema = z.string().max(PASSWORD_MAX_LENGTH);
 export const registerRequestSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
+  /** Solo se usa con `REGISTRATION_MODE=invite`; los demás modos lo ignoran. */
+  inviteCode: z.string().optional(),
 });
 
 export const loginRequestSchema = z.object({

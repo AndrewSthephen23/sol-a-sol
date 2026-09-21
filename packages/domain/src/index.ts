@@ -37,3 +37,10 @@ export {
   PasswordTooShortError,
   WeakPasswordError,
 } from './identity/password-policy.js';
+export {
+  isRegistrationAllowed,
+  type RegistrationAttempt,
+  type RegistrationMode,
+  REGISTRATION_MODES,
+  toRegistrationMode,
+} from './identity/registration-policy.js';

@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, inject, it } from 'vitest';
 
 import {
   IdentityModule,
@@ -17,6 +17,9 @@ describe('PasswordHasher wired through the identity module', () => {
   let hasher: PasswordHasher;
 
   beforeAll(async () => {
+    // El módulo trae ya su repositorio Prisma, que necesita la conexión aunque esta prueba
+    // no consulte nada.
+    process.env.DATABASE_URL = inject('databaseUrl');
     const moduleRef = await Test.createTestingModule({ imports: [IdentityModule] }).compile();
     hasher = moduleRef.get<PasswordHasher>(PASSWORD_HASHER);
   });

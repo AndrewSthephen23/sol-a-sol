@@ -21,7 +21,10 @@ import {
  * Estado HTTP de un error de dominio que no sea 422. Se agrega una entrada solo cuando el
  * significado del error lo pide (por ejemplo, un código de "no encontrado" que deba dar 404).
  */
-const STATUS_BY_DOMAIN_CODE = new Map<string, number>();
+const STATUS_BY_DOMAIN_CODE = new Map<string, number>([
+  // El correo ya está tomado: es un conflicto con el estado actual, no un dato mal formado.
+  ['EMAIL_ALREADY_REGISTERED', HttpStatus.CONFLICT],
+]);
 
 /** Una regla de negocio rechazó una petición bien formada: contenido no procesable. */
 const DEFAULT_DOMAIN_STATUS = HttpStatus.UNPROCESSABLE_ENTITY;
