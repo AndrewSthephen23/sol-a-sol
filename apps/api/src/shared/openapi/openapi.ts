@@ -46,6 +46,14 @@ const TOTP_SETUP_SCHEMA = schemaOf(
   }),
 );
 
+const RECOVERY_CODES_SCHEMA = schemaOf(
+  z.object({
+    recoveryCodes: z
+      .array(z.string())
+      .describe('Diez códigos. Es la única vez que se pueden leer.'),
+  }),
+);
+
 const ACCESS_TOKEN_SCHEMA = schemaOf(
   z.object({
     accessToken: z.string(),
@@ -172,13 +180,39 @@ function identityPaths(): Record<string, unknown> {
     [`/${API_PREFIX}/auth/2fa/verify`]: {
       post: {
         tags: ['identity'],
-        summary: 'Confirma el segundo factor con un código y lo deja activo.',
+        summary: 'Confirma el segundo factor y devuelve los códigos de recuperación.',
+        description:
+          'Los códigos se muestran **una sola vez**: después solo se guarda su hash. Son la ' +
+          'salida cuando se pierde el teléfono.',
         security: [{ accessToken: [] }],
         requestBody: jsonBody(totpCodeRequestSchema),
         responses: {
-          '204': { description: 'Segundo factor activo.' },
+          '200': {
+            description: 'Segundo factor activo, con sus códigos de recuperación.',
+            content: { 'application/json': { schema: RECOVERY_CODES_SCHEMA } },
+          },
           '401': problem('Falta el token de acceso, o el código no vale.'),
           '409': problem('No hay ninguna activación en marcha, o ya estaba activo.'),
+          '422': problem('El código no son seis dígitos.'),
+        },
+      },
+    },
+    [`/${API_PREFIX}/auth/2fa/recovery-codes`]: {
+      post: {
+        tags: ['identity'],
+        summary: 'Rehace los códigos de recuperación.',
+        description:
+          'Invalida los anteriores y devuelve diez nuevos, **una sola vez**. Exige un código ' +
+          'de la aplicación de autenticación.',
+        security: [{ accessToken: [] }],
+        requestBody: jsonBody(totpCodeRequestSchema),
+        responses: {
+          '200': {
+            description: 'Códigos nuevos. Los anteriores dejan de valer.',
+            content: { 'application/json': { schema: RECOVERY_CODES_SCHEMA } },
+          },
+          '401': problem('Falta el token de acceso, o el código no vale.'),
+          '409': problem('La cuenta no tiene segundo factor activo.'),
           '422': problem('El código no son seis dígitos.'),
         },
       },
@@ -186,7 +220,7 @@ function identityPaths(): Record<string, unknown> {
     [`/${API_PREFIX}/auth/2fa/disable`]: {
       post: {
         tags: ['identity'],
-        summary: 'Desactiva el segundo factor y olvida el secreto.',
+        summary: 'Desactiva el segundo factor, y olvida el secreto y los códigos.',
         description: 'Exige un código válido: quitar el segundo factor es una rebaja de seguridad.',
         security: [{ accessToken: [] }],
         requestBody: jsonBody(totpCodeRequestSchema),

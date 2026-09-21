@@ -10,6 +10,7 @@ import { DecoyPasswordHash } from '../infrastructure/decoy-password-hash.js';
 import { SecretBox } from '../infrastructure/secret-box.js';
 import { PASSWORD_HASHER, type PasswordHasher } from '../ports/password-hasher.js';
 import { TOTP, type Totp } from '../ports/totp.js';
+import { UseRecoveryCode } from './recovery-codes.js';
 import {
   USER_REPOSITORY,
   type UserCredentials,
@@ -21,6 +22,8 @@ export interface LoginUserInput {
   email: string;
   password: string;
   totpCode?: string;
+  /** Alternativa al código del segundo factor cuando no se tiene el teléfono. */
+  recoveryCode?: string;
 }
 
 @Injectable()
@@ -31,10 +34,11 @@ export class LoginUser {
     private readonly decoy: DecoyPasswordHash,
     @Inject(TOTP) private readonly totp: Totp,
     private readonly secrets: SecretBox,
+    private readonly useRecoveryCode: UseRecoveryCode,
   ) {}
 
   /** Devuelve a quién pertenece la cuenta; abrir la sesión es cosa de `IssueSession`. */
-  async execute({ email, password, totpCode }: LoginUserInput): Promise<string> {
+  async execute({ email, password, totpCode, recoveryCode }: LoginUserInput): Promise<string> {
     const credentials = await this.users.findCredentialsByEmail(email);
 
     // Se verifica **siempre**, exista la cuenta o no: contra el hash real si la hay y contra el
@@ -47,7 +51,9 @@ export class LoginUser {
 
     if (credentials === null || !matches) throw new InvalidCredentialsError();
 
-    if (credentials.totpConfirmedAt !== null) await this.checkSecondFactor(credentials, totpCode);
+    if (credentials.totpConfirmedAt !== null) {
+      await this.checkSecondFactor(credentials, totpCode, recoveryCode);
+    }
 
     return credentials.id;
   }
@@ -55,7 +61,18 @@ export class LoginUser {
   private async checkSecondFactor(
     credentials: UserCredentials,
     code: string | undefined,
+    recoveryCode: string | undefined,
   ): Promise<void> {
+    // El código de recuperación es la salida cuando no hay teléfono: se acepta en su lugar,
+    // nunca además, y cada uno sirve una sola vez.
+    if (recoveryCode !== undefined && recoveryCode !== '') {
+      if (!(await this.useRecoveryCode.execute(credentials.id, recoveryCode))) {
+        throw new InvalidTotpCodeError();
+      }
+
+      return;
+    }
+
     // Pedir el código confirma que la contraseña era correcta. Es inevitable —sin decirlo no
     // habría forma de pedirlo— y es justo la razón de ser del segundo factor: saber la
     // contraseña ya no basta.

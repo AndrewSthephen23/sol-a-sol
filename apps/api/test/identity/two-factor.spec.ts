@@ -18,6 +18,7 @@ const LOGIN = `/${API_PREFIX}/auth/login`;
 const SETUP = `/${API_PREFIX}/auth/2fa/setup`;
 const VERIFY = `/${API_PREFIX}/auth/2fa/verify`;
 const DISABLE = `/${API_PREFIX}/auth/2fa/disable`;
+const RECOVERY = `/${API_PREFIX}/auth/2fa/recovery-codes`;
 const CREDENTIALS = { email: 'ana@example.com', password: 'caballo grapa batería' };
 // Valores obviamente falsos, solo para estas pruebas.
 const JWT_SECRET = 'clave-de-prueba-no-real-0123456789';
@@ -25,6 +26,10 @@ const TOTP_KEY = Buffer.alloc(32, 7).toString('base64');
 
 interface TokenResponse {
   accessToken: string;
+}
+
+interface RecoveryCodes {
+  recoveryCodes: string[];
 }
 
 /**
@@ -107,7 +112,7 @@ describe('two factor authentication', () => {
     return (response.body as TokenResponse).accessToken;
   }
 
-  async function enable(): Promise<string> {
+  async function enableWithCodes(): Promise<{ secret: string; recoveryCodes: string[] }> {
     const token = await accessToken();
     const setup = await request(server)
       .post(SETUP)
@@ -115,13 +120,17 @@ describe('two factor authentication', () => {
       .expect(200);
     const secret = (setup.body as { secret: string }).secret;
 
-    await request(server)
+    const confirmed = await request(server)
       .post(VERIFY)
       .set('Authorization', `Bearer ${token}`)
       .send({ code: codeFor(secret) })
-      .expect(204);
+      .expect(200);
 
-    return secret;
+    return { secret, recoveryCodes: (confirmed.body as RecoveryCodes).recoveryCodes };
+  }
+
+  async function enable(): Promise<string> {
+    return (await enableWithCodes()).secret;
   }
 
   describe('setting it up', () => {
@@ -282,6 +291,130 @@ describe('two factor authentication', () => {
       const stored = await prisma.user.findUniqueOrThrow({ where: { email: CREDENTIALS.email } });
       expect(stored.totpSecret).toBeNull();
       expect(stored.totpConfirmedAt).toBeNull();
+    });
+  });
+
+  describe('recovery codes', () => {
+    it('hands out ten of them when the second factor is switched on', async () => {
+      const { recoveryCodes } = await enableWithCodes();
+
+      expect(recoveryCodes).toHaveLength(10);
+      expect(recoveryCodes[0]).toMatch(
+        /^[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$/,
+      );
+    });
+
+    it('stores only their hashes, never the codes themselves', async () => {
+      const { recoveryCodes } = await enableWithCodes();
+
+      const stored = await prisma.recoveryCode.findMany();
+      expect(stored).toHaveLength(10);
+      for (const code of recoveryCodes) {
+        expect(stored.map((row) => row.codeHash)).not.toContain(code);
+      }
+      expect(stored[0]?.codeHash).toMatch(/^[0-9a-f]{64}$/);
+    });
+
+    it('gets somebody in when the phone is gone', async () => {
+      const { recoveryCodes } = await enableWithCodes();
+
+      await request(server)
+        .post(LOGIN)
+        .send({ ...CREDENTIALS, recoveryCode: recoveryCodes[0] })
+        .expect(200);
+    });
+
+    it('accepts it typed without dashes and in lower case', async () => {
+      const { recoveryCodes } = await enableWithCodes();
+      const typed = (recoveryCodes[0] ?? '').replaceAll('-', '').toLowerCase();
+
+      await request(server)
+        .post(LOGIN)
+        .send({ ...CREDENTIALS, recoveryCode: typed })
+        .expect(200);
+    });
+
+    it('serves one single time', async () => {
+      const { recoveryCodes } = await enableWithCodes();
+      await request(server)
+        .post(LOGIN)
+        .send({ ...CREDENTIALS, recoveryCode: recoveryCodes[0] })
+        .expect(200);
+
+      await request(server)
+        .post(LOGIN)
+        .send({ ...CREDENTIALS, recoveryCode: recoveryCodes[0] })
+        .expect(401);
+    });
+
+    it('leaves the other nine working', async () => {
+      const { recoveryCodes } = await enableWithCodes();
+      await request(server)
+        .post(LOGIN)
+        .send({ ...CREDENTIALS, recoveryCode: recoveryCodes[0] })
+        .expect(200);
+
+      await request(server)
+        .post(LOGIN)
+        .send({ ...CREDENTIALS, recoveryCode: recoveryCodes[1] })
+        .expect(200);
+      await expect(prisma.recoveryCode.count({ where: { usedAt: null } })).resolves.toBe(8);
+    });
+
+    it('rejects one that was never handed out', async () => {
+      await enableWithCodes();
+
+      await request(server)
+        .post(LOGIN)
+        .send({ ...CREDENTIALS, recoveryCode: 'ZZZZ-ZZZZ-ZZZZ' })
+        .expect(401);
+    });
+
+    describe('making a new set', () => {
+      it('needs a valid code from the authenticator app', async () => {
+        const secret = await enable();
+        clock.advancePeriods(1);
+        const token = await accessToken(codeFor(secret));
+
+        await request(server)
+          .post(RECOVERY)
+          .set('Authorization', `Bearer ${token}`)
+          .send({ code: '000000' })
+          .expect(401);
+      });
+
+      it('replaces the old ones, which stop working', async () => {
+        const { secret, recoveryCodes } = await enableWithCodes();
+        clock.advancePeriods(1);
+        const token = await accessToken(codeFor(secret));
+        clock.advancePeriods(1);
+
+        const fresh = await request(server)
+          .post(RECOVERY)
+          .set('Authorization', `Bearer ${token}`)
+          .send({ code: codeFor(secret) })
+          .expect(200);
+
+        expect((fresh.body as RecoveryCodes).recoveryCodes).toHaveLength(10);
+        await request(server)
+          .post(LOGIN)
+          .send({ ...CREDENTIALS, recoveryCode: recoveryCodes[0] })
+          .expect(401);
+      });
+    });
+
+    it('are forgotten when the second factor is switched off', async () => {
+      const secret = await enable();
+      clock.advancePeriods(1);
+      const token = await accessToken(codeFor(secret));
+      clock.advancePeriods(1);
+      await request(server)
+        .post(DISABLE)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ code: codeFor(secret) })
+        .expect(204);
+
+      await expect(prisma.recoveryCode.count()).resolves.toBe(0);
     });
   });
 

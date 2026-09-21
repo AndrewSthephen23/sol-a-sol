@@ -11,6 +11,7 @@ import type { PasswordHasher } from '../ports/password-hasher.js';
 import type { Totp, TotpVerification } from '../ports/totp.js';
 import { fakeCredentials, FakeUserRepository } from '../ports/user-repository.fake.js';
 import { LoginUser } from './login-user.js';
+import type { UseRecoveryCode } from './recovery-codes.js';
 
 const DECOY = 'hash-senuelo';
 const CREDENTIALS = { email: 'ana@example.com', password: 'caballo grapa batería' };
@@ -21,6 +22,7 @@ describe('LoginUser', () => {
   let users: FakeUserRepository;
   let verify: ReturnType<typeof vi.fn<(plain: string, hash: string) => Promise<boolean>>>;
   let verifyTotp: ReturnType<typeof vi.fn<(s: string, c: string) => TotpVerification | null>>;
+  let useRecovery: ReturnType<typeof vi.fn<(u: string, c: string) => Promise<boolean>>>;
   let loginUser: LoginUser;
 
   beforeEach(() => {
@@ -33,7 +35,10 @@ describe('LoginUser', () => {
     const totp: Totp = { enrol: () => ({ secret: 's', uri: 'u' }), verify: verifyTotp };
     const secrets = { open: () => 'secreto-en-claro', seal: () => SEALED } as unknown as SecretBox;
 
-    loginUser = new LoginUser(users, passwords, decoy, totp, secrets);
+    useRecovery = vi.fn(() => Promise.resolve(true));
+    const recoveryCodes = { execute: useRecovery } as unknown as UseRecoveryCode;
+
+    loginUser = new LoginUser(users, passwords, decoy, totp, secrets, recoveryCodes);
   });
 
   describe('with only a password', () => {
@@ -145,6 +150,36 @@ describe('LoginUser', () => {
       });
 
       await expect(loginUser.execute({ ...CREDENTIALS, totpCode: CODE })).resolves.toBe('user-1');
+    });
+
+    describe('and the phone is not at hand', () => {
+      it('accepts a recovery code instead', async () => {
+        await expect(
+          loginUser.execute({ ...CREDENTIALS, recoveryCode: 'ABCD-EFGH-JKMN' }),
+        ).resolves.toBe('user-1');
+        expect(useRecovery).toHaveBeenCalledWith('user-1', 'ABCD-EFGH-JKMN');
+      });
+
+      it('rejects one that was already spent or never existed', async () => {
+        useRecovery.mockResolvedValue(false);
+
+        await expect(
+          loginUser.execute({ ...CREDENTIALS, recoveryCode: 'ABCD-EFGH-JKMN' }),
+        ).rejects.toThrow(InvalidTotpCodeError);
+      });
+
+      // Se acepta en lugar del código del teléfono, nunca además.
+      it('does not ask the authenticator app when a recovery code is used', async () => {
+        await loginUser.execute({ ...CREDENTIALS, recoveryCode: 'ABCD-EFGH-JKMN' });
+
+        expect(verifyTotp).not.toHaveBeenCalled();
+      });
+
+      it('ignores an empty recovery code and still asks for the usual one', async () => {
+        await expect(loginUser.execute({ ...CREDENTIALS, recoveryCode: '' })).rejects.toThrow(
+          TotpRequiredError,
+        );
+      });
     });
 
     it('checks the password before ever asking for a code', async () => {

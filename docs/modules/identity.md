@@ -1,6 +1,6 @@
 # Módulo Identidad (`identity`)
 
-> Ficha del módulo. Estado: **en construcción** (hito H2). Funcionan el registro, el inicio de sesión, la renovación, el cierre y el segundo factor; faltan los códigos de recuperación, los tokens personales y el resto de la auditoría.
+> Ficha del módulo. Estado: **en construcción** (hito H2). Funcionan el registro, el inicio de sesión, la renovación, el cierre y el segundo factor con sus códigos de recuperación; faltan los tokens personales y el resto de la auditoría.
 
 ## Qué resuelve
 
@@ -102,6 +102,16 @@ TOTP de seis dígitos cada treinta segundos (RFC 6238), lo que implementan todas
 **Desactivar exige un código válido**, porque es una rebaja de seguridad. Activación y desactivación quedan en `audit_logs`.
 
 **El secreto se guarda cifrado** con AES-256-GCM, no hasheado: hay que poder leerlo entero en cada login para calcular el código esperado. GCM además autentica, así que manipular el texto cifrado se nota en vez de descifrarse a basura.
+
+### Los códigos de recuperación
+
+Diez códigos de doce símbolos, entregados **al activar** el segundo factor y mostrados **una sola vez**: después solo queda su hash SHA-256. Cada uno sirve **una vez**, y en el login se usan **en lugar** del código del teléfono, nunca además.
+
+El alfabeto es base32 de Crockford —sin `I`, `L`, `O` ni `U`— porque estos códigos se copian a mano de un papel y ahí `I` y `1`, u `O` y `0`, se confunden. Se muestran en grupos de cuatro (`ABCD-EFGH-JKMN`) y se aceptan tecleados sin guiones, con espacios o en minúsculas: quien está recuperando el acceso ya tiene bastante con haber perdido el teléfono.
+
+Doce símbolos de un alfabeto de 32 son unos **60 bits**, que no se adivinan probando. Se generan con `randomInt`, que reparte de forma uniforme; `randomBytes() % 32` favorecería los primeros símbolos si el alfabeto no dividiera exacto.
+
+Rehacerlos **invalida los anteriores** y exige un código de la aplicación de autenticación, igual que desactivar el segundo factor: quien pille una sesión abierta un momento no puede llevarse diez llaves nuevas. Desactivar el segundo factor los borra: sin nada que sustituir, no tienen sentido.
 
 ### Pedir el código confirma que la contraseña era correcta
 

@@ -10,7 +10,12 @@ import {
 import { SecretBox } from '../infrastructure/secret-box.js';
 import { AUDIT_LOGGER, type AuditLogger } from '../ports/audit-logger.js';
 import { TOTP, type Totp } from '../ports/totp.js';
+import {
+  RECOVERY_CODE_REPOSITORY,
+  type RecoveryCodeRepository,
+} from '../ports/recovery-code-repository.js';
 import { USER_REPOSITORY, type UserRepository } from '../ports/user-repository.js';
+import { IssueRecoveryCodes } from './recovery-codes.js';
 
 export interface TotpSetup {
   /** URI `otpauth://` para escanear. Se devuelve **una sola vez**. */
@@ -49,9 +54,11 @@ export class ConfirmTotp {
     @Inject(AUDIT_LOGGER) private readonly audit: AuditLogger,
     @Inject(CLOCK) private readonly clock: Clock,
     private readonly secrets: SecretBox,
+    private readonly issueRecoveryCodes: IssueRecoveryCodes,
   ) {}
 
-  async execute(userId: string, code: string): Promise<void> {
+  /** Devuelve los códigos de recuperación: se muestran **una sola vez**. */
+  async execute(userId: string, code: string): Promise<string[]> {
     const credentials = await this.users.findCredentialsById(userId);
     if (credentials?.totpSecret == null) throw new TotpNotStartedError();
     if (credentials.totpConfirmedAt !== null) throw new TotpAlreadyEnabledError();
@@ -62,6 +69,9 @@ export class ConfirmTotp {
     // Se anota el periodo ya en la confirmación: ese mismo código no sirve además para entrar.
     await this.users.confirmTotp(userId, this.clock.now(), verification.counter);
     await this.audit.record({ userId, action: 'totp.enabled', entity: 'user', entityId: userId });
+
+    // Se entregan con la activación: sin ellos, perder el teléfono dejaría al dueño fuera.
+    return this.issueRecoveryCodes.execute(userId);
   }
 }
 
@@ -73,6 +83,7 @@ export class DisableTotp {
     @Inject(TOTP) private readonly totp: Totp,
     @Inject(AUDIT_LOGGER) private readonly audit: AuditLogger,
     private readonly secrets: SecretBox,
+    @Inject(RECOVERY_CODE_REPOSITORY) private readonly recoveryCodes: RecoveryCodeRepository,
   ) {}
 
   async execute(userId: string, code: string): Promise<void> {
@@ -89,6 +100,8 @@ export class DisableTotp {
     if (!isCounterFresh(verification.counter, lastCounter)) throw new InvalidTotpCodeError();
 
     await this.users.disableTotp(userId);
+    // Sin segundo factor, unos códigos que lo sustituyen no tienen a qué sustituir.
+    await this.recoveryCodes.deleteAllForUser(userId);
     await this.audit.record({ userId, action: 'totp.disabled', entity: 'user', entityId: userId });
   }
 }
