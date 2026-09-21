@@ -26,6 +26,7 @@ const STATUS_BY_DOMAIN_CODE = new Map<string, number>([
   ['EMAIL_ALREADY_REGISTERED', HttpStatus.CONFLICT],
   // No son datos mal formados: están bien escritos y aun así no autentican.
   ['INVALID_CREDENTIALS', HttpStatus.UNAUTHORIZED],
+  ['INVALID_REFRESH_TOKEN', HttpStatus.UNAUTHORIZED],
 ]);
 
 /** Una regla de negocio rechazó una petición bien formada: contenido no procesable. */

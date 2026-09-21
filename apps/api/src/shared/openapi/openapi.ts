@@ -125,6 +125,37 @@ function identityPaths(): Record<string, unknown> {
         },
       },
     },
+    [`/${API_PREFIX}/auth/refresh`]: {
+      post: {
+        tags: ['identity'],
+        summary: 'Renueva la sesión a partir de la cookie de refresco.',
+        description:
+          'El refresco viaja solo en la cookie, no en el cuerpo. Cada uso emite uno nuevo e ' +
+          'invalida el anterior; si llega uno ya canjeado se cierran todas las sesiones de la ' +
+          'cuenta, porque es la señal de que alguien lo copió.',
+        responses: {
+          '200': {
+            description: 'Sesión renovada. La cookie se reemplaza por una nueva.',
+            content: { 'application/json': { schema: ACCESS_TOKEN_SCHEMA } },
+          },
+          '401': problem('No hay cookie, o el refresco no vale: caducó, se revocó o ya se usó.'),
+          '404': problem('El módulo está apagado.'),
+        },
+      },
+    },
+    [`/${API_PREFIX}/auth/logout`]: {
+      post: {
+        tags: ['identity'],
+        summary: 'Cierra la sesión actual y borra la cookie.',
+        description:
+          'Responde 204 valga la cookie o no: quien cierra sesión quiere irse, y un error ' +
+          'delataría si un token que alguien probó existe. No toca las demás sesiones.',
+        responses: {
+          '204': { description: 'Sesión cerrada, o no había ninguna que cerrar.' },
+          '404': problem('El módulo está apagado.'),
+        },
+      },
+    },
   };
 }
 

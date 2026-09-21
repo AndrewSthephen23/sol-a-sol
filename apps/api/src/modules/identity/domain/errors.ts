@@ -29,3 +29,16 @@ export class InvalidCredentialsError extends DomainError {
     super('Email or password is incorrect.');
   }
 }
+
+/**
+ * La sesión no vale: no hay cookie, el token no existe, caducó, se revocó, o ya se había
+ * canjeado. Un solo error para todos los casos: decir cuál fue le diría a quien robó un token
+ * si va por buen camino.
+ */
+export class InvalidRefreshTokenError extends DomainError {
+  readonly code = 'INVALID_REFRESH_TOKEN';
+
+  constructor() {
+    super('The session is no longer valid. Sign in again.');
+  }
+}
