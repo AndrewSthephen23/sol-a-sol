@@ -1,6 +1,6 @@
 # Módulo Identidad (`identity`)
 
-> Ficha del módulo. Estado: **en construcción** (hito H2). Funcionan el registro y el inicio de sesión; faltan el refresh, el segundo factor, los tokens personales y la auditoría.
+> Ficha del módulo. Estado: **en construcción** (hito H2). Funcionan el registro, el inicio de sesión, la renovación y el cierre; faltan el segundo factor, los tokens personales y el resto de la auditoría.
 
 ## Qué resuelve
 
@@ -74,6 +74,22 @@ Un correo desconocido y una contraseña equivocada responden **401 con el mismo 
 
 El señuelo se calcula al arrancar el módulo y no en el primer fallo, porque si no ese primer intento costaría un hash de más y volvería a delatar la diferencia.
 
+### La sesión: cookie, rotación y reuso
+
+El refresco viaja en una cookie con **`HttpOnly`** (JavaScript no la lee, así que un XSS no se la lleva), **`Secure`** (solo por HTTPS; los navegadores tratan `http://localhost` como contexto seguro, así que no estorba en desarrollo) y **`SameSite=Strict`**, que corta de raíz el CSRF sobre estos endpoints. Su `Path` es `/api/v1/auth`, de modo que ni siquiera se manda al resto de la API.
+
+**Rotación.** Cada renovación emite un refresco nuevo e invalida el anterior, así que robar uno solo sirve una vez.
+
+**Detección de reuso.** Si llega un refresco ya canjeado, alguien lo copió. No hay forma de saber si quien lo presenta es la víctima o el ladrón, así que se cierran **todas** las sesiones de la cuenta y queda registrado en `audit_logs` como `refresh_token.reused`. La persona vuelve a entrar con su contraseña; quien lo robó se queda fuera.
+
+Dos pestañas renovando a la vez con la misma cookie caen en este camino: desde fuera son indistinguibles de un robo. El `UPDATE` que marca el token como canjeado lleva la condición `used_at IS NULL` dentro, así que solo una petición gana la carrera.
+
+**Cerrar sesión nunca falla.** Responde 204 valga la cookie o no: quien cierra sesión quiere irse, y un error le diría a un tercero si un token que probó existe. Solo cierra esa sesión, no las demás de la cuenta.
+
+### Por qué los refrescos se hashean con SHA-256 y no con argon2id
+
+argon2 es lento **por diseño**, para proteger secretos que elige una persona y se pueden adivinar. Un refresco son **256 bits aleatorios**: no hay nada que adivinar, y su hash tiene que poder buscarse en un índice en cada renovación, cosa que un hash con sal por fila no permite. Lo que se guarda es solo el hash, así que una filtración de la base no permite suplantar a nadie.
+
 ### Pendiente: el segundo factor todavía no se comprueba
 
 `loginRequestSchema` ya acepta `totpCode`, pero el inicio de sesión **aún no lo valida**: eso llega en la tarea 06. No hay riesgo mientras tanto porque ninguna cuenta puede activar el segundo factor todavía, y el módulo entero sigue apagado tras `FEATURE_IDENTITY`.
@@ -116,18 +132,18 @@ Se registran: login (con éxito y fallido), cambios de 2FA, alta y revocación d
 
 Todos bajo `/api/v1` y con `@RequiresFeature('identity')`. Los que ya existen se describen en [`/api/v1/openapi.json`](../../README.md#api), que solo los muestra con el flag encendido.
 
-| Método | Ruta               | Qué hace                                                                  |
-| ------ | ------------------ | ------------------------------------------------------------------------- |
-| POST   | `/auth/register`   | ✅ Crea la cuenta. 404 si `REGISTRATION_MODE` no lo permite               |
-| POST   | `/auth/login`      | ✅ Devuelve el token de acceso. El refresh en cookie llega en la tarea 05 |
-| POST   | `/auth/refresh`    | Rota el refresh y emite un token de acceso nuevo                          |
-| POST   | `/auth/logout`     | Cierra la sesión actual                                                   |
-| POST   | `/auth/2fa/enable` | Devuelve el `otpauth://` y los códigos de recuperación                    |
-| POST   | `/auth/2fa/verify` | Confirma el código y activa el segundo factor                             |
-| DELETE | `/auth/2fa`        | Desactiva el segundo factor                                               |
-| GET    | `/tokens`          | Lista los tokens personales, **sin** su valor                             |
-| POST   | `/tokens`          | Crea uno y lo muestra **una sola vez**                                    |
-| DELETE | `/tokens/:id`      | Lo revoca                                                                 |
+| Método | Ruta               | Qué hace                                                        |
+| ------ | ------------------ | --------------------------------------------------------------- |
+| POST   | `/auth/register`   | ✅ Crea la cuenta. 404 si `REGISTRATION_MODE` no lo permite     |
+| POST   | `/auth/login`      | ✅ Devuelve el token de acceso y deja el refresco en una cookie |
+| POST   | `/auth/refresh`    | ✅ Rota el refresco y emite un token de acceso nuevo            |
+| POST   | `/auth/logout`     | ✅ Cierra la sesión actual y borra la cookie                    |
+| POST   | `/auth/2fa/enable` | Devuelve el `otpauth://` y los códigos de recuperación          |
+| POST   | `/auth/2fa/verify` | Confirma el código y activa el segundo factor                   |
+| DELETE | `/auth/2fa`        | Desactiva el segundo factor                                     |
+| GET    | `/tokens`          | Lista los tokens personales, **sin** su valor                   |
+| POST   | `/tokens`          | Crea uno y lo muestra **una sola vez**                          |
+| DELETE | `/tokens/:id`      | Lo revoca                                                       |
 
 ## Estado
 

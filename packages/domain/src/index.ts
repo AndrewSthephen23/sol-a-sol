@@ -48,4 +48,7 @@ export {
   ACCESS_TOKEN_TTL_SECONDS,
   type AccessTokenExpiry,
   accessTokenExpiry,
+  hasExpired,
+  REFRESH_TOKEN_TTL_SECONDS,
+  refreshTokenExpiresAt,
 } from './identity/session-policy.js';

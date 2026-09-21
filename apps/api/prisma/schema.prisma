@@ -24,8 +24,30 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
   personalAccessTokens PersonalAccessToken[]
+  refreshTokens        RefreshToken[]
 
   @@map("users")
+}
+
+/// Sesión abierta en un navegador. El valor solo existe en la cookie del cliente: aquí se guarda
+/// su hash SHA-256, así que una filtración de la base no permite suplantar a nadie.
+///
+/// Se usa SHA-256 y no argon2id a propósito: argon2 es lento **por diseño**, para proteger
+/// secretos que elige una persona y se pueden adivinar. Este token son 256 bits aleatorios, que
+/// no se adivinan, y el hash tiene que poder buscarse en un índice en cada refresco.
+model RefreshToken {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(3)
+  /// Cuándo se canjeó. Que llegue un token ya canjeado significa que alguien lo copió.
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(3)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
 }
 
 /// Token de larga duración para que un dispositivo (el celular) use la API sin la contraseña.

@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { InvalidCredentialsError } from '../domain/errors.js';
 import type { DecoyPasswordHash } from '../infrastructure/decoy-password-hash.js';
-import type { AccessToken, AccessTokenIssuer } from '../ports/access-token-issuer.js';
 import type { PasswordHasher } from '../ports/password-hasher.js';
 import type { UserCredentials, UserRepository } from '../ports/user-repository.js';
 import { LoginUser } from './login-user.js';
@@ -13,14 +12,12 @@ const CREDENTIALS = { email: 'ana@example.com', password: 'caballo grapa baterí
 
 describe('LoginUser', () => {
   let verify: ReturnType<typeof vi.fn<(plain: string, hash: string) => Promise<boolean>>>;
-  let issue: ReturnType<typeof vi.fn<(userId: string) => Promise<AccessToken>>>;
   let found: UserCredentials | null;
   let loginUser: LoginUser;
 
   beforeEach(() => {
     found = USER;
     verify = vi.fn(() => Promise.resolve(true));
-    issue = vi.fn(() => Promise.resolve({ token: 'un-token', expiresInSeconds: 900 }));
 
     const users: UserRepository = {
       hasAnyUser: () => Promise.resolve(true),
@@ -28,23 +25,13 @@ describe('LoginUser', () => {
       create: () => Promise.reject(new Error('no se usa aquí')),
     };
     const passwords: PasswordHasher = { hash: () => Promise.resolve('x'), verify };
-    const tokens: AccessTokenIssuer = { issue };
     const decoy = { get: () => DECOY } as DecoyPasswordHash;
 
-    loginUser = new LoginUser(users, passwords, tokens, decoy);
+    loginUser = new LoginUser(users, passwords, decoy);
   });
 
-  it('issues a token for the right password', async () => {
-    await expect(loginUser.execute(CREDENTIALS)).resolves.toEqual({
-      token: 'un-token',
-      expiresInSeconds: 900,
-    });
-  });
-
-  it('issues it for the account that owns the email', async () => {
-    await loginUser.execute(CREDENTIALS);
-
-    expect(issue).toHaveBeenCalledWith(USER.id);
+  it('says which account the right password belongs to', async () => {
+    await expect(loginUser.execute(CREDENTIALS)).resolves.toBe(USER.id);
   });
 
   it('rejects a wrong password', async () => {
@@ -57,13 +44,6 @@ describe('LoginUser', () => {
     found = null;
 
     await expect(loginUser.execute(CREDENTIALS)).rejects.toThrow(InvalidCredentialsError);
-  });
-
-  it('issues nothing when it rejects', async () => {
-    found = null;
-
-    await expect(loginUser.execute(CREDENTIALS)).rejects.toThrow();
-    expect(issue).not.toHaveBeenCalled();
   });
 
   describe('not telling which of the two failed', () => {

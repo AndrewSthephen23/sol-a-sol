@@ -36,3 +36,25 @@ export function accessTokenExpiry(clock: Clock): AccessTokenExpiry {
     expiresAtInSeconds,
   };
 }
+
+/**
+ * Cuánto vale un token de refresco: **30 días**, y **deslizantes**.
+ *
+ * Cada uso emite uno nuevo con otros treinta días por delante, así que quien entra a diario no
+ * vuelve a escribir la contraseña nunca. A cambio, una sesión que se abandona caduca sola.
+ */
+export const REFRESH_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
+
+/** Cuándo caduca un refresco emitido ahora, según el reloj que se le pase. */
+export function refreshTokenExpiresAt(clock: Clock): Date {
+  return new Date(clock.now().getTime() + REFRESH_TOKEN_TTL_SECONDS * 1000);
+}
+
+/**
+ * Si un instante de caducidad ya pasó.
+ *
+ * El borde cuenta como caducado: un token que vale "hasta las 15:15" no vale a las 15:15.
+ */
+export function hasExpired(expiresAt: Date, clock: Clock): boolean {
+  return clock.now().getTime() >= expiresAt.getTime();
+}
