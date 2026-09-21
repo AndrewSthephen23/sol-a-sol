@@ -8,3 +8,10 @@ export {
   type RegisterRequest,
   registerRequestSchema,
 } from './identity/credentials.js';
+export {
+  PROBLEM_CONTENT_TYPE,
+  type ProblemDetails,
+  problemDetailsSchema,
+  type ProblemFieldError,
+  problemFieldErrorSchema,
+} from './http/problem-details.js';
