@@ -1,6 +1,6 @@
 # Módulo Identidad (`identity`)
 
-> Ficha del módulo. Estado: **en construcción** (hito H2). Hoy solo existe el andamiaje y las tablas.
+> Ficha del módulo. Estado: **en construcción** (hito H2). Hoy existen el andamiaje, las tablas, la política de contraseñas y el hasher; todavía no hay endpoints.
 
 ## Qué resuelve
 
@@ -20,13 +20,35 @@ Decididas con el autor el 2026-09-18. No se cambian sin volver a preguntar.
 | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Quién puede registrarse                | Política configurable `REGISTRATION_MODE=closed\|invite\|open`, **`closed` por defecto**. El primer usuario que se registra queda como dueño; después la ruta responde **404**, no 403, para no confirmar que existe                                        |
 | Contraseña                             | Mínimo **12 caracteres**, sin exigir mayúsculas ni números (criterio de NIST SP 800-63B), y se rechazan las de una lista de filtradas **embebida en el repositorio**: el dominio se compila sin tipos de Node ni del navegador y no puede consultar una API |
-| Almacenamiento de la contraseña        | **argon2id**                                                                                                                                                                                                                                                |
+| Almacenamiento de la contraseña        | **argon2id** (ver los parámetros más abajo)                                                                                                                                                                                                                 |
 | Duración de la sesión                  | Token de acceso **15 min**; refresh **30 días deslizante**, o sea que se renueva en cada uso                                                                                                                                                                |
 | Refresh                                | Rotativo: cada uso emite uno nuevo e invalida el anterior. Si llega uno ya usado se cierran **todas** las sesiones del usuario y queda en la bitácora                                                                                                       |
 | Segundo factor                         | **Opcional**, TOTP (RFC 6238, el estándar de las apps autenticadoras). Al activarlo se muestran una sola vez unos **códigos de recuperación** de un solo uso, guardados hasheados                                                                           |
 | Intentos fallidos                      | **5 intentos**, luego bloqueo progresivo **1 → 2 → 4 → 8 → 15 min**, contado por cuenta y por IP, con tope de 15 min para que nadie pueda bloquear la cuenta desde fuera. Se reinicia con un login correcto                                                 |
 | Tokens personales                      | Expiración elegible al crearlos, **90 días por defecto**. Se muestran una sola vez, se guardan hasheados, con scopes mínimos (el primero, `captures:write`) y revocación                                                                                    |
 | Al cambiar la contraseña o activar 2FA | Se cierran **todas las demás sesiones**. Los **tokens personales NO se revocan**, para no romper en silencio la captura desde el celular; la respuesta avisa y ofrece revocarlos                                                                            |
+
+### Parámetros de argon2id
+
+Los de la hoja de recomendaciones de OWASP para almacenamiento de contraseñas, en la primera de sus combinaciones admitidas:
+
+| Parámetro     | Valor                   | Por qué                                                                                                                            |
+| ------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `memoryCost`  | **19 456 KiB** (19 MiB) | Es lo que encarece atacar el hash con GPU: una GPU tiene muchos núcleos, pero poca memoria por núcleo                              |
+| `timeCost`    | **2** iteraciones       | Con 19 MiB, las que OWASP considera suficientes                                                                                    |
+| `parallelism` | **1**                   | Un solo hilo por hash. La API ya atiende varias peticiones a la vez; paralelizar dentro de cada hash solo competiría consigo misma |
+
+Las otras combinaciones que admite OWASP (47 MiB con `t=1`, 12 MiB con `t=3`, 9 MiB con `t=4`…) dan la misma resistencia y solo cambian el reparto entre memoria y tiempo.
+
+**Subirlos más adelante no rompe nada:** los parámetros viajan dentro del propio hash (formato PHC, `$argon2id$v=19$m=19456,t=2,p=1$…`), así que un hash antiguo se sigue verificando con los suyos. Lo que faltará, cuando toque subirlos, es rehashear al vuelo en el login correcto.
+
+Medido en el equipo de desarrollo: **~35 ms** por hash.
+
+### Por qué la librería `argon2` y no `@node-rs/argon2`
+
+`@node-rs/argon2` es más rápido (~21 ms), pero entrega su binario como **dependencia opcional**, y la imagen de producción se arma con `pnpm deploy --prod --no-optional` (issue #6), que las poda: la API arrancaría sin poder hashear. `argon2` trae los binarios precompilados **dentro del paquete**, así que sobrevive; cuesta ~10 MB de imagen, porque incluye los de las siete plataformas. La opción en JS puro (`@noble/hashes`) tarda ~390 ms y es síncrona, o sea que bloquearía el bucle de eventos en cada intento de login.
+
+Su script de instalación está **desactivado** (`allowBuilds: argon2: false`): `node-gyp-build` resuelve el binario al importar, sin compilar nada.
 
 ### Limitación conocida
 
@@ -37,11 +59,11 @@ registro cerrado, verificar el correo de la única cuenta no protege de nada. La
 
 ## Datos
 
-| Tabla                    | Para qué                                                                             |
-| ------------------------ | ------------------------------------------------------------------------------------ |
-| `users`                  | La cuenta. Ya existía desde la migración inicial                                     |
-| `personal_access_tokens` | Credenciales por dispositivo. `ON DELETE CASCADE`: borrar la cuenta borra sus tokens |
-| `audit_logs`             | Bitácora de seguridad. **Sin clave foránea a propósito**                             |
+| Tabla                    | Para qué                                                                                                                             |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `users`                  | La cuenta. Ya existía desde la migración inicial. `password_hash` guarda el hash argon2id completo y **nunca** sale en una respuesta |
+| `personal_access_tokens` | Credenciales por dispositivo. `ON DELETE CASCADE`: borrar la cuenta borra sus tokens                                                 |
+| `audit_logs`             | Bitácora de seguridad. **Sin clave foránea a propósito**                                                                             |
 
 Sobre `audit_logs`: una entrada de auditoría es un hecho inmutable sobre algo que ya pasó y debe
 sobrevivir al borrado de quien lo provocó. Con `onDelete: SetNull` se perdería quién hizo qué, y con

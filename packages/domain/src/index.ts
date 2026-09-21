@@ -30,3 +30,10 @@ export {
   parseAmount,
   type ParseAmountOptions,
 } from './money/parse-amount.js';
+export {
+  assertPasswordIsStrong,
+  PASSWORD_MIN_LENGTH,
+  PasswordTooCommonError,
+  PasswordTooShortError,
+  WeakPasswordError,
+} from './identity/password-policy.js';

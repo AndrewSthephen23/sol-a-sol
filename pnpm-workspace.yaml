@@ -30,6 +30,10 @@ allowBuilds:
   prisma: false
   # Binario nativo vía dependencias opcionales; el script no es necesario.
   '@swc/core': false
+  # `node-gyp-build` resuelve el binario precompilado que el propio paquete trae en `prebuilds/`
+  # al importarlo, así que el script de instalación no hace falta: comprobado hasheando y
+  # verificando con la instalación hecha con los scripts desactivados.
+  argon2: false
   unrs-resolver: false
   # Dependencias transitivas de Testcontainers: aceleración nativa opcional de SSH
   # (ssh2 tiene implementación en JS) y un aviso de versión de protobufjs.
