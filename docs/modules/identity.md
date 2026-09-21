@@ -1,6 +1,6 @@
 # Módulo Identidad (`identity`)
 
-> Ficha del módulo. Estado: **en construcción** (hito H2). Hoy existen el andamiaje, las tablas, la política de contraseñas y el hasher; todavía no hay endpoints.
+> Ficha del módulo. Estado: **en construcción** (hito H2). Hoy funciona el registro; el inicio de sesión llega en la tarea siguiente.
 
 ## Qué resuelve
 
@@ -50,6 +50,21 @@ Medido en el equipo de desarrollo: **~35 ms** por hash.
 
 Su script de instalación está **desactivado** (`allowBuilds: argon2: false`): `node-gyp-build` resuelve el binario al importar, sin compilar nada.
 
+### Variables de entorno
+
+| Variable                   | Valores                                  | Para qué                                                                                                                                                                    |
+| -------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `REGISTRATION_MODE`        | `closed` (por defecto), `invite`, `open` | Quién puede crear una cuenta. Cualquier valor desconocido, o la variable sin definir, se entiende como `closed`: un error de tipeo no puede abrir el registro               |
+| `REGISTRATION_INVITE_CODE` | texto                                    | Solo con `invite`. Sin código configurado no entra nadie, para que olvidar la variable no signifique "cualquiera entra con el código vacío". Se compara en tiempo constante |
+
+Cuando el registro no está permitido, la ruta responde **404 idéntico al de una ruta inexistente**, sin decir que el registro existe y está cerrado.
+
+### Enumeración de correos en el registro
+
+Registrar un correo ya tomado responde **409**, o sea que revela que esa cuenta existe. Es aceptable **solo porque el registro está cerrado por defecto**: con `REGISTRATION_MODE=closed`, ese 409 es inalcanzable, porque en cuanto existe una cuenta el guard responde 404 antes de llegar al caso de uso.
+
+Si algún día se pasa a `open`, hay que taparlo. Lo habitual es responder siempre 201 y avisar por correo, lo que exige antes el envío de correo que este hito pospuso.
+
 ### Limitación conocida
 
 **No hay verificación de correo ni recuperación de contraseña.** Se pospusieron a propósito: con el
@@ -82,18 +97,18 @@ Se registran: login (con éxito y fallido), cambios de 2FA, alta y revocación d
 
 Previstos para H2; ninguno existe todavía. Todos bajo `/api/v1` y con `@RequiresFeature('identity')`.
 
-| Método | Ruta               | Qué hace                                                 |
-| ------ | ------------------ | -------------------------------------------------------- |
-| POST   | `/auth/register`   | Crea la cuenta. 404 si `REGISTRATION_MODE` no lo permite |
-| POST   | `/auth/login`      | Devuelve el token de acceso y deja el refresh en cookie  |
-| POST   | `/auth/refresh`    | Rota el refresh y emite un token de acceso nuevo         |
-| POST   | `/auth/logout`     | Cierra la sesión actual                                  |
-| POST   | `/auth/2fa/enable` | Devuelve el `otpauth://` y los códigos de recuperación   |
-| POST   | `/auth/2fa/verify` | Confirma el código y activa el segundo factor            |
-| DELETE | `/auth/2fa`        | Desactiva el segundo factor                              |
-| GET    | `/tokens`          | Lista los tokens personales, **sin** su valor            |
-| POST   | `/tokens`          | Crea uno y lo muestra **una sola vez**                   |
-| DELETE | `/tokens/:id`      | Lo revoca                                                |
+| Método | Ruta               | Qué hace                                                    |
+| ------ | ------------------ | ----------------------------------------------------------- |
+| POST   | `/auth/register`   | ✅ Crea la cuenta. 404 si `REGISTRATION_MODE` no lo permite |
+| POST   | `/auth/login`      | Devuelve el token de acceso y deja el refresh en cookie     |
+| POST   | `/auth/refresh`    | Rota el refresh y emite un token de acceso nuevo            |
+| POST   | `/auth/logout`     | Cierra la sesión actual                                     |
+| POST   | `/auth/2fa/enable` | Devuelve el `otpauth://` y los códigos de recuperación      |
+| POST   | `/auth/2fa/verify` | Confirma el código y activa el segundo factor               |
+| DELETE | `/auth/2fa`        | Desactiva el segundo factor                                 |
+| GET    | `/tokens`          | Lista los tokens personales, **sin** su valor               |
+| POST   | `/tokens`          | Crea uno y lo muestra **una sola vez**                      |
+| DELETE | `/tokens/:id`      | Lo revoca                                                   |
 
 ## Estado
 
