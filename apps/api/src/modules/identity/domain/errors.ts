@@ -15,3 +15,17 @@ export class EmailAlreadyRegisteredError extends DomainError {
     super('That email address is already registered.');
   }
 }
+
+/**
+ * El correo no existe **o** la contraseña no corresponde: un solo error para los dos casos, a
+ * propósito. Distinguirlos permitiría averiguar qué correos tienen cuenta probándolos uno a uno.
+ *
+ * Por el mismo motivo, el mensaje no dice cuál de los dos falló.
+ */
+export class InvalidCredentialsError extends DomainError {
+  readonly code = 'INVALID_CREDENTIALS';
+
+  constructor() {
+    super('Email or password is incorrect.');
+  }
+}

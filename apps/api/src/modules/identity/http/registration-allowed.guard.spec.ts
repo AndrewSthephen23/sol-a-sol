@@ -15,6 +15,7 @@ function contextWith(body: unknown): ExecutionContext {
 function repositoryWith(hasAnyUser: boolean): UserRepository {
   return {
     hasAnyUser: () => Promise.resolve(hasAnyUser),
+    findCredentialsByEmail: () => Promise.resolve(null),
     create: () => Promise.reject(new Error('no se usa aquí')),
   };
 }

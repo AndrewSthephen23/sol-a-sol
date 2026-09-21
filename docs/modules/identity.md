@@ -1,6 +1,6 @@
 # Módulo Identidad (`identity`)
 
-> Ficha del módulo. Estado: **en construcción** (hito H2). Hoy funciona el registro; el inicio de sesión llega en la tarea siguiente.
+> Ficha del módulo. Estado: **en construcción** (hito H2). Funcionan el registro y el inicio de sesión; faltan el refresh, el segundo factor, los tokens personales y la auditoría.
 
 ## Qué resuelve
 
@@ -55,9 +55,28 @@ Su script de instalación está **desactivado** (`allowBuilds: argon2: false`): 
 | Variable                   | Valores                                  | Para qué                                                                                                                                                                    |
 | -------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `REGISTRATION_MODE`        | `closed` (por defecto), `invite`, `open` | Quién puede crear una cuenta. Cualquier valor desconocido, o la variable sin definir, se entiende como `closed`: un error de tipeo no puede abrir el registro               |
+| `AUTH_JWT_SECRET`          | texto de **32 bytes o más**              | Firma los tokens de acceso (HS256 usa una clave de 256 bits). Sin ella la API no emite ninguno. Generar una por entorno: `openssl rand -base64 48`                          |
 | `REGISTRATION_INVITE_CODE` | texto                                    | Solo con `invite`. Sin código configurado no entra nadie, para que olvidar la variable no signifique "cualquiera entra con el código vacío". Se compara en tiempo constante |
 
 Cuando el registro no está permitido, la ruta responde **404 idéntico al de una ruta inexistente**, sin decir que el registro existe y está cerrado.
+
+### El token de acceso
+
+Un JWT firmado con **HS256** que vive **15 minutos** (la duración está en `@sol-a-sol/domain`, no en la API: es una regla de negocio). El cuerpo lleva solo `sub`, `iat` y `exp`.
+
+**Nada personal viaja dentro**, ni siquiera el correo: un JWT va firmado pero **no cifrado**, así que cualquiera que lo intercepte lee su contenido. Hay una prueba que falla si aparece una cuarta clave en el cuerpo.
+
+`iat` y `exp` se calculan con el puerto `Clock`, nunca con `new Date()`, así que una prueba puede fijar el instante y comprobar la caducidad exacta sin esperar quince minutos.
+
+### Enumeración de correos en el inicio de sesión
+
+Un correo desconocido y una contraseña equivocada responden **401 con el mismo cuerpo exacto**, y además **cuestan lo mismo**: cuando el correo no existe se verifica contra un **hash señuelo**, calculado al arrancar a partir de una cadena aleatoria. Sin eso, el caso del correo desconocido no hashearía nada y respondería visiblemente antes, y cronometrando las respuestas se podría averiguar qué correos tienen cuenta.
+
+El señuelo se calcula al arrancar el módulo y no en el primer fallo, porque si no ese primer intento costaría un hash de más y volvería a delatar la diferencia.
+
+### Pendiente: el segundo factor todavía no se comprueba
+
+`loginRequestSchema` ya acepta `totpCode`, pero el inicio de sesión **aún no lo valida**: eso llega en la tarea 06. No hay riesgo mientras tanto porque ninguna cuenta puede activar el segundo factor todavía, y el módulo entero sigue apagado tras `FEATURE_IDENTITY`.
 
 ### Enumeración de correos en el registro
 
@@ -97,18 +116,18 @@ Se registran: login (con éxito y fallido), cambios de 2FA, alta y revocación d
 
 Previstos para H2; ninguno existe todavía. Todos bajo `/api/v1` y con `@RequiresFeature('identity')`.
 
-| Método | Ruta               | Qué hace                                                    |
-| ------ | ------------------ | ----------------------------------------------------------- |
-| POST   | `/auth/register`   | ✅ Crea la cuenta. 404 si `REGISTRATION_MODE` no lo permite |
-| POST   | `/auth/login`      | Devuelve el token de acceso y deja el refresh en cookie     |
-| POST   | `/auth/refresh`    | Rota el refresh y emite un token de acceso nuevo            |
-| POST   | `/auth/logout`     | Cierra la sesión actual                                     |
-| POST   | `/auth/2fa/enable` | Devuelve el `otpauth://` y los códigos de recuperación      |
-| POST   | `/auth/2fa/verify` | Confirma el código y activa el segundo factor               |
-| DELETE | `/auth/2fa`        | Desactiva el segundo factor                                 |
-| GET    | `/tokens`          | Lista los tokens personales, **sin** su valor               |
-| POST   | `/tokens`          | Crea uno y lo muestra **una sola vez**                      |
-| DELETE | `/tokens/:id`      | Lo revoca                                                   |
+| Método | Ruta               | Qué hace                                                                  |
+| ------ | ------------------ | ------------------------------------------------------------------------- |
+| POST   | `/auth/register`   | ✅ Crea la cuenta. 404 si `REGISTRATION_MODE` no lo permite               |
+| POST   | `/auth/login`      | ✅ Devuelve el token de acceso. El refresh en cookie llega en la tarea 05 |
+| POST   | `/auth/refresh`    | Rota el refresh y emite un token de acceso nuevo                          |
+| POST   | `/auth/logout`     | Cierra la sesión actual                                                   |
+| POST   | `/auth/2fa/enable` | Devuelve el `otpauth://` y los códigos de recuperación                    |
+| POST   | `/auth/2fa/verify` | Confirma el código y activa el segundo factor                             |
+| DELETE | `/auth/2fa`        | Desactiva el segundo factor                                               |
+| GET    | `/tokens`          | Lista los tokens personales, **sin** su valor                             |
+| POST   | `/tokens`          | Crea uno y lo muestra **una sola vez**                                    |
+| DELETE | `/tokens/:id`      | Lo revoca                                                                 |
 
 ## Estado
 

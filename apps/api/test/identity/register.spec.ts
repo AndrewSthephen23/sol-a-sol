@@ -41,6 +41,9 @@ describe('POST /auth/register', () => {
   });
 
   afterAll(async () => {
+    // Los archivos comparten el mismo PostgreSQL: se devuelve la tabla como se encontró,
+    // o el siguiente se topa con cuentas que no creó.
+    await prisma.user.deleteMany();
     delete process.env.FEATURE_IDENTITY;
     delete process.env.REGISTRATION_MODE;
     await app.close();

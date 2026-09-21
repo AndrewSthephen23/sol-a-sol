@@ -1,11 +1,16 @@
 import { Module } from '@nestjs/common';
 
 import { PrismaModule } from '../../shared/prisma/prisma.module.js';
+import { TimeModule } from '../../shared/time/time.module.js';
+import { LoginUser } from './application/login-user.js';
 import { RegisterUser } from './application/register-user.js';
 import { AuthController } from './http/auth.controller.js';
 import { RegistrationAllowedGuard } from './http/registration-allowed.guard.js';
 import { Argon2PasswordHasher } from './infrastructure/argon2-password-hasher.js';
+import { DecoyPasswordHash } from './infrastructure/decoy-password-hash.js';
+import { JoseAccessTokenIssuer } from './infrastructure/jose-access-token-issuer.js';
 import { PrismaUserRepository } from './infrastructure/prisma-user-repository.js';
+import { ACCESS_TOKEN_ISSUER } from './ports/access-token-issuer.js';
 import { PASSWORD_HASHER } from './ports/password-hasher.js';
 import { USER_REPOSITORY } from './ports/user-repository.js';
 
@@ -16,13 +21,16 @@ import { USER_REPOSITORY } from './ports/user-repository.js';
 @Module({
   // `PrismaModule` es global, pero se importa igualmente para que el módulo se sostenga solo:
   // así se puede montar en una prueba sin arrastrar el `AppModule` entero.
-  imports: [PrismaModule],
+  imports: [PrismaModule, TimeModule],
   controllers: [AuthController],
   providers: [
     RegisterUser,
+    LoginUser,
     RegistrationAllowedGuard,
+    DecoyPasswordHash,
     { provide: PASSWORD_HASHER, useClass: Argon2PasswordHasher },
     { provide: USER_REPOSITORY, useClass: PrismaUserRepository },
+    { provide: ACCESS_TOKEN_ISSUER, useClass: JoseAccessTokenIssuer },
   ],
   exports: [PASSWORD_HASHER],
 })
