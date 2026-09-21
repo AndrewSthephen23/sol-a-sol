@@ -2,37 +2,18 @@ import { PasswordTooShortError } from '@sol-a-sol/domain';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { PasswordHasher } from '../ports/password-hasher.js';
-import type { NewUser, UserAccount, UserRepository } from '../ports/user-repository.js';
+import { FakeUserRepository } from '../ports/user-repository.fake.js';
 import { RegisterUser } from './register-user.js';
 
 const STRONG = 'caballo grapa batería';
 
-function fakeRepository() {
-  const created: NewUser[] = [];
-
-  return {
-    created,
-    hasAnyUser: (): Promise<boolean> => Promise.resolve(false),
-    findCredentialsByEmail: () => Promise.resolve(null),
-    create: (user: NewUser): Promise<UserAccount> => {
-      created.push(user);
-
-      return Promise.resolve({
-        id: '01999999-9999-7999-8999-999999999999',
-        email: user.email,
-        createdAt: new Date('2026-09-20T00:00:00.000Z'),
-      });
-    },
-  } satisfies UserRepository & { created: NewUser[] };
-}
-
 describe('RegisterUser', () => {
-  let repository: ReturnType<typeof fakeRepository>;
+  let repository: FakeUserRepository;
   let hash: ReturnType<typeof vi.fn<(plain: string) => Promise<string>>>;
   let registerUser: RegisterUser;
 
   beforeEach(() => {
-    repository = fakeRepository();
+    repository = new FakeUserRepository();
     hash = vi.fn((plain: string) => Promise.resolve(`hashed:${plain}`));
     const hasher: PasswordHasher = { hash, verify: () => Promise.resolve(true) };
     registerUser = new RegisterUser(repository, hasher);

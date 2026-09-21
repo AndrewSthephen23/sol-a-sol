@@ -1,6 +1,7 @@
 import { type ExecutionContext, NotFoundException } from '@nestjs/common';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { FakeUserRepository } from '../ports/user-repository.fake.js';
 import type { UserRepository } from '../ports/user-repository.js';
 import { RegistrationAllowedGuard } from './registration-allowed.guard.js';
 
@@ -12,14 +13,9 @@ function contextWith(body: unknown): ExecutionContext {
   } as unknown as ExecutionContext;
 }
 
-function repositoryWith(hasAnyUser: boolean): UserRepository {
-  return {
-    hasAnyUser: () => Promise.resolve(hasAnyUser),
-    findCredentialsByEmail: () => Promise.resolve(null),
-    create: () => Promise.reject(new Error('no se usa aquí')),
-  };
+function repositoryWith(anyUser: boolean): UserRepository {
+  return new FakeUserRepository({ anyUser });
 }
-
 async function guardAllows(options: {
   mode?: string;
   invite?: string;

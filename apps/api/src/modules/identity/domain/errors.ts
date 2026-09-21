@@ -42,3 +42,45 @@ export class InvalidRefreshTokenError extends DomainError {
     super('The session is no longer valid. Sign in again.');
   }
 }
+
+/**
+ * La cuenta tiene segundo factor y la petición no trajo código.
+ *
+ * Confirma que la contraseña era correcta, y eso es inevitable: sin decirlo no habría forma de
+ * pedir el código. Es justamente la razón de ser del segundo factor — que saber la contraseña
+ * ya no baste.
+ */
+export class TotpRequiredError extends DomainError {
+  readonly code = 'TOTP_REQUIRED';
+
+  constructor() {
+    super('This account needs a second factor code.');
+  }
+}
+
+/** El código no corresponde, caducó, o ya se usó. No se dice cuál de las tres. */
+export class InvalidTotpCodeError extends DomainError {
+  readonly code = 'INVALID_TOTP_CODE';
+
+  constructor() {
+    super('That second factor code is not valid.');
+  }
+}
+
+/** Se intentó activar el segundo factor en una cuenta que ya lo tiene. */
+export class TotpAlreadyEnabledError extends DomainError {
+  readonly code = 'TOTP_ALREADY_ENABLED';
+
+  constructor() {
+    super('The second factor is already enabled. Disable it first.');
+  }
+}
+
+/** Se intentó confirmar o desactivar un segundo factor que no está en marcha. */
+export class TotpNotStartedError extends DomainError {
+  readonly code = 'TOTP_NOT_STARTED';
+
+  constructor() {
+    super('There is no second factor to confirm. Start the setup first.');
+  }
+}

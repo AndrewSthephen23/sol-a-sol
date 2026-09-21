@@ -1,6 +1,6 @@
 # Módulo Identidad (`identity`)
 
-> Ficha del módulo. Estado: **en construcción** (hito H2). Funcionan el registro, el inicio de sesión, la renovación y el cierre; faltan el segundo factor, los tokens personales y el resto de la auditoría.
+> Ficha del módulo. Estado: **en construcción** (hito H2). Funcionan el registro, el inicio de sesión, la renovación, el cierre y el segundo factor; faltan los códigos de recuperación, los tokens personales y el resto de la auditoría.
 
 ## Qué resuelve
 
@@ -56,6 +56,7 @@ Su script de instalación está **desactivado** (`allowBuilds: argon2: false`): 
 | -------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `REGISTRATION_MODE`        | `closed` (por defecto), `invite`, `open` | Quién puede crear una cuenta. Cualquier valor desconocido, o la variable sin definir, se entiende como `closed`: un error de tipeo no puede abrir el registro               |
 | `AUTH_JWT_SECRET`          | texto de **32 bytes o más**              | Firma los tokens de acceso (HS256 usa una clave de 256 bits). Sin ella la API no emite ninguno. Generar una por entorno: `openssl rand -base64 48`                          |
+| `AUTH_TOTP_ENCRYPTION_KEY` | 32 bytes en base64                       | Cifra los secretos TOTP. Es **propia** y no la de los JWT: rotar aquella dejaría ilegibles todos los secretos y a sus dueños fuera de su propia cuenta                      |
 | `REGISTRATION_INVITE_CODE` | texto                                    | Solo con `invite`. Sin código configurado no entra nadie, para que olvidar la variable no signifique "cualquiera entra con el código vacío". Se compara en tiempo constante |
 
 Cuando el registro no está permitido, la ruta responde **404 idéntico al de una ruta inexistente**, sin decir que el registro existe y está cerrado.
@@ -90,9 +91,21 @@ Dos pestañas renovando a la vez con la misma cookie caen en este camino: desde 
 
 argon2 es lento **por diseño**, para proteger secretos que elige una persona y se pueden adivinar. Un refresco son **256 bits aleatorios**: no hay nada que adivinar, y su hash tiene que poder buscarse en un índice en cada renovación, cosa que un hash con sal por fila no permite. Lo que se guarda es solo el hash, así que una filtración de la base no permite suplantar a nadie.
 
-### Pendiente: el segundo factor todavía no se comprueba
+### El segundo factor
 
-`loginRequestSchema` ya acepta `totpCode`, pero el inicio de sesión **aún no lo valida**: eso llega en la tarea 06. No hay riesgo mientras tanto porque ninguna cuenta puede activar el segundo factor todavía, y el módulo entero sigue apagado tras `FEATURE_IDENTITY`.
+TOTP de seis dígitos cada treinta segundos (RFC 6238), lo que implementan todas las aplicaciones de autenticación. La activación tiene **dos pasos**: `setup` crea el secreto y devuelve el `otpauth://` **una sola vez**, y hasta que `verify` lo confirma con un código el segundo factor **no está activo**. Así, escanear mal el QR no deja la cuenta inaccesible.
+
+**Ventana de tolerancia: un periodo a cada lado.** Relojes ligeramente desfasados no deben impedir entrar, pero una ventana más ancha alargaría la vida de un código que alguien vio por encima del hombro. Qué contadores se aceptan lo decide el dominio, no la librería, así que se prueba con reloj fijo.
+
+**Un código sirve una sola vez.** Se guarda el último periodo usado (`totp_last_counter`) y solo se aceptan posteriores. Tiene una consecuencia que conviene saber: dentro de un mismo periodo de 30 s solo hay **dos** códigos utilizables (el actual y el siguiente). En uso real no se nota; en las pruebas de integración obliga a mover el reloj a mano.
+
+**Desactivar exige un código válido**, porque es una rebaja de seguridad. Activación y desactivación quedan en `audit_logs`.
+
+**El secreto se guarda cifrado** con AES-256-GCM, no hasheado: hay que poder leerlo entero en cada login para calcular el código esperado. GCM además autentica, así que manipular el texto cifrado se nota en vez de descifrarse a basura.
+
+### Pedir el código confirma que la contraseña era correcta
+
+Cuando la cuenta tiene segundo factor y no llega código, la respuesta es `TOTP_REQUIRED`, que revela que la contraseña acertó. Es **inevitable**: sin decirlo no habría forma de pedir el código. Y es justamente la razón de ser del segundo factor — que saber la contraseña ya no baste.
 
 ### Enumeración de correos en el registro
 
@@ -132,18 +145,18 @@ Se registran: login (con éxito y fallido), cambios de 2FA, alta y revocación d
 
 Todos bajo `/api/v1` y con `@RequiresFeature('identity')`. Los que ya existen se describen en [`/api/v1/openapi.json`](../../README.md#api), que solo los muestra con el flag encendido.
 
-| Método | Ruta               | Qué hace                                                        |
-| ------ | ------------------ | --------------------------------------------------------------- |
-| POST   | `/auth/register`   | ✅ Crea la cuenta. 404 si `REGISTRATION_MODE` no lo permite     |
-| POST   | `/auth/login`      | ✅ Devuelve el token de acceso y deja el refresco en una cookie |
-| POST   | `/auth/refresh`    | ✅ Rota el refresco y emite un token de acceso nuevo            |
-| POST   | `/auth/logout`     | ✅ Cierra la sesión actual y borra la cookie                    |
-| POST   | `/auth/2fa/enable` | Devuelve el `otpauth://` y los códigos de recuperación          |
-| POST   | `/auth/2fa/verify` | Confirma el código y activa el segundo factor                   |
-| DELETE | `/auth/2fa`        | Desactiva el segundo factor                                     |
-| GET    | `/tokens`          | Lista los tokens personales, **sin** su valor                   |
-| POST   | `/tokens`          | Crea uno y lo muestra **una sola vez**                          |
-| DELETE | `/tokens/:id`      | Lo revoca                                                       |
+| Método | Ruta                | Qué hace                                                        |
+| ------ | ------------------- | --------------------------------------------------------------- |
+| POST   | `/auth/register`    | ✅ Crea la cuenta. 404 si `REGISTRATION_MODE` no lo permite     |
+| POST   | `/auth/login`       | ✅ Devuelve el token de acceso y deja el refresco en una cookie |
+| POST   | `/auth/refresh`     | ✅ Rota el refresco y emite un token de acceso nuevo            |
+| POST   | `/auth/logout`      | ✅ Cierra la sesión actual y borra la cookie                    |
+| POST   | `/auth/2fa/setup`   | ✅ Devuelve el `otpauth://` una sola vez                        |
+| POST   | `/auth/2fa/verify`  | ✅ Confirma el código y activa el segundo factor                |
+| POST   | `/auth/2fa/disable` | ✅ Desactiva el segundo factor. Exige un código válido          |
+| GET    | `/tokens`           | Lista los tokens personales, **sin** su valor                   |
+| POST   | `/tokens`           | Crea uno y lo muestra **una sola vez**                          |
+| DELETE | `/tokens/:id`       | Lo revoca                                                       |
 
 ## Estado
 

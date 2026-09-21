@@ -15,13 +15,19 @@ datasource db {
 /// Usuario de la plataforma. El modelo es multiusuario desde el día 1:
 /// todas las tablas de negocio referenciarán `User.id`.
 model User {
-  id           String   @id @default(uuid(7)) @db.Uuid
-  email        String   @unique
-  passwordHash String   @map("password_hash")
-  totpSecret   String?  @map("totp_secret")
-  locale       String   @default("es-PE")
-  timezone     String   @default("America/Lima")
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  id              String    @id @default(uuid(7)) @db.Uuid
+  email           String    @unique
+  passwordHash    String    @map("password_hash")
+  /// Secreto TOTP **cifrado** con AES-256-GCM. Existe desde que se empieza a activar el
+  /// segundo factor, pero este no vale hasta que `totpConfirmedAt` deja de ser nulo.
+  totpSecret      String?   @map("totp_secret")
+  /// Cuándo se confirmó el segundo factor con un código. Nulo = no está activo.
+  totpConfirmedAt DateTime? @map("totp_confirmed_at") @db.Timestamptz(3)
+  /// Último periodo de 30 s usado. Impide reutilizar un código dentro de su ventana.
+  totpLastCounter BigInt?   @map("totp_last_counter")
+  locale          String    @default("es-PE")
+  timezone        String    @default("America/Lima")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
 
   personalAccessTokens PersonalAccessToken[]
   refreshTokens        RefreshToken[]

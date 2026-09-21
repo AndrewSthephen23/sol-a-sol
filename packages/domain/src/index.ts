@@ -52,3 +52,11 @@ export {
   REFRESH_TOKEN_TTL_SECONDS,
   refreshTokenExpiresAt,
 } from './identity/session-policy.js';
+export {
+  isCounterFresh,
+  TOTP_DIGITS,
+  TOTP_PERIOD_SECONDS,
+  TOTP_WINDOW_STEPS,
+  totpCounter,
+  totpCountersToAccept,
+} from './identity/totp-policy.js';

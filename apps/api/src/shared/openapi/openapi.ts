@@ -3,6 +3,7 @@ import {
   problemDetailsSchema,
   PROBLEM_CONTENT_TYPE,
   registerRequestSchema,
+  totpCodeRequestSchema,
 } from '@sol-a-sol/contracts';
 import { z, type ZodType } from 'zod';
 
@@ -36,6 +37,13 @@ function jsonBody(schema: ZodType): Record<string, unknown> {
 
 const ACCOUNT_SCHEMA = schemaOf(
   z.object({ id: z.uuid(), email: z.email(), createdAt: z.iso.datetime() }),
+);
+
+const TOTP_SETUP_SCHEMA = schemaOf(
+  z.object({
+    uri: z.string().describe('URI otpauth:// para escanear.'),
+    secret: z.string().describe('El mismo secreto en base32, para escribirlo a mano.'),
+  }),
 );
 
 const ACCESS_TOKEN_SCHEMA = schemaOf(
@@ -143,6 +151,53 @@ function identityPaths(): Record<string, unknown> {
         },
       },
     },
+    [`/${API_PREFIX}/auth/2fa/setup`]: {
+      post: {
+        tags: ['identity'],
+        summary: 'Empieza a activar el segundo factor.',
+        description:
+          'Devuelve **una sola vez** el `otpauth://` que escanean Google Authenticator, Aegis, ' +
+          '1Password o Bitwarden. El segundo factor no queda activo hasta confirmarlo con un código.',
+        security: [{ accessToken: [] }],
+        responses: {
+          '200': {
+            description: 'Secreto y URI. No se pueden volver a consultar.',
+            content: { 'application/json': { schema: TOTP_SETUP_SCHEMA } },
+          },
+          '401': problem('Falta el token de acceso o no vale.'),
+          '409': problem('El segundo factor ya está activo; hay que desactivarlo primero.'),
+        },
+      },
+    },
+    [`/${API_PREFIX}/auth/2fa/verify`]: {
+      post: {
+        tags: ['identity'],
+        summary: 'Confirma el segundo factor con un código y lo deja activo.',
+        security: [{ accessToken: [] }],
+        requestBody: jsonBody(totpCodeRequestSchema),
+        responses: {
+          '204': { description: 'Segundo factor activo.' },
+          '401': problem('Falta el token de acceso, o el código no vale.'),
+          '409': problem('No hay ninguna activación en marcha, o ya estaba activo.'),
+          '422': problem('El código no son seis dígitos.'),
+        },
+      },
+    },
+    [`/${API_PREFIX}/auth/2fa/disable`]: {
+      post: {
+        tags: ['identity'],
+        summary: 'Desactiva el segundo factor y olvida el secreto.',
+        description: 'Exige un código válido: quitar el segundo factor es una rebaja de seguridad.',
+        security: [{ accessToken: [] }],
+        requestBody: jsonBody(totpCodeRequestSchema),
+        responses: {
+          '204': { description: 'Segundo factor desactivado.' },
+          '401': problem('Falta el token de acceso, o el código no vale.'),
+          '409': problem('La cuenta no tiene segundo factor activo.'),
+          '422': problem('El código no son seis dígitos.'),
+        },
+      },
+    },
     [`/${API_PREFIX}/auth/logout`]: {
       post: {
         tags: ['identity'],
@@ -188,6 +243,11 @@ export function buildOpenApiDocument({
         'API de la plataforma personal de finanzas. Los montos viajan como string decimal.',
     },
     paths: { ...ALWAYS_ON_PATHS, ...HEALTH_PATHS, ...Object.fromEntries(modulePaths) },
-    components: { schemas: { ProblemDetails: schemaOf(problemDetailsSchema) } },
+    components: {
+      schemas: { ProblemDetails: schemaOf(problemDetailsSchema) },
+      securitySchemes: {
+        accessToken: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+      },
+    },
   };
 }

@@ -2,19 +2,19 @@ import { ACCESS_TOKEN_TTL_SECONDS, FixedClock } from '@sol-a-sol/domain';
 import { decodeJwt, decodeProtectedHeader, jwtVerify } from 'jose';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { JoseAccessTokenIssuer } from './jose-access-token-issuer.js';
+import { JoseAccessTokens } from './jose-access-tokens.js';
 
 // Treinta y dos caracteres, obviamente falsos: no es una clave real de ningún entorno.
 const SECRET = 'clave-de-prueba-no-real-0123456789';
 const CLOCK = FixedClock.at('2026-09-20T15:00:00.000Z');
 const USER_ID = '01999999-9999-7999-8999-999999999999';
 
-describe('JoseAccessTokenIssuer', () => {
-  let issuer: JoseAccessTokenIssuer;
+describe('JoseAccessTokens', () => {
+  let issuer: JoseAccessTokens;
 
   beforeEach(() => {
     process.env.AUTH_JWT_SECRET = SECRET;
-    issuer = new JoseAccessTokenIssuer(CLOCK);
+    issuer = new JoseAccessTokens(CLOCK);
   });
 
   afterEach(() => {
