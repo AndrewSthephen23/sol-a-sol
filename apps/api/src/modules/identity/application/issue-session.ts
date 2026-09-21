@@ -3,11 +3,7 @@ import { type Clock, refreshTokenExpiresAt } from '@sol-a-sol/domain';
 
 import { CLOCK } from '../../../shared/time/system-clock.js';
 import { createSessionToken } from '../infrastructure/session-token.js';
-import {
-  ACCESS_TOKEN_ISSUER,
-  type AccessToken,
-  type AccessTokenIssuer,
-} from '../ports/access-token-issuer.js';
+import { ACCESS_TOKENS, type AccessToken, type AccessTokens } from '../ports/access-tokens.js';
 import {
   REFRESH_TOKEN_REPOSITORY,
   type RefreshTokenRepository,
@@ -24,7 +20,7 @@ export interface Session {
 @Injectable()
 export class IssueSession {
   constructor(
-    @Inject(ACCESS_TOKEN_ISSUER) private readonly tokens: AccessTokenIssuer,
+    @Inject(ACCESS_TOKENS) private readonly tokens: AccessTokens,
     @Inject(REFRESH_TOKEN_REPOSITORY) private readonly refreshTokens: RefreshTokenRepository,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}

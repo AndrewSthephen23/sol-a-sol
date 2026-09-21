@@ -16,7 +16,14 @@ export interface NewUser {
  */
 export interface UserCredentials {
   id: string;
+  email: string;
   passwordHash: string;
+  /** Cifrado. Existe desde que se empieza a activar el segundo factor. */
+  totpSecret: string | null;
+  /** Nulo mientras el segundo factor no esté confirmado con un código. */
+  totpConfirmedAt: Date | null;
+  /** Último periodo de 30 s usado, para que un código no sirva dos veces. */
+  totpLastCounter: bigint | null;
 }
 
 export interface UserRepository {
@@ -32,6 +39,20 @@ export interface UserRepository {
    * una ventana en la que dos peticiones simultáneas pasan las dos.
    */
   create(user: NewUser): Promise<UserAccount>;
+
+  findCredentialsById(userId: string): Promise<UserCredentials | null>;
+
+  /** Guarda el secreto cifrado y deja el segundo factor **sin confirmar**. */
+  startTotpEnrolment(userId: string, encryptedSecret: string): Promise<void>;
+
+  /** Da el segundo factor por activo y anota el periodo usado. */
+  confirmTotp(userId: string, confirmedAt: Date, counter: number): Promise<void>;
+
+  /** Anota el periodo usado en un login, para que ese código no valga otra vez. */
+  recordTotpCounter(userId: string, counter: number): Promise<void>;
+
+  /** Borra el secreto y deja la cuenta sin segundo factor. */
+  disableTotp(userId: string): Promise<void>;
 }
 
 /** Token de inyección: en TypeScript una interfaz no existe en tiempo de ejecución. */

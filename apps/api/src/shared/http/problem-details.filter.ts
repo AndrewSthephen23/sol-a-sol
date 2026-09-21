@@ -27,6 +27,10 @@ const STATUS_BY_DOMAIN_CODE = new Map<string, number>([
   // No son datos mal formados: están bien escritos y aun así no autentican.
   ['INVALID_CREDENTIALS', HttpStatus.UNAUTHORIZED],
   ['INVALID_REFRESH_TOKEN', HttpStatus.UNAUTHORIZED],
+  ['TOTP_REQUIRED', HttpStatus.UNAUTHORIZED],
+  ['INVALID_TOTP_CODE', HttpStatus.UNAUTHORIZED],
+  ['TOTP_ALREADY_ENABLED', HttpStatus.CONFLICT],
+  ['TOTP_NOT_STARTED', HttpStatus.CONFLICT],
 ]);
 
 /** Una regla de negocio rechazó una petición bien formada: contenido no procesable. */

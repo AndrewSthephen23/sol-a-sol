@@ -41,3 +41,13 @@ export const loginRequestSchema = z.object({
 
 export type RegisterRequest = z.infer<typeof registerRequestSchema>;
 export type LoginRequest = z.infer<typeof loginRequestSchema>;
+
+/** Código de seis dígitos de una aplicación de autenticación. */
+export const totpCodeSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{6}$/, 'El código son seis dígitos.');
+
+export const totpCodeRequestSchema = z.object({ code: totpCodeSchema });
+
+export type TotpCodeRequest = z.infer<typeof totpCodeRequestSchema>;

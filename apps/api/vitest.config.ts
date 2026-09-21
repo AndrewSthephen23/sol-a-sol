@@ -19,7 +19,7 @@ export default defineConfig({
         ['lcov', { projectRoot: fileURLToPath(new URL('../..', import.meta.url)) }],
       ],
       include: ['src/**/*.ts'],
-      exclude: ['src/**/*.spec.ts', 'src/main.ts', 'src/generated/**'],
+      exclude: ['src/**/*.spec.ts', 'src/**/*.fake.ts', 'src/main.ts', 'src/generated/**'],
     },
   },
 });

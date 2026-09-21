@@ -1,9 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type Clock, accessTokenExpiry } from '@sol-a-sol/domain';
-import { SignJWT } from 'jose';
+import { errors, jwtVerify, SignJWT } from 'jose';
 
 import { CLOCK } from '../../../shared/time/system-clock.js';
-import type { AccessToken, AccessTokenIssuer } from '../ports/access-token-issuer.js';
+import type { AccessToken, AccessTokens } from '../ports/access-tokens.js';
 
 /** HMAC con SHA-256: una sola API firma y verifica, así que no hace falta un par de claves. */
 const ALGORITHM = 'HS256';
@@ -15,7 +15,7 @@ const ALGORITHM = 'HS256';
 const MIN_SECRET_BYTES = 32;
 
 @Injectable()
-export class JoseAccessTokenIssuer implements AccessTokenIssuer {
+export class JoseAccessTokens implements AccessTokens {
   constructor(@Inject(CLOCK) private readonly clock: Clock) {}
 
   async issue(userId: string): Promise<AccessToken> {
@@ -31,6 +31,21 @@ export class JoseAccessTokenIssuer implements AccessTokenIssuer {
       .sign(signingKey());
 
     return { token, expiresInSeconds: expiresAtInSeconds - issuedAtInSeconds };
+  }
+
+  async verify(token: string): Promise<string | null> {
+    try {
+      // La caducidad se comprueba contra el reloj del puerto, no contra la hora real: así una
+      // prueba puede adelantar el tiempo y ver caducar el token sin esperar quince minutos.
+      const { payload } = await jwtVerify(token, signingKey(), { currentDate: this.clock.now() });
+
+      return payload.sub ?? null;
+    } catch (error) {
+      // Firma mala, token manipulado o caducado: desde fuera son lo mismo, y decir cuál fue
+      // solo ayudaría a quien está probando.
+      if (error instanceof errors.JOSEError) return null;
+      throw error;
+    }
   }
 }
 

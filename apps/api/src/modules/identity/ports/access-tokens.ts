@@ -4,10 +4,13 @@ export interface AccessToken {
   expiresInSeconds: number;
 }
 
-/** Emite el token de acceso que viaja en cada petición. */
-export interface AccessTokenIssuer {
+/** Emite y comprueba el token de acceso que viaja en cada petición. */
+export interface AccessTokens {
   issue(userId: string): Promise<AccessToken>;
+
+  /** El `userId` del token, o `null` si no vale: mal firmado, manipulado o caducado. */
+  verify(token: string): Promise<string | null>;
 }
 
 /** Token de inyección: en TypeScript una interfaz no existe en tiempo de ejecución. */
-export const ACCESS_TOKEN_ISSUER = Symbol('AccessTokenIssuer');
+export const ACCESS_TOKENS = Symbol('AccessTokens');

@@ -14,11 +14,14 @@ import {
   loginRequestSchema,
   type RegisterRequest,
   registerRequestSchema,
+  type TotpCodeRequest,
+  totpCodeRequestSchema,
 } from '@sol-a-sol/contracts';
 
 import { RequiresFeature } from '../../../shared/feature-flags/feature-flag.guard.js';
 import { ZodValidationPipe } from '../../../shared/http/zod-validation.pipe.js';
 import { IssueSession, type Session } from '../application/issue-session.js';
+import { ConfirmTotp, DisableTotp, SetupTotp, type TotpSetup } from '../application/manage-totp.js';
 import { LoginUser } from '../application/login-user.js';
 import { Logout } from '../application/logout.js';
 import { RefreshSession } from '../application/refresh-session.js';
@@ -30,6 +33,7 @@ import {
   readRefreshCookie,
   setRefreshCookie,
 } from './refresh-cookie.js';
+import { AccessTokenGuard, CurrentUser } from './access-token.guard.js';
 import { RegistrationAllowedGuard } from './registration-allowed.guard.js';
 
 export interface AccessTokenResponse {
@@ -48,6 +52,9 @@ export class AuthController {
     private readonly issueSession: IssueSession,
     private readonly refreshSession: RefreshSession,
     private readonly logoutUser: Logout,
+    private readonly setupTotp: SetupTotp,
+    private readonly confirmTotp: ConfirmTotp,
+    private readonly disableTotp: DisableTotp,
   ) {}
 
   /** La respuesta lleva solo datos públicos de la cuenta: nunca el hash ni el secreto TOTP. */
@@ -98,6 +105,35 @@ export class AuthController {
   ): Promise<void> {
     await this.logoutUser.execute(readRefreshCookie(cookieHeader));
     clearRefreshCookie(response);
+  }
+
+  /** El `otpauth://` y el secreto se devuelven **una sola vez**: después ya no se pueden leer. */
+  @Post('2fa/setup')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AccessTokenGuard)
+  async startTotp(@CurrentUser() userId: string): Promise<TotpSetup> {
+    return this.setupTotp.execute(userId);
+  }
+
+  @Post('2fa/verify')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(AccessTokenGuard)
+  async verifyTotp(
+    @CurrentUser() userId: string,
+    @Body(new ZodValidationPipe(totpCodeRequestSchema)) body: TotpCodeRequest,
+  ): Promise<void> {
+    await this.confirmTotp.execute(userId, body.code);
+  }
+
+  /** Pide un código válido: quitar el segundo factor es una rebaja de seguridad. */
+  @Post('2fa/disable')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(AccessTokenGuard)
+  async removeTotp(
+    @CurrentUser() userId: string,
+    @Body(new ZodValidationPipe(totpCodeRequestSchema)) body: TotpCodeRequest,
+  ): Promise<void> {
+    await this.disableTotp.execute(userId, body.code);
   }
 
   private startSession(session: Session, response: CookieResponse): AccessTokenResponse {

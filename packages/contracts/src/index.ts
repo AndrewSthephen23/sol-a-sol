@@ -7,6 +7,9 @@ export {
   passwordSchema,
   type RegisterRequest,
   registerRequestSchema,
+  totpCodeRequestSchema,
+  type TotpCodeRequest,
+  totpCodeSchema,
 } from './identity/credentials.js';
 export {
   PROBLEM_CONTENT_TYPE,
