@@ -80,3 +80,14 @@ export {
   toPersonalAccessTokenScopes,
   UnknownTokenScopeError,
 } from './identity/personal-access-token-policy.js';
+export {
+  type AttemptRecord,
+  afterFailedAttempt,
+  FAILURE_MEMORY_HOURS,
+  FIRST_LOCKOUT_MINUTES,
+  lockedSecondsLeft,
+  LOGIN_MAX_ATTEMPTS,
+  lockoutMinutesFor,
+  MAX_LOCKOUT_MINUTES,
+} from './identity/login-throttle-policy.js';
+export { AUDIT_LOG_RETENTION_DAYS, auditLogCutoff } from './identity/audit-retention-policy.js';

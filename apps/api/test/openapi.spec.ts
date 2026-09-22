@@ -27,10 +27,16 @@ function registeredRoutes(app: INestApplication): { method: string; path: string
     const route = layer.route;
     if (!route?.path) return [];
 
+    // Nest registra cada endpoint con **un** método; un middleware aplicado a todas las rutas
+    // (el log de peticiones) queda registrado con todos a la vez. No es un endpoint, así que
+    // no hay nada que documentar de él.
+    const methods = Object.keys(route.methods ?? {});
+    if (methods.length !== 1) return [];
+
     // Express escribe los parámetros como `:id` y OpenAPI como `{id}`.
     const path = route.path.replaceAll(/:(\w+)/g, '{$1}');
 
-    return Object.keys(route.methods ?? {}).map((method) => ({ method, path }));
+    return methods.map((method) => ({ method, path }));
   });
 }
 

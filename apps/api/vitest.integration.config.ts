@@ -7,6 +7,15 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['test/**/*.spec.ts'],
+    env: {
+      // Las pruebas hacen muchas peticiones seguidas desde la misma IP y no van sobre el tope
+      // de caudal: se deja alto para no rechazarlas. La prueba que sí lo comprueba fija el suyo
+      // antes de levantar su aplicación.
+      RATE_LIMIT_PER_MINUTE: '100000',
+      AUTH_RATE_LIMIT_PER_MINUTE: '100000',
+      // Los logs de las pruebas estorban; los errores de verdad siguen saliendo por el filtro.
+      LOG_LEVEL: 'silent',
+    },
     globalSetup: ['./test/setup/postgres.global-setup.ts'],
     // Todos los archivos comparten el mismo PostgreSQL, así que corren en serie: en paralelo,
     // una prueba que consulta el estado global de una tabla (por ejemplo, si existe algún

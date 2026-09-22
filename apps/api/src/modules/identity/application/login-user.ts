@@ -8,8 +8,11 @@ import {
 } from '../domain/errors.js';
 import { DecoyPasswordHash } from '../infrastructure/decoy-password-hash.js';
 import { SecretBox } from '../infrastructure/secret-box.js';
+import { AUDIT_LOGGER, type AuditLogger } from '../ports/audit-logger.js';
 import { PASSWORD_HASHER, type PasswordHasher } from '../ports/password-hasher.js';
 import { TOTP, type Totp } from '../ports/totp.js';
+import { LoginThrottle } from './login-throttle.js';
+import type { RequestOrigin } from './personal-access-tokens.js';
 import { UseRecoveryCode } from './recovery-codes.js';
 import {
   USER_REPOSITORY,
@@ -17,7 +20,7 @@ import {
   type UserRepository,
 } from '../ports/user-repository.js';
 
-export interface LoginUserInput {
+export interface LoginUserInput extends RequestOrigin {
   /** Ya normalizado por el esquema de `@sol-a-sol/contracts`: recortado y en minúsculas. */
   email: string;
   password: string;
@@ -35,11 +38,24 @@ export class LoginUser {
     @Inject(TOTP) private readonly totp: Totp,
     private readonly secrets: SecretBox,
     private readonly useRecoveryCode: UseRecoveryCode,
+    private readonly throttle: LoginThrottle,
+    @Inject(AUDIT_LOGGER) private readonly audit: AuditLogger,
   ) {}
 
   /** Devuelve a quién pertenece la cuenta; abrir la sesión es cosa de `IssueSession`. */
-  async execute({ email, password, totpCode, recoveryCode }: LoginUserInput): Promise<string> {
+  async execute({
+    email,
+    password,
+    totpCode,
+    recoveryCode,
+    ip,
+    userAgent,
+  }: LoginUserInput): Promise<string> {
+    // Antes que nada: quien está bloqueado no debe poder seguir probando contraseñas.
+    await this.throttle.assertAllowed(email, ip);
+
     const credentials = await this.users.findCredentialsByEmail(email);
+    const origin = { ip, userAgent, userId: credentials?.id };
 
     // Se verifica **siempre**, exista la cuenta o no: contra el hash real si la hay y contra el
     // señuelo si no. Así los dos caminos cuestan lo mismo y el tiempo de respuesta no dice si
@@ -49,11 +65,33 @@ export class LoginUser {
       credentials?.passwordHash ?? this.decoy.get(),
     );
 
-    if (credentials === null || !matches) throw new InvalidCredentialsError();
+    if (credentials === null || !matches) {
+      await this.throttle.recordFailure(email, origin);
+      throw new InvalidCredentialsError();
+    }
 
     if (credentials.totpConfirmedAt !== null) {
-      await this.checkSecondFactor(credentials, totpCode, recoveryCode);
+      // Un código equivocado también cuenta como intento fallido: son solo un millón, y sin
+      // freno quien ya tiene la contraseña podría probarlos todos. Llegar **sin** código no
+      // cuenta: no es un intento de adivinar nada.
+      try {
+        await this.checkSecondFactor(credentials, totpCode, recoveryCode);
+      } catch (error) {
+        if (error instanceof TotpRequiredError) throw error;
+        await this.throttle.recordFailure(email, origin);
+        throw error;
+      }
     }
+
+    await this.throttle.forget(email, ip);
+    await this.audit.record({
+      userId: credentials.id,
+      action: 'login.succeeded',
+      entity: 'user',
+      entityId: credentials.id,
+      ip,
+      userAgent,
+    });
 
     return credentials.id;
   }

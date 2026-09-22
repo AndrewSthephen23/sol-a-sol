@@ -34,6 +34,7 @@ const STATUS_BY_DOMAIN_CODE = new Map<string, number>([
   ['INVALID_PERSONAL_ACCESS_TOKEN', HttpStatus.UNAUTHORIZED],
   // La sesión vale; lo que falla es la prueba extra antes de un cambio sensible.
   ['CURRENT_PASSWORD_INCORRECT', HttpStatus.FORBIDDEN],
+  ['TOO_MANY_LOGIN_ATTEMPTS', HttpStatus.TOO_MANY_REQUESTS],
   // Se sabe quién es, pero su token no puede hacer eso: 403, no 401.
   ['INSUFFICIENT_TOKEN_SCOPE', HttpStatus.FORBIDDEN],
   ['PERSONAL_ACCESS_TOKEN_NOT_FOUND', HttpStatus.NOT_FOUND],
@@ -67,6 +68,9 @@ export class ProblemDetailsFilter implements ExceptionFilter {
 
     response.status(problem.status);
     response.setHeader('Content-Type', PROBLEM_CONTENT_TYPE);
+    // Un 429 dice cuándo volver a intentarlo, para no adivinar (RFC 9110 §10.2.3).
+    const retryAfter = retryAfterOf(exception);
+    if (retryAfter !== undefined) response.setHeader('Retry-After', String(retryAfter));
     response.json(problem);
   }
 
@@ -85,6 +89,15 @@ export class ProblemDetailsFilter implements ExceptionFilter {
       detail: 'The request could not be processed.',
     });
   }
+}
+
+/** Segundos que pide esperar un error que sabe cuánto falta; `undefined` si no lo sabe. */
+function retryAfterOf(exception: unknown): number | undefined {
+  if (!(exception instanceof DomainError) || !('retryAfterSeconds' in exception)) return undefined;
+
+  const { retryAfterSeconds } = exception;
+
+  return typeof retryAfterSeconds === 'number' ? retryAfterSeconds : undefined;
 }
 
 function validationProblem(error: ZodError): ProblemDetails {

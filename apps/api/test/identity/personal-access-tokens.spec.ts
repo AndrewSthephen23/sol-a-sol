@@ -91,6 +91,7 @@ describe('personal access tokens', () => {
 
   beforeEach(async () => {
     await prisma.user.deleteMany();
+    await prisma.loginThrottle.deleteMany();
     await prisma.auditLog.deleteMany();
     clock.instant = new Date('2026-09-22T15:00:00.000Z');
     process.env.REGISTRATION_MODE = 'open';
@@ -102,6 +103,7 @@ describe('personal access tokens', () => {
 
   afterAll(async () => {
     await prisma.user.deleteMany();
+    await prisma.loginThrottle.deleteMany();
     await prisma.auditLog.deleteMany();
     delete process.env.FEATURE_IDENTITY;
     delete process.env.REGISTRATION_MODE;
@@ -126,8 +128,12 @@ describe('personal access tokens', () => {
     return response.body as CreatedToken;
   }
 
+  /** Solo lo que hicieron los tokens: los inicios de sesión se registran aparte. */
   async function actions(): Promise<string[]> {
-    const rows = await prisma.auditLog.findMany({ orderBy: { id: 'asc' } });
+    const rows = await prisma.auditLog.findMany({
+      where: { entity: 'personal_access_token' },
+      orderBy: { id: 'asc' },
+    });
 
     return rows.map((row) => row.action);
   }
