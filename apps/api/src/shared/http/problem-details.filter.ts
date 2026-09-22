@@ -32,6 +32,8 @@ const STATUS_BY_DOMAIN_CODE = new Map<string, number>([
   ['TOTP_ALREADY_ENABLED', HttpStatus.CONFLICT],
   ['TOTP_NOT_STARTED', HttpStatus.CONFLICT],
   ['INVALID_PERSONAL_ACCESS_TOKEN', HttpStatus.UNAUTHORIZED],
+  // La sesión vale; lo que falla es la prueba extra antes de un cambio sensible.
+  ['CURRENT_PASSWORD_INCORRECT', HttpStatus.FORBIDDEN],
   // Se sabe quién es, pero su token no puede hacer eso: 403, no 401.
   ['INSUFFICIENT_TOKEN_SCOPE', HttpStatus.FORBIDDEN],
   ['PERSONAL_ACCESS_TOKEN_NOT_FOUND', HttpStatus.NOT_FOUND],

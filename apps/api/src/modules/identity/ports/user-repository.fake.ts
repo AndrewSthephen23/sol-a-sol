@@ -12,6 +12,7 @@ export class FakeUserRepository implements UserRepository {
   readonly confirmations: { userId: string; confirmedAt: Date; counter: number }[] = [];
   readonly recordedCounters: { userId: string; counter: number }[] = [];
   readonly disabled: string[] = [];
+  readonly passwordChanges: { userId: string; passwordHash: string }[] = [];
 
   constructor(private options: { anyUser?: boolean; credentials?: UserCredentials | null } = {}) {}
 
@@ -61,6 +62,12 @@ export class FakeUserRepository implements UserRepository {
 
   disableTotp(userId: string): Promise<void> {
     this.disabled.push(userId);
+
+    return Promise.resolve();
+  }
+
+  updatePasswordHash(userId: string, passwordHash: string): Promise<void> {
+    this.passwordChanges.push({ userId, passwordHash });
 
     return Promise.resolve();
   }

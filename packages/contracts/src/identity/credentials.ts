@@ -53,3 +53,14 @@ export const totpCodeSchema = z
 export const totpCodeRequestSchema = z.object({ code: totpCodeSchema });
 
 export type TotpCodeRequest = z.infer<typeof totpCodeRequestSchema>;
+
+/**
+ * Cambio de contraseña. Se pide la actual: una sesión abierta un momento en un equipo ajeno no
+ * debe bastar para quedarse con la cuenta. La política de la nueva vive en el dominio.
+ */
+export const changePasswordRequestSchema = z.object({
+  currentPassword: passwordSchema,
+  newPassword: passwordSchema,
+});
+
+export type ChangePasswordRequest = z.infer<typeof changePasswordRequestSchema>;

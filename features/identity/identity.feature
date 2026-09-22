@@ -137,14 +137,32 @@ Característica: Identidad
       Entonces la respuesta es 404, la misma que si no existiera
       Y su token sigue funcionando
 
-  Regla: Cambiar la contraseña cierra las sesiones pero no rompe el celular
+  Regla: Cambiar la contraseña o activar el segundo factor cierra las demás sesiones, pero no rompe el celular
 
     Escenario: Las demás sesiones se cierran
       Dado que tengo la sesión abierta en dos navegadores
       Cuando cambio la contraseña en uno
       Entonces el otro deja de tener sesión
+      Y en el que la cambié sigo dentro
 
     Escenario: El token del celular sigue sirviendo
       Dado que tengo un token personal en el celular
       Cuando cambio la contraseña
       Entonces el token sigue sirviendo y se me avisa que puedo revocarlo
+
+    Escenario: Hay que saber la contraseña actual
+      Dado que tengo la sesión abierta
+      Cuando intento cambiar la contraseña con una actual equivocada
+      Entonces la respuesta es 403
+      Y la contraseña sigue siendo la de antes
+
+    Escenario: La nueva contraseña cumple la misma política
+      Dado que tengo la sesión abierta
+      Cuando intento cambiar la contraseña por una de menos de 12 caracteres
+      Entonces se rechaza indicando la longitud mínima
+
+    Escenario: Activar el segundo factor también cierra las demás sesiones
+      Dado que tengo la sesión abierta en dos navegadores y un token personal en el celular
+      Cuando activo el segundo factor en uno de los navegadores
+      Entonces el otro navegador deja de tener sesión
+      Y el token del celular sigue sirviendo y se me avisa que puedo revocarlo

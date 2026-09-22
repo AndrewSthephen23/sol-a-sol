@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  changePasswordRequestSchema,
   EMAIL_MAX_LENGTH,
   loginRequestSchema,
   PASSWORD_MAX_LENGTH,
@@ -64,5 +65,30 @@ describe('login request', () => {
     const parsed = loginRequestSchema.parse({ ...VALID, totpCode: ' 123456 ' });
 
     expect(parsed.totpCode).toBe('123456');
+  });
+});
+
+describe('change password request', () => {
+  const CHANGE = { currentPassword: 'la de antes, larga', newPassword: 'la de ahora, más larga' };
+
+  it('accepts the current and the new password', () => {
+    expect(changePasswordRequestSchema.parse(CHANGE)).toEqual(CHANGE);
+  });
+
+  // Los espacios de una contraseña son parte de la contraseña.
+  it('keeps both passwords exactly as written', () => {
+    const spaced = { currentPassword: ' actual ', newPassword: ' nueva y larga ' };
+
+    expect(changePasswordRequestSchema.parse(spaced)).toEqual(spaced);
+  });
+
+  it('rejects a request without the current password', () => {
+    expect(changePasswordRequestSchema.safeParse({ newPassword: 'nueva' }).success).toBe(false);
+  });
+
+  it('rejects a new password past the defensive limit', () => {
+    const newPassword = 'a'.repeat(PASSWORD_MAX_LENGTH + 1);
+
+    expect(changePasswordRequestSchema.safeParse({ ...CHANGE, newPassword }).success).toBe(false);
   });
 });

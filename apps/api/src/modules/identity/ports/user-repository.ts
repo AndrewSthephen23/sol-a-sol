@@ -53,6 +53,8 @@ export interface UserRepository {
 
   /** Borra el secreto y deja la cuenta sin segundo factor. */
   disableTotp(userId: string): Promise<void>;
+
+  updatePasswordHash(userId: string, passwordHash: string): Promise<void>;
 }
 
 /** Token de inyección: en TypeScript una interfaz no existe en tiempo de ejecución. */

@@ -1,4 +1,6 @@
 export {
+  type ChangePasswordRequest,
+  changePasswordRequestSchema,
   EMAIL_MAX_LENGTH,
   emailSchema,
   type LoginRequest,

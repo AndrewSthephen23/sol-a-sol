@@ -9,6 +9,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, inject, it } from 'v
 
 import { AppModule } from '../../src/app.module.js';
 import { API_PREFIX, configureApp } from '../../src/app.setup.js';
+import { REFRESH_COOKIE } from '../../src/modules/identity/http/refresh-cookie.js';
 import { type ProblemDetails } from '../../src/shared/http/problem-details.js';
 import { PrismaService } from '../../src/shared/prisma/prisma.service.js';
 import { CLOCK } from '../../src/shared/time/system-clock.js';
@@ -19,6 +20,8 @@ const SETUP = `/${API_PREFIX}/auth/2fa/setup`;
 const VERIFY = `/${API_PREFIX}/auth/2fa/verify`;
 const DISABLE = `/${API_PREFIX}/auth/2fa/disable`;
 const RECOVERY = `/${API_PREFIX}/auth/2fa/recovery-codes`;
+const REFRESH = `/${API_PREFIX}/auth/refresh`;
+const TOKENS = `/${API_PREFIX}/tokens`;
 const CREDENTIALS = { email: 'ana@example.com', password: 'caballo grapa batería' };
 // Valores obviamente falsos, solo para estas pruebas.
 const JWT_SECRET = 'clave-de-prueba-no-real-0123456789';
@@ -415,6 +418,63 @@ describe('two factor authentication', () => {
         .expect(204);
 
       await expect(prisma.recoveryCode.count()).resolves.toBe(0);
+    });
+  });
+
+  // Decisión 7: las demás sesiones se abrieron sin segundo factor, así que se cierran; los
+  // tokens personales siguen valiendo y la respuesta los lista para ofrecer revocarlos.
+  describe('what turning it on does to the other sessions', () => {
+    async function browser(): Promise<{ accessToken: string; cookie: string }> {
+      const response = await request(server).post(LOGIN).send(CREDENTIALS).expect(200);
+      const cookies = response.headers['set-cookie'] as unknown as string[] | undefined;
+
+      return {
+        accessToken: (response.body as TokenResponse).accessToken,
+        cookie: (cookies ?? []).find((cookie) => cookie.startsWith(`${REFRESH_COOKIE}=`)) ?? '',
+      };
+    }
+
+    async function confirmFrom(laptop: { accessToken: string; cookie: string }) {
+      const setup = await request(server)
+        .post(SETUP)
+        .set('Authorization', `Bearer ${laptop.accessToken}`)
+        .expect(200);
+
+      return request(server)
+        .post(VERIFY)
+        .set('Authorization', `Bearer ${laptop.accessToken}`)
+        .set('Cookie', laptop.cookie)
+        .send({ code: codeFor((setup.body as { secret: string }).secret) })
+        .expect(200);
+    }
+
+    it('closes the other browsers and keeps this one', async () => {
+      const laptop = await browser();
+      const desktop = await browser();
+
+      const response = await confirmFrom(laptop);
+
+      expect((response.body as { otherSessionsClosed: number }).otherSessionsClosed).toBe(1);
+      await request(server).post(REFRESH).set('Cookie', desktop.cookie).expect(401);
+      await request(server).post(REFRESH).set('Cookie', laptop.cookie).expect(200);
+    });
+
+    it('keeps the personal tokens and lists them', async () => {
+      const laptop = await browser();
+      await request(server)
+        .post(TOKENS)
+        .set('Authorization', `Bearer ${laptop.accessToken}`)
+        .send({ name: 'iPhone', scopes: ['captures:write'] })
+        .expect(201);
+
+      const response = await confirmFrom(laptop);
+
+      expect(
+        (response.body as { personalAccessTokens: { name: string }[] }).personalAccessTokens,
+      ).toEqual([expect.objectContaining({ name: 'iPhone' })]);
+      await expect(prisma.personalAccessToken.count({ where: { revokedAt: null } })).resolves.toBe(
+        1,
+      );
     });
   });
 

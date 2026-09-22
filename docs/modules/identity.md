@@ -1,6 +1,6 @@
 # Módulo Identidad (`identity`)
 
-> Ficha del módulo. Estado: **en construcción** (hito H2). Funcionan el registro, el inicio de sesión, la renovación, el cierre, el segundo factor con sus códigos de recuperación y los tokens personales; faltan el límite de intentos y el resto de la auditoría.
+> Ficha del módulo. Estado: **en construcción** (hito H2). Funcionan el registro, el inicio de sesión, la renovación, el cierre, el segundo factor con sus códigos de recuperación, los tokens personales y el cambio de contraseña; faltan el límite de intentos y el resto de la auditoría.
 
 ## Qué resuelve
 
@@ -143,6 +143,19 @@ Para que el celular mande capturas (H7) sin la contraseña ni una sesión de nav
 
 Un token con un `id` que no existe no deja rastro: no hay usuario al que atribuirlo, y registrarlo dejaría a cualquiera llenar la tabla.
 
+### Cambiar la contraseña y activar el segundo factor (decisión 7)
+
+`POST /auth/password` **pide la contraseña actual**: una sesión abierta un momento en un equipo ajeno no debe bastar para quedarse con la cuenta. Si no corresponde responde **403** (`CURRENT_PASSWORD_INCORRECT`) y no 401, porque la sesión sí vale y la web no debe cerrarla. La nueva pasa por la misma política que en el registro.
+
+Después de cambiar la contraseña, **y también al confirmar el segundo factor**:
+
+- **Se cierran las sesiones de los demás navegadores** (se revocan sus refrescos). La sesión desde la que se hizo el cambio se conserva, reconocida por su cookie: quien acaba de cambiar la contraseña no tiene por qué volver a entrar. Sin cookie, se cierran todas.
+- **Los tokens personales no se revocan**, porque hacerlo rompería en silencio la captura desde el celular. La respuesta trae `otherSessionsClosed` y la lista de `personalAccessTokens` que siguen valiendo, para que la web avise y ofrezca revocarlos.
+
+**Limitación conocida:** los tokens de acceso que ya tenían los otros navegadores siguen valiendo hasta que caducan, **como mucho 15 minutos**. Son JWT sin estado, y cortarlos al instante exigiría consultar una lista de revocados en cada petición. Lo que no pueden es renovarse.
+
+El cambio queda en la bitácora como `password.changed`, con IP y user agent y, por supuesto, sin ninguna de las dos contraseñas.
+
 ### Pedir el código confirma que la contraseña era correcta
 
 Cuando la cuenta tiene segundo factor y no llega código, la respuesta es `TOTP_REQUIRED`, que revela que la contraseña acertó. Es **inevitable**: sin decirlo no habría forma de pedir el código. Y es justamente la razón de ser del segundo factor — que saber la contraseña ya no baste.
@@ -194,6 +207,7 @@ Todos bajo `/api/v1` y con `@RequiresFeature('identity')`. Los que ya existen se
 | POST   | `/auth/2fa/setup`   | ✅ Devuelve el `otpauth://` una sola vez                        |
 | POST   | `/auth/2fa/verify`  | ✅ Confirma el código y activa el segundo factor                |
 | POST   | `/auth/2fa/disable` | ✅ Desactiva el segundo factor. Exige un código válido          |
+| POST   | `/auth/password`    | ✅ Cambia la contraseña y cierra las demás sesiones             |
 | GET    | `/tokens`           | ✅ Lista los tokens personales, **sin** su valor                |
 | POST   | `/tokens`           | ✅ Crea uno y lo muestra **una sola vez**                       |
 | DELETE | `/tokens/:id`       | ✅ Lo revoca. 404 si es de otra cuenta                          |
