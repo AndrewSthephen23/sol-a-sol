@@ -1,4 +1,5 @@
 import {
+  changePasswordRequestSchema,
   createPersonalAccessTokenRequestSchema,
   loginRequestSchema,
   problemDetailsSchema,
@@ -73,6 +74,24 @@ const TOKEN_SUMMARY = z.object({
 });
 
 const TOKEN_LIST_SCHEMA = schemaOf(z.array(TOKEN_SUMMARY));
+
+/** Lo que se cuenta tras cambiar la contraseña o activar el segundo factor (decisión 7). */
+const SECURITY_CHANGE_NOTICE = z.object({
+  otherSessionsClosed: z.int().describe('Sesiones de otros navegadores que se cerraron.'),
+  personalAccessTokens: z
+    .array(TOKEN_SUMMARY)
+    .describe('Tokens personales que siguen valiendo: no se revocan, pero conviene revisarlos.'),
+});
+
+const SECURITY_CHANGE_SCHEMA = schemaOf(SECURITY_CHANGE_NOTICE);
+
+const CONFIRMED_TOTP_SCHEMA = schemaOf(
+  SECURITY_CHANGE_NOTICE.extend({
+    recoveryCodes: z
+      .array(z.string())
+      .describe('Diez códigos. Es la única vez que se pueden leer.'),
+  }),
+);
 
 const CREATED_TOKEN_SCHEMA = schemaOf(
   TOKEN_SUMMARY.extend({
@@ -204,13 +223,15 @@ function identityPaths(): Record<string, unknown> {
         summary: 'Confirma el segundo factor y devuelve los códigos de recuperación.',
         description:
           'Los códigos se muestran **una sola vez**: después solo se guarda su hash. Son la ' +
-          'salida cuando se pierde el teléfono.',
+          'salida cuando se pierde el teléfono. Cierra las sesiones de los demás navegadores ' +
+          '(se abrieron sin segundo factor) y conserva la de la cookie; los tokens personales ' +
+          'siguen valiendo y se listan para ofrecer revocarlos.',
         security: [{ accessToken: [] }],
         requestBody: jsonBody(totpCodeRequestSchema),
         responses: {
           '200': {
             description: 'Segundo factor activo, con sus códigos de recuperación.',
-            content: { 'application/json': { schema: RECOVERY_CODES_SCHEMA } },
+            content: { 'application/json': { schema: CONFIRMED_TOTP_SCHEMA } },
           },
           '401': problem('Falta el token de acceso, o el código no vale.'),
           '403': problem('Llegó un token personal: la cuenta solo se toca desde una sesión.'),
@@ -253,6 +274,30 @@ function identityPaths(): Record<string, unknown> {
           '403': problem('Llegó un token personal: la cuenta solo se toca desde una sesión.'),
           '409': problem('La cuenta no tiene segundo factor activo.'),
           '422': problem('El código no son seis dígitos.'),
+        },
+      },
+    },
+    [`/${API_PREFIX}/auth/password`]: {
+      post: {
+        tags: ['identity'],
+        summary: 'Cambia la contraseña.',
+        description:
+          'Pide la actual. Cierra las sesiones de los demás navegadores y conserva la de la ' +
+          'cookie. Los tokens personales **no se revocan**, para no romper en silencio la ' +
+          'captura desde el celular: la respuesta los lista para ofrecer revocarlos.',
+        security: [{ accessToken: [] }],
+        requestBody: jsonBody(changePasswordRequestSchema),
+        responses: {
+          '200': {
+            description: 'Contraseña cambiada.',
+            content: { 'application/json': { schema: SECURITY_CHANGE_SCHEMA } },
+          },
+          '401': problem('Falta el token de acceso o no vale.'),
+          '403': problem(
+            'La contraseña actual no corresponde, o llegó un token personal: la cuenta solo se ' +
+              'toca desde una sesión.',
+          ),
+          '422': problem('El cuerpo no tiene la forma esperada, o la nueva contraseña es débil.'),
         },
       },
     },

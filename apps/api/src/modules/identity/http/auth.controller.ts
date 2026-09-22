@@ -10,6 +10,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  type ChangePasswordRequest,
+  changePasswordRequestSchema,
   type LoginRequest,
   loginRequestSchema,
   type RegisterRequest,
@@ -20,8 +22,16 @@ import {
 
 import { RequiresFeature } from '../../../shared/feature-flags/feature-flag.guard.js';
 import { ZodValidationPipe } from '../../../shared/http/zod-validation.pipe.js';
+import { ChangePassword } from '../application/change-password.js';
 import { IssueSession, type Session } from '../application/issue-session.js';
-import { ConfirmTotp, DisableTotp, SetupTotp, type TotpSetup } from '../application/manage-totp.js';
+import {
+  ConfirmTotp,
+  type ConfirmedTotp,
+  DisableTotp,
+  SetupTotp,
+  type TotpSetup,
+} from '../application/manage-totp.js';
+import type { SecurityChangeNotice } from '../application/security-change.js';
 import { RegenerateRecoveryCodes } from '../application/recovery-codes.js';
 import { LoginUser } from '../application/login-user.js';
 import { Logout } from '../application/logout.js';
@@ -62,6 +72,7 @@ export class AuthController {
     private readonly confirmTotp: ConfirmTotp,
     private readonly disableTotp: DisableTotp,
     private readonly regenerateRecoveryCodes: RegenerateRecoveryCodes,
+    private readonly changePassword: ChangePassword,
   ) {}
 
   /** La respuesta lleva solo datos públicos de la cuenta: nunca el hash ni el secreto TOTP. */
@@ -122,15 +133,42 @@ export class AuthController {
     return this.setupTotp.execute(userId);
   }
 
-  /** Devuelve los códigos de recuperación, que se muestran **una sola vez**. */
+  /**
+   * Devuelve los códigos de recuperación, que se muestran **una sola vez**. Cierra las demás
+   * sesiones y lista los tokens personales, que siguen valiendo.
+   */
   @Post('2fa/verify')
   @HttpCode(HttpStatus.OK)
   @UseGuards(AccessTokenGuard)
   async verifyTotp(
     @CurrentUser() userId: string,
     @Body(new ZodValidationPipe(totpCodeRequestSchema)) body: TotpCodeRequest,
-  ): Promise<RecoveryCodesResponse> {
-    return { recoveryCodes: await this.confirmTotp.execute(userId, body.code) };
+    @Headers('cookie') cookieHeader: string | undefined,
+  ): Promise<ConfirmedTotp> {
+    return this.confirmTotp.execute(userId, body.code, readRefreshCookie(cookieHeader));
+  }
+
+  /**
+   * Cambia la contraseña. Cierra las **demás** sesiones, conserva esta y no revoca los tokens
+   * personales: la respuesta los lista para ofrecer revocarlos.
+   */
+  @Post('password')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AccessTokenGuard)
+  async newPassword(
+    @CurrentUser() userId: string,
+    @Body(new ZodValidationPipe(changePasswordRequestSchema)) body: ChangePasswordRequest,
+    @Headers('cookie') cookieHeader: string | undefined,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent: string | undefined,
+  ): Promise<SecurityChangeNotice> {
+    return this.changePassword.execute({
+      userId,
+      ...body,
+      currentRefreshToken: readRefreshCookie(cookieHeader),
+      ip,
+      userAgent,
+    });
   }
 
   /** Rehace los códigos y **invalida los anteriores**. También se muestran una sola vez. */

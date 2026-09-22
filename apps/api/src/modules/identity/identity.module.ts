@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { PrismaModule } from '../../shared/prisma/prisma.module.js';
 import { TimeModule } from '../../shared/time/time.module.js';
+import { ChangePassword } from './application/change-password.js';
 import { IssueSession } from './application/issue-session.js';
 import { LoginUser } from './application/login-user.js';
 import { Logout } from './application/logout.js';
@@ -19,6 +20,7 @@ import {
 } from './application/recovery-codes.js';
 import { RefreshSession } from './application/refresh-session.js';
 import { RegisterUser } from './application/register-user.js';
+import { ApplySecurityChange } from './application/security-change.js';
 import { AuthController } from './http/auth.controller.js';
 import { AccessTokenGuard } from './http/access-token.guard.js';
 import { PersonalAccessTokensController } from './http/personal-access-tokens.controller.js';
@@ -68,6 +70,8 @@ import { USER_REPOSITORY } from './ports/user-repository.js';
     ListPersonalAccessTokens,
     RevokePersonalAccessToken,
     AuthenticatePersonalAccessToken,
+    ApplySecurityChange,
+    ChangePassword,
     RecoveryCodeGenerator,
     RegistrationAllowedGuard,
     AccessTokenGuard,

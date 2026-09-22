@@ -68,6 +68,10 @@ export class PrismaUserRepository implements UserRepository {
     });
   }
 
+  async updatePasswordHash(userId: string, passwordHash: string): Promise<void> {
+    await this.prisma.user.update({ where: { id: userId }, data: { passwordHash } });
+  }
+
   async create({ email, passwordHash }: NewUser): Promise<UserAccount> {
     try {
       // `select` explícito: así el hash no puede salir de aquí por descuido.

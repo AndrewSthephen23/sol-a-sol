@@ -86,6 +86,21 @@ export class TotpNotStartedError extends DomainError {
 }
 
 /**
+ * Al cambiar la contraseña, la actual no corresponde.
+ *
+ * 403 y no 401: la sesión es válida y la web no debe cerrarla; lo que falla es la prueba extra
+ * que se pide antes de un cambio sensible, para que quien pille una sesión abierta un momento
+ * no pueda quedarse con la cuenta.
+ */
+export class CurrentPasswordIncorrectError extends DomainError {
+  readonly code = 'CURRENT_PASSWORD_INCORRECT';
+
+  constructor() {
+    super('The current password is not correct.');
+  }
+}
+
+/**
  * El token personal no vale: no tiene la forma esperada, no existe, el secreto no coincide,
  * caducó o se revocó. Un solo error para todos los casos, como con el refresco: decir cuál fue
  * le diría a quien encontró un token si va por buen camino.

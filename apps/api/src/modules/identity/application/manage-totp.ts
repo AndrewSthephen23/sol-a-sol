@@ -16,6 +16,7 @@ import {
 } from '../ports/recovery-code-repository.js';
 import { USER_REPOSITORY, type UserRepository } from '../ports/user-repository.js';
 import { IssueRecoveryCodes } from './recovery-codes.js';
+import { ApplySecurityChange, type SecurityChangeNotice } from './security-change.js';
 
 export interface TotpSetup {
   /** URI `otpauth://` para escanear. Se devuelve **una sola vez**. */
@@ -45,7 +46,17 @@ export class SetupTotp {
   }
 }
 
-/** Confirma el segundo factor con un código: recién aquí queda activo. */
+export interface ConfirmedTotp extends SecurityChangeNotice {
+  /** Diez códigos en claro. Es la única vez que se pueden leer. */
+  recoveryCodes: string[];
+}
+
+/**
+ * Confirma el segundo factor con un código: recién aquí queda activo.
+ *
+ * Como al cambiar la contraseña (decisión 7), se cierran las demás sesiones: se abrieron sin
+ * segundo factor. Los tokens personales siguen valiendo, y la respuesta los lista.
+ */
 @Injectable()
 export class ConfirmTotp {
   constructor(
@@ -55,10 +66,15 @@ export class ConfirmTotp {
     @Inject(CLOCK) private readonly clock: Clock,
     private readonly secrets: SecretBox,
     private readonly issueRecoveryCodes: IssueRecoveryCodes,
+    private readonly applySecurityChange: ApplySecurityChange,
   ) {}
 
   /** Devuelve los códigos de recuperación: se muestran **una sola vez**. */
-  async execute(userId: string, code: string): Promise<string[]> {
+  async execute(
+    userId: string,
+    code: string,
+    currentRefreshToken?: string,
+  ): Promise<ConfirmedTotp> {
     const credentials = await this.users.findCredentialsById(userId);
     if (credentials?.totpSecret == null) throw new TotpNotStartedError();
     if (credentials.totpConfirmedAt !== null) throw new TotpAlreadyEnabledError();
@@ -71,7 +87,12 @@ export class ConfirmTotp {
     await this.audit.record({ userId, action: 'totp.enabled', entity: 'user', entityId: userId });
 
     // Se entregan con la activación: sin ellos, perder el teléfono dejaría al dueño fuera.
-    return this.issueRecoveryCodes.execute(userId);
+    const recoveryCodes = await this.issueRecoveryCodes.execute(userId);
+
+    return {
+      recoveryCodes,
+      ...(await this.applySecurityChange.execute(userId, currentRefreshToken)),
+    };
   }
 }
 

@@ -23,8 +23,12 @@ export interface RefreshTokenRepository {
 
   revoke(id: string, revokedAt: Date): Promise<void>;
 
-  /** Cierra **todas** las sesiones del usuario: la respuesta a un token reusado. */
-  revokeAllForUser(userId: string, revokedAt: Date): Promise<number>;
+  /**
+   * Cierra **todas** las sesiones del usuario (la respuesta a un token reusado), salvo la del
+   * hash `exceptTokenHash` si se indica: la que acaba de cambiar la contraseña o activar el
+   * segundo factor no tiene por qué volver a entrar.
+   */
+  revokeAllForUser(userId: string, revokedAt: Date, exceptTokenHash?: string): Promise<number>;
 }
 
 /** Token de inyección: en TypeScript una interfaz no existe en tiempo de ejecución. */
