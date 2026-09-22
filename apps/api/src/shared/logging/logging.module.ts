@@ -5,7 +5,6 @@ import { Module } from '@nestjs/common';
 import { LoggerModule } from 'nestjs-pino';
 
 import { API_PREFIX } from '../../app.setup.js';
-import { isHealthPath } from '../throttling/rate-limits.js';
 
 /** Cabeceras que **nunca** deben acabar en un log: llevan credenciales enteras. */
 export const REDACTED = [
@@ -49,6 +48,16 @@ export function pinoHttpOptions() {
     customSuccessMessage: (request: IncomingMessage, response: ServerResponse): string =>
       `${request.method ?? '?'} ${request.url ?? '?'} ${String(response.statusCode)}`,
   };
+}
+
+/**
+ * Si la petición es un health check. Solo decide si la línea se escribe o no: aquí mirar la URL
+ * no abre ninguna puerta, al revés que en el tope de caudal.
+ */
+function isHealthPath(url: string | undefined): boolean {
+  const path = (url ?? '').split('?')[0] ?? '';
+
+  return path === '/health' || path.startsWith('/health/');
 }
 
 function firstHeader(value: string | string[] | undefined): string | undefined {

@@ -1,17 +1,36 @@
+import { Controller, Get } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { describe, expect, it } from 'vitest';
 
 import {
   AUTH_RATE_LIMIT,
   DEFAULT_RATE_LIMIT,
-  isAuthPath,
-  isHealthPath,
   rateLimitFrom,
+  STRICT_RATE_LIMIT,
+  StrictRateLimit,
 } from './rate-limits.js';
 
-const PREFIX = 'api/v1';
+@Controller()
+@StrictRateLimit()
+class Strict {
+  @Get()
+  costly(): undefined {
+    // Una ruta cara, como las de /auth.
+    return undefined;
+  }
+}
+
+@Controller()
+class Ordinary {
+  @Get()
+  cheap(): undefined {
+    // Una ruta cualquiera.
+    return undefined;
+  }
+}
 
 describe('rate limits', () => {
-  it('is stricter on /auth than everywhere else', () => {
+  it('is stricter where every request costs a password hash', () => {
     expect(AUTH_RATE_LIMIT).toBeLessThan(DEFAULT_RATE_LIMIT);
   });
 
@@ -32,29 +51,16 @@ describe('rate limits', () => {
   });
 });
 
-describe('isAuthPath', () => {
-  it.each(['/api/v1/auth/login', '/api/v1/auth/2fa/verify', '/api/v1/auth/login?next=/inicio'])(
-    'recognises %s',
-    (url) => {
-      expect(isAuthPath(url, PREFIX)).toBe(true);
-    },
-  );
+describe('StrictRateLimit', () => {
+  const reflector = new Reflector();
 
-  // Ni una ruta de otro módulo ni una que solo empiece igual llevan el tope estricto.
-  it.each(['/api/v1/tokens', '/api/v1/authors', '/health', undefined])(
-    'does not recognise %s',
-    (url) => {
-      expect(isAuthPath(url, PREFIX)).toBe(false);
-    },
-  );
-});
-
-describe('isHealthPath', () => {
-  it.each(['/health', '/health/ready'])('recognises %s', (url) => {
-    expect(isHealthPath(url)).toBe(true);
+  // Se marca el destino real de la petición, no su URL: una ruta con `..` puede parecer otra
+  // cosa mirando el texto, pero acaba en el controller que le toca.
+  it('marks the controller it decorates', () => {
+    expect(reflector.get(STRICT_RATE_LIMIT, Strict)).toBe(true);
   });
 
-  it.each(['/api/v1/auth/login', '/healthy', undefined])('does not recognise %s', (url) => {
-    expect(isHealthPath(url)).toBe(false);
+  it('leaves the rest unmarked', () => {
+    expect(reflector.get(STRICT_RATE_LIMIT, Ordinary)).toBeUndefined();
   });
 });

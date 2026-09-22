@@ -1,3 +1,5 @@
+import { SetMetadata } from '@nestjs/common';
+
 /**
  * Cuántas peticiones por minuto se aceptan de una misma IP.
  *
@@ -13,23 +15,21 @@ export const DEFAULT_RATE_LIMIT = 120;
 /** Más estricto en `/auth`: ahí cada petición cuesta un argon2id de 19 MiB. */
 export const AUTH_RATE_LIMIT = 20;
 
+export const STRICT_RATE_LIMIT = Symbol('strictRateLimit');
+
+/**
+ * Marca un controller o una ruta como de las que llevan el tope estricto.
+ *
+ * Va como **metadata del controller** y no como una comprobación de la URL a propósito: un
+ * `/health/%2e%2e/api/v1/auth/login` se parece a un health check mirando el texto, pero Express
+ * lo resuelve como la ruta de login. Quien decide es el destino real de la petición, que es lo
+ * único que no puede falsear quien llama.
+ */
+export const StrictRateLimit = () => SetMetadata(STRICT_RATE_LIMIT, true);
+
 /** Lee un tope del entorno. Un valor que no sea un entero positivo se ignora. */
 export function rateLimitFrom(value: string | undefined, fallback: number): number {
   const parsed = Number(value);
 
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
-}
-
-/** Si la ruta es de autenticación, que lleva el tope estricto. */
-export function isAuthPath(url: string | undefined, apiPrefix: string): boolean {
-  const path = (url ?? '').split('?')[0] ?? '';
-
-  return path === `/${apiPrefix}/auth` || path.startsWith(`/${apiPrefix}/auth/`);
-}
-
-/** Los health checks no llevan tope: los consulta Docker cada pocos segundos. */
-export function isHealthPath(url: string | undefined): boolean {
-  const path = (url ?? '').split('?')[0] ?? '';
-
-  return path === '/health' || path.startsWith('/health/');
 }

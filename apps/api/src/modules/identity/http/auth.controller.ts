@@ -21,6 +21,7 @@ import {
 } from '@sol-a-sol/contracts';
 
 import { RequiresFeature } from '../../../shared/feature-flags/feature-flag.guard.js';
+import { StrictRateLimit } from '../../../shared/throttling/rate-limits.js';
 import { ZodValidationPipe } from '../../../shared/http/zod-validation.pipe.js';
 import { ChangePassword } from '../application/change-password.js';
 import { IssueSession, type Session } from '../application/issue-session.js';
@@ -59,6 +60,8 @@ export interface AccessTokenResponse {
   expiresIn: number;
 }
 
+// Tope de peticiones estricto: cada intento aquí cuesta un hash argon2id de 19 MiB.
+@StrictRateLimit()
 @Controller('auth')
 @RequiresFeature('identity')
 export class AuthController {

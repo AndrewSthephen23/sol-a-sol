@@ -177,7 +177,11 @@ Son **dos cosas distintas**, y conviene no confundirlas:
 
 **El bloqueo se comprueba antes de mirar la contraseña**, o quien está bloqueado seguiría probando. Responde **429** con `Retry-After` en segundos, y el mismo cuerpo exista o no la cuenta: el contador va por correo haya usuario detrás o no, así que un bloqueo no delata qué correos están registrados. **El correo no se guarda en claro**: la llave es `email:<sha256>`, de modo que `login_throttles` no es una lista de correos que alguien intentó.
 
-**Tope de caudal.** 120 peticiones por minuto y por IP, y **20 en `/auth`**, donde cada petición cuesta un argon2id de 19 MiB. Los health checks no llevan tope: Docker los consulta cada pocos segundos. El contador es de memoria, lo correcto mientras la API corra en **un** proceso; con varias réplicas habría que mudarlo a algo compartido.
+**Tope de caudal.** 120 peticiones por minuto y por IP, y **20 en `/auth`**, donde cada petición cuesta un argon2id de 19 MiB. Los health checks no llevan tope: Docker los consulta cada pocos segundos.
+
+Cuál de los dos topes se aplica lo decide la **metadata del controller** (`@StrictRateLimit()`), nunca el texto de la URL: `/health/%2e%2e/api/v1/auth/login` parece un health check leyéndolo, pero Express lo resuelve como el login, y mirar la URL habría dejado entrar esa petición sin tope. Quien decide es el destino real, que no puede falsear quien llama.
+
+El contador es de memoria, lo correcto mientras la API corra en **un** proceso; con varias réplicas habría que mudarlo a algo compartido.
 
 ### Los logs
 
