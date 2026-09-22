@@ -10,14 +10,17 @@ Plataforma personal para ordenar mis finanzas y avanzar hacia la libertad financ
 
 ✅ **H1 — Dominio base** publicado en [v0.2.0](https://github.com/AndrewSthephen23/sol-a-sol/releases/tag/v0.2.0): `@sol-a-sol/domain` con `Money`, `parseAmount`, `LocalDate` y el puerto `Clock` (TDD y mutation testing al 100 %), feature flags por módulo, navegación por manifests y el generador `pnpm gen:module`. Primera versión con [imágenes en GHCR](#imágenes-publicadas).
 
+✅ **H2 — Identidad** publicado en [v0.3.0](https://github.com/AndrewSthephen23/sol-a-sol/releases/tag/v0.3.0): el módulo `identity` encendido, con registro configurable, inicio de sesión, sesión renovable en cookie, segundo factor TOTP con códigos de recuperación, tokens personales por dispositivo, bloqueo progresivo por intentos, bitácora de seguridad, cabeceras con `helmet` y CORS restringido. La web todavía no tiene pantallas de identidad: es un hito de API.
+
 ## Documentación
 
-| Documento                            | Para qué                                                              |
-| ------------------------------------ | --------------------------------------------------------------------- |
-| [CONTRIBUTING.md](CONTRIBUTING.md)   | Flujo de trabajo, commits, pruebas y Definition of Done               |
-| [CLAUDE.md](CLAUDE.md)               | Reglas del dominio: dinero, fechas, `userId`, fronteras entre módulos |
-| [docs/adr/](docs/adr/)               | Decisiones de arquitectura y por qué se tomaron                       |
-| [docs/glosario.md](docs/glosario.md) | Equivalencias entre los términos del negocio (ES) y del código (EN)   |
+| Documento                                                        | Para qué                                                               |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| [CONTRIBUTING.md](CONTRIBUTING.md)                               | Flujo de trabajo, commits, pruebas y Definition of Done                |
+| [CLAUDE.md](CLAUDE.md)                                           | Reglas del dominio: dinero, fechas, `userId`, fronteras entre módulos  |
+| [docs/adr/](docs/adr/)                                           | Decisiones de arquitectura y por qué se tomaron                        |
+| [docs/glosario.md](docs/glosario.md)                             | Equivalencias entre los términos del negocio (ES) y del código (EN)    |
+| [docs/quality/asvs-checklist.md](docs/quality/asvs-checklist.md) | Qué controles de OWASP ASVS nivel 1 cubre el proyecto, y cuáles faltan |
 
 ## Requisitos
 
@@ -184,8 +187,8 @@ Las rutas de un módulo con su feature flag apagado **no aparecen** en el docume
 Cada versión publica en GHCR las mismas imágenes de producción que construye `docker-compose.test.yml`:
 
 ```bash
-docker pull ghcr.io/andrewsthephen23/sol-a-sol-api:0.2.0
-docker pull ghcr.io/andrewsthephen23/sol-a-sol-web:0.2.0
+docker pull ghcr.io/andrewsthephen23/sol-a-sol-api:0.3.0
+docker pull ghcr.io/andrewsthephen23/sol-a-sol-web:0.3.0
 ```
 
 Cada imagen lleva dos etiquetas: `X.Y.Z` y `sha-<commit>`. No hay `latest`: obliga a decir qué versión se despliega. El job solo corre cuando el push a `main` trae una versión nueva, tiene `packages: write` únicamente para él, y **no publica nada** hasta que las imágenes pasan el bloqueo de Trivy y un smoke test que las arranca.
