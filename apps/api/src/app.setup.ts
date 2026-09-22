@@ -1,5 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
+import helmet from 'helmet';
 
+import { ALLOWED_HEADERS, ALLOWED_METHODS, webOriginsFrom } from './shared/http/cors.js';
 import { ProblemDetailsFilter } from './shared/http/problem-details.filter.js';
 
 export const API_PREFIX = 'api/v1';
@@ -19,6 +21,37 @@ export function configureApp(app: INestApplication): void {
   // Todo error sale en Problem Details (RFC 9457), incluidos los 404 de rutas que no existen.
   app.useGlobalFilters(new ProblemDetailsFilter());
   trustProxy(app);
+  secureHeaders(app);
+  restrictCors(app);
+}
+
+/**
+ * Cabeceras de seguridad (helmet).
+ *
+ * Se desactiva la política de contenido: esto sirve **JSON**, no páginas, y una CSP aquí no
+ * protege de nada mientras da a entender que sí. La de la web la pone la web. Lo que sí importa
+ * es lo demás: `nosniff` (que el navegador no adivine el tipo de una respuesta), `X-Frame-Options`
+ * (que nadie meta la API en un iframe) y que no se anuncie con qué está hecha.
+ */
+function secureHeaders(app: INestApplication): void {
+  app.use(helmet({ contentSecurityPolicy: false }));
+}
+
+/**
+ * CORS restringido al dominio de la web (`WEB_ORIGIN`).
+ *
+ * Con credenciales, porque la sesión viaja en una cookie; por eso mismo la lista es cerrada y
+ * nunca `*`: el navegador ni siquiera acepta esa combinación, y de aceptarla, cualquier página
+ * podría hacer peticiones en nombre de quien tenga la sesión abierta.
+ */
+function restrictCors(app: INestApplication): void {
+  app.enableCors({
+    origin: webOriginsFrom(process.env.WEB_ORIGIN),
+    credentials: true,
+    methods: ALLOWED_METHODS,
+    allowedHeaders: ALLOWED_HEADERS,
+    maxAge: 600,
+  });
 }
 
 /**

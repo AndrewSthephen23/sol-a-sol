@@ -26,6 +26,9 @@ Cada funcionalidad entra **con** su capa de calidad (pruebas, documentación, se
    - **Sin ajuste por fines de semana ni feriados:** un vencimiento que cae domingo se queda en domingo. Mover al siguiente día hábil exigiría mantener el calendario de feriados de Perú; se evaluará cuando haga falta.
    - **Fechas escritas como texto:** ISO (`2026-09-17`) por defecto; el formato peruano (`17/09/2026`) solo cuando quien llama sabe que el origen lo usa, porque `03/04/2026` es ambiguo.
 5. **Toda consulta filtra por `userId`** del token, y cada endpoint nuevo lleva una **prueba de acceso denegado** a recursos ajenos (anti-IDOR).
+   - El `userId` sale del guard (`AccessTokenGuard` + `@CurrentUser()`), **nunca** del cuerpo ni de la ruta: un identificador que manda quien llama no prueba nada.
+   - Un repositorio no expone métodos que consulten sin `userId`, y ese `userId` va **dentro** del `WHERE` o del `UPDATE`, no en una comprobación aparte.
+   - Ninguna decisión de seguridad se toma leyendo el texto de la URL: `/health/%2e%2e/api/v1/auth/login` parece una cosa y Express la resuelve como otra. Se decide por el destino real (metadata del controller o del handler).
 6. **Nunca datos sensibles de tarjetas:** solo alias, banco y últimos 4 dígitos. Jamás número completo, CVV ni fecha de vencimiento.
 7. **Nunca secretos** en código, fixtures, logs, Dockerfiles ni compose. Si agregas una variable de entorno, actualiza el `.env.example` correspondiente.
 8. **Nunca edites una migración ya aplicada:** crea una nueva.
