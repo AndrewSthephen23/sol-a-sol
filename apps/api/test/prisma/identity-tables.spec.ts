@@ -5,6 +5,7 @@ import { PrismaService } from '../../src/shared/prisma/prisma.service.js';
 const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 // Valores obviamente falsos: el hash real (argon2id) llega con la tarea 03 de H2.
 const FAKE_HASH = 'fake';
+const EXPIRES_AT = new Date('2026-12-21T15:00:00.000Z');
 
 describe('identity tables (tokens and audit log)', () => {
   let prisma: PrismaService;
@@ -23,11 +24,17 @@ describe('identity tables (tokens and audit log)', () => {
   }
 
   describe('personal_access_tokens', () => {
-    it('creates a token with scopes and no expiry, revocation or use yet', async () => {
+    it('creates a token with scopes and an expiry, but no revocation or use yet', async () => {
       const user = await createUser('tokens-nuevo@example.com');
 
       const token = await prisma.personalAccessToken.create({
-        data: { userId: user.id, name: 'iPhone', tokenHash: FAKE_HASH, scopes: ['captures:write'] },
+        data: {
+          userId: user.id,
+          name: 'iPhone',
+          tokenHash: FAKE_HASH,
+          scopes: ['captures:write'],
+          expiresAt: EXPIRES_AT,
+        },
       });
 
       expect(token.id).toMatch(UUID_V7);
@@ -36,10 +43,22 @@ describe('identity tables (tokens and audit log)', () => {
         name: 'iPhone',
         scopes: ['captures:write'],
         lastUsedAt: null,
-        expiresAt: null,
+        expiresAt: EXPIRES_AT,
         revokedAt: null,
       });
       expect(token.createdAt).toBeInstanceOf(Date);
+    });
+
+    // Un token siempre caduca: la base lo exige aunque alguien se salte la aplicación.
+    it('rejects a token without an expiry', async () => {
+      const user = await createUser('tokens-eternos@example.com');
+
+      await expect(
+        prisma.$executeRaw`
+          INSERT INTO personal_access_tokens (id, user_id, name, token_hash, scopes)
+          VALUES (gen_random_uuid(), ${user.id}::uuid, 'eterno', ${FAKE_HASH}, ARRAY['captures:write'])
+        `,
+      ).rejects.toThrow(/expires_at/);
     });
 
     it('rejects a token whose user does not exist', async () => {
@@ -50,6 +69,7 @@ describe('identity tables (tokens and audit log)', () => {
             name: 'fantasma',
             tokenHash: FAKE_HASH,
             scopes: [],
+            expiresAt: EXPIRES_AT,
           },
         }),
       ).rejects.toMatchObject({ code: 'P2003' });
@@ -63,6 +83,7 @@ describe('identity tables (tokens and audit log)', () => {
           name: 'Android',
           tokenHash: FAKE_HASH,
           scopes: ['captures:write'],
+          expiresAt: EXPIRES_AT,
         },
       });
 

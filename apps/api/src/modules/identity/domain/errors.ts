@@ -84,3 +84,37 @@ export class TotpNotStartedError extends DomainError {
     super('There is no second factor to confirm. Start the setup first.');
   }
 }
+
+/**
+ * El token personal no vale: no tiene la forma esperada, no existe, el secreto no coincide,
+ * caducó o se revocó. Un solo error para todos los casos, como con el refresco: decir cuál fue
+ * le diría a quien encontró un token si va por buen camino.
+ */
+export class InvalidPersonalAccessTokenError extends DomainError {
+  readonly code = 'INVALID_PERSONAL_ACCESS_TOKEN';
+
+  constructor() {
+    super('The personal access token is not valid, has expired or was revoked.');
+  }
+}
+
+/**
+ * El token personal es válido, pero sus scopes no alcanzan para esa ruta. Por ejemplo, el token
+ * del celular (`captures:write`) intentando listar los tokens o tocar el segundo factor.
+ */
+export class InsufficientTokenScopeError extends DomainError {
+  readonly code = 'INSUFFICIENT_TOKEN_SCOPE';
+
+  constructor() {
+    super('This personal access token is not allowed to do that.');
+  }
+}
+
+/** No existe **o es de otra cuenta**: responder distinto confirmaría que el id es de alguien. */
+export class PersonalAccessTokenNotFoundError extends DomainError {
+  readonly code = 'PERSONAL_ACCESS_TOKEN_NOT_FOUND';
+
+  constructor() {
+    super('There is no personal access token with that id.');
+  }
+}

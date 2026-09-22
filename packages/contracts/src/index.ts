@@ -12,6 +12,12 @@ export {
   totpCodeSchema,
 } from './identity/credentials.js';
 export {
+  type CreatePersonalAccessTokenRequest,
+  createPersonalAccessTokenRequestSchema,
+  TOKEN_NAME_MAX_LENGTH,
+  TOKEN_SCOPES_MAX_ITEMS,
+} from './identity/personal-access-tokens.js';
+export {
   PROBLEM_CONTENT_TYPE,
   type ProblemDetails,
   problemDetailsSchema,

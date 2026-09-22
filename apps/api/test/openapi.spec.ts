@@ -27,7 +27,8 @@ function registeredRoutes(app: INestApplication): { method: string; path: string
     const route = layer.route;
     if (!route?.path) return [];
 
-    const path = route.path;
+    // Express escribe los parámetros como `:id` y OpenAPI como `{id}`.
+    const path = route.path.replaceAll(/:(\w+)/g, '{$1}');
 
     return Object.keys(route.methods ?? {}).map((method) => ({ method, path }));
   });

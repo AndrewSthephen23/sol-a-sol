@@ -67,3 +67,16 @@ export {
   RECOVERY_CODE_COUNT,
   RECOVERY_CODE_LENGTH,
 } from './identity/recovery-code.js';
+export {
+  grantsScope,
+  InvalidTokenLifetimeError,
+  isPersonalAccessTokenScope,
+  PERSONAL_ACCESS_TOKEN_DEFAULT_TTL_DAYS,
+  PERSONAL_ACCESS_TOKEN_MAX_TTL_DAYS,
+  PERSONAL_ACCESS_TOKEN_MIN_TTL_DAYS,
+  PERSONAL_ACCESS_TOKEN_SCOPES,
+  type PersonalAccessTokenScope,
+  personalAccessTokenExpiresAt,
+  toPersonalAccessTokenScopes,
+  UnknownTokenScopeError,
+} from './identity/personal-access-token-policy.js';

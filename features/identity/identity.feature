@@ -91,6 +91,52 @@ Característica: Identidad
       Cuando entro con la contraseña correcta
       Entonces el contador de intentos vuelve a cero
 
+  Regla: El celular entra con un token propio que solo sirve para mandar capturas
+
+    Escenario: El token se ve una sola vez
+      Dado que tengo la sesión abierta
+      Cuando creo un token personal llamado "iPhone" con el permiso "captures:write"
+      Entonces la respuesta trae el token completo
+      Y en la base de datos solo queda su hash
+      Y la lista de mis tokens lo muestra sin su valor
+
+    Escenario: Un token siempre caduca
+      Dado que tengo la sesión abierta
+      Cuando creo un token personal sin indicar cuánto dura
+      Entonces caduca a los 90 días
+      # Se puede elegir entre 1 y 365 días. No existe "sin caducidad": un token olvidado
+      # en un teléfono viejo tiene que dejar de servir solo.
+
+    Escenario: El celular manda una captura con su token
+      Dado que tengo un token personal con el permiso "captures:write"
+      Cuando lo uso para mandar una captura
+      Entonces se acepta como mía
+      Y queda registrado cuándo se usó por última vez
+
+    Escenario: El token del celular no puede tocar la cuenta
+      Dado que tengo un token personal con el permiso "captures:write"
+      Cuando lo uso para listar mis tokens o activar el segundo factor
+      Entonces la respuesta es 403
+      Y el intento queda en la bitácora
+
+    Escenario: Un token revocado deja de servir
+      Dado que revoqué el token del "iPhone"
+      Cuando el iPhone intenta mandar una captura
+      Entonces la respuesta es 401
+      Y el intento queda en la bitácora
+
+    Escenario: Un token caducado deja de servir
+      Dado que el token del "iPhone" caducó
+      Cuando el iPhone intenta mandar una captura
+      Entonces la respuesta es 401
+      Y el intento queda en la bitácora
+
+    Escenario: No puedo revocar el token de otra persona
+      Dado que otra persona tiene un token personal
+      Cuando intento revocarlo con su identificador
+      Entonces la respuesta es 404, la misma que si no existiera
+      Y su token sigue funcionando
+
   Regla: Cambiar la contraseña cierra las sesiones pero no rompe el celular
 
     Escenario: Las demás sesiones se cierran
