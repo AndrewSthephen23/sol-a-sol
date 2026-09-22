@@ -137,6 +137,26 @@ Característica: Identidad
       Cuando corre la limpieza diaria
       Entonces esas entradas se borran y las del último año se conservan
 
+  Regla: Cada cuenta solo ve y toca lo suyo
+
+    Escenario: Sin sesión no se entra a ninguna parte
+      Cuando llamo a cualquier ruta protegida sin token
+      Entonces la respuesta es 401
+
+    Escenario: Un token inventado tampoco abre nada
+      Cuando llamo a una ruta protegida con un token que no emitió la plataforma
+      Entonces la respuesta es 401
+
+    Escenario: La cuenta sobre la que actúo es la de mi sesión
+      Dado que tengo la sesión abierta
+      Cuando creo un token personal indicando en el cuerpo el identificador de otra cuenta
+      Entonces el token se crea en la mía, y el identificador del cuerpo se ignora
+
+    Escenario: Lo de otra persona no aparece ni se toca
+      Dado que otra persona tiene tokens personales y segundo factor
+      Cuando listo mis tokens o activo mi segundo factor
+      Entonces solo veo y cambio lo mío, y lo suyo queda intacto
+
   Regla: El celular entra con un token propio que solo sirve para mandar capturas
 
     Escenario: El token se ve una sola vez

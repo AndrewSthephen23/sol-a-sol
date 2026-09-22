@@ -1,6 +1,6 @@
 # Módulo Identidad (`identity`)
 
-> Ficha del módulo. Estado: **en construcción** (hito H2). Funcionan el registro, el inicio de sesión, la renovación, el cierre, el segundo factor con sus códigos de recuperación, los tokens personales, el cambio de contraseña, el límite de intentos y la auditoría. Falta el cierre del hito (tarea 09).
+> Ficha del módulo. Estado: **completo en la API** (hito H2, versión 0.3.0). Registro, inicio de sesión, renovación, cierre, segundo factor con códigos de recuperación, tokens personales, cambio de contraseña, límite de intentos y bitácora. **La web todavía no tiene pantallas de identidad**: por eso su manifest no está en la navegación (ver más abajo).
 
 ## Qué resuelve
 
@@ -183,6 +183,20 @@ Cuál de los dos topes se aplica lo decide la **metadata del controller** (`@Str
 
 El contador es de memoria, lo correcto mientras la API corra en **un** proceso; con varias réplicas habría que mudarlo a algo compartido.
 
+### Aislamiento por usuario
+
+Todo endpoint protegido pasa por `AccessTokenGuard`, y el caso de uso recibe el `userId` con `@CurrentUser()`: **nunca** se lee un identificador del cuerpo o de la ruta. Si alguien marca una ruta con `@CurrentUser()` y olvida el guard, el decorador **lanza** en vez de devolver `undefined`, que acabaría en una consulta sin filtrar.
+
+Los repositorios están escritos para que olvidar el filtro **no compile**: todo método que lee o cambia datos de una cuenta exige su `userId`, y ese `userId` viaja **dentro** del `WHERE` o del `UPDATE`, no en una comprobación posterior. La única excepción es buscar un token personal para autenticarlo, que es justamente el paso que averigua de quién es la petición.
+
+Hay una prueba por endpoint, en [`access-isolation.spec.ts`](../../apps/api/test/identity/access-isolation.spec.ts): sin sesión responde 401, con una sesión inventada también, y con la sesión de otra cuenta solo se toca lo de esa cuenta (sus tokens, su contraseña, su segundo factor).
+
+### Cabeceras y CORS
+
+`helmet`, con la política de contenido **cerrada entera** (`default-src 'none'`, `frame-ancestors 'none'`, `form-action 'none'`, `base-uri 'none'`) en vez de desactivada: la API sirve JSON y no carga nada, así que esa política es exacta y además más estricta que la de por defecto, pensada para páginas. Si una respuesta acabara interpretándose como HTML, no podría cargar ni ejecutar nada. Se suman `nosniff`, `X-Frame-Options`, `Strict-Transport-Security` y no anunciar con qué está hecha la API.
+
+CORS restringido a `WEB_ORIGIN` (lista separada por comas), **con credenciales y nunca `*`**: la sesión viaja en una cookie, y esa combinación ni siquiera es válida para el navegador. Solo se aceptan los métodos y las cabeceras que la API usa de verdad. Sin la variable configurada queda solo `http://localhost:3000`, para que olvidarla no abra la API a cualquier página.
+
 ### Los logs
 
 JSON con `pino`. Cada línea trae `requestId` (se respeta el `X-Request-Id` que llegue, para poder seguir una petición entre servicios), el `userId` —el identificador, **nunca** el correo—, el módulo que atendió y cuánto tardó.
@@ -267,5 +281,7 @@ Las rutas protegidas solo aceptan el token de acceso de una sesión. Un token pe
 
 ## Estado
 
-- Feature flag: `FEATURE_IDENTITY` (apagado hasta cumplir la Definition of Done)
+- Feature flag: **`FEATURE_IDENTITY=true`** desde el cierre de H2 (0.3.0).
+- **La navegación de la web no muestra identidad**: el mismo flag enciende API y menú, y `/identity` no existe todavía. El manifest sigue en `apps/web/src/features/identity/` y vuelve al registro cuando haya pantalla.
 - Escenarios: [`features/identity/`](../../features/identity/)
+- Controles de seguridad cubiertos: [`docs/quality/asvs-checklist.md`](../quality/asvs-checklist.md)
