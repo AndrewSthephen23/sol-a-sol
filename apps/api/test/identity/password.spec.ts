@@ -59,6 +59,7 @@ describe('changing the password', () => {
 
   beforeEach(async () => {
     await prisma.user.deleteMany();
+    await prisma.loginThrottle.deleteMany();
     await prisma.auditLog.deleteMany();
     process.env.REGISTRATION_MODE = 'open';
     await request(server).post(REGISTER).send(ANA).expect(201);
@@ -67,6 +68,7 @@ describe('changing the password', () => {
 
   afterAll(async () => {
     await prisma.user.deleteMany();
+    await prisma.loginThrottle.deleteMany();
     await prisma.auditLog.deleteMany();
     delete process.env.FEATURE_IDENTITY;
     delete process.env.REGISTRATION_MODE;

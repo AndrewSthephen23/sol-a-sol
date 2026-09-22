@@ -1,6 +1,6 @@
 # Módulo Identidad (`identity`)
 
-> Ficha del módulo. Estado: **en construcción** (hito H2). Funcionan el registro, el inicio de sesión, la renovación, el cierre, el segundo factor con sus códigos de recuperación, los tokens personales y el cambio de contraseña; faltan el límite de intentos y el resto de la auditoría.
+> Ficha del módulo. Estado: **en construcción** (hito H2). Funcionan el registro, el inicio de sesión, la renovación, el cierre, el segundo factor con sus códigos de recuperación, los tokens personales, el cambio de contraseña, el límite de intentos y la auditoría. Falta el cierre del hito (tarea 09).
 
 ## Qué resuelve
 
@@ -52,12 +52,16 @@ Su script de instalación está **desactivado** (`allowBuilds: argon2: false`): 
 
 ### Variables de entorno
 
-| Variable                   | Valores                                  | Para qué                                                                                                                                                                    |
-| -------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `REGISTRATION_MODE`        | `closed` (por defecto), `invite`, `open` | Quién puede crear una cuenta. Cualquier valor desconocido, o la variable sin definir, se entiende como `closed`: un error de tipeo no puede abrir el registro               |
-| `AUTH_JWT_SECRET`          | texto de **32 bytes o más**              | Firma los tokens de acceso (HS256 usa una clave de 256 bits). Sin ella la API no emite ninguno. Generar una por entorno: `openssl rand -base64 48`                          |
-| `AUTH_TOTP_ENCRYPTION_KEY` | 32 bytes en base64                       | Cifra los secretos TOTP. Es **propia** y no la de los JWT: rotar aquella dejaría ilegibles todos los secretos y a sus dueños fuera de su propia cuenta                      |
-| `REGISTRATION_INVITE_CODE` | texto                                    | Solo con `invite`. Sin código configurado no entra nadie, para que olvidar la variable no signifique "cualquiera entra con el código vacío". Se compara en tiempo constante |
+| Variable                     | Valores                                  | Para qué                                                                                                                                                                    |
+| ---------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `REGISTRATION_MODE`          | `closed` (por defecto), `invite`, `open` | Quién puede crear una cuenta. Cualquier valor desconocido, o la variable sin definir, se entiende como `closed`: un error de tipeo no puede abrir el registro               |
+| `AUTH_JWT_SECRET`            | texto de **32 bytes o más**              | Firma los tokens de acceso (HS256 usa una clave de 256 bits). Sin ella la API no emite ninguno. Generar una por entorno: `openssl rand -base64 48`                          |
+| `AUTH_TOTP_ENCRYPTION_KEY`   | 32 bytes en base64                       | Cifra los secretos TOTP. Es **propia** y no la de los JWT: rotar aquella dejaría ilegibles todos los secretos y a sus dueños fuera de su propia cuenta                      |
+| `REGISTRATION_INVITE_CODE`   | texto                                    | Solo con `invite`. Sin código configurado no entra nadie, para que olvidar la variable no signifique "cualquiera entra con el código vacío". Se compara en tiempo constante |
+| `RATE_LIMIT_PER_MINUTE`      | entero, 120 por defecto                  | Peticiones por minuto y por IP en el resto de la API                                                                                                                        |
+| `AUTH_RATE_LIMIT_PER_MINUTE` | entero, 20 por defecto                   | Lo mismo para `/auth`, más estricto porque ahí cada petición cuesta un argon2id                                                                                             |
+| `TRUST_PROXY`                | entero, 0 por defecto                    | Cuántos proxies hay delante. Decide de qué IP se fía el bloqueo y el tope de caudal                                                                                         |
+| `LOG_LEVEL`                  | `info` por defecto                       | Detalle de los logs JSON                                                                                                                                                    |
 
 Cuando el registro no está permitido, la ruta responde **404 idéntico al de una ruta inexistente**, sin decir que el registro existe y está cerrado.
 
@@ -156,6 +160,48 @@ Después de cambiar la contraseña, **y también al confirmar el segundo factor*
 
 El cambio queda en la bitácora como `password.changed`, con IP y user agent y, por supuesto, sin ninguna de las dos contraseñas.
 
+### El freno a la fuerza bruta
+
+Son **dos cosas distintas**, y conviene no confundirlas:
+
+| Freno                                    | Qué cuenta               | Dónde vive                               |
+| ---------------------------------------- | ------------------------ | ---------------------------------------- |
+| **Bloqueo por intentos**                 | Credenciales equivocadas | Regla de negocio, en `@sol-a-sol/domain` |
+| **Tope de caudal** (`@nestjs/throttler`) | Peticiones por IP        | Infraestructura, `shared/throttling`     |
+
+**Bloqueo progresivo.** Cinco fallos seguidos bloquean **1 minuto**; a partir de ahí **cada** fallo vuelve a bloquear y el tiempo se dobla: 2, 4, 8 y **15 minutos como tope**. El tope es deliberado: sin él, un tercero podría dejar al dueño fuera de su propia cuenta indefinidamente. Un inicio de sesión correcto borra la cuenta de fallos, y **un día entero sin fallos también**: los tropiezos de la semana pasada no se suman a los de hoy.
+
+**Se cuentan dos llaves por intento, por separado: el correo y la IP.** Si cualquiera de las dos está bloqueada, el intento no se acepta. Solo por IP no protegería a quien tiene muchas IPs enfrente; solo por cuenta permitiría dejar al dueño fuera a propósito, y para eso está el tope.
+
+**Cuenta como fallo** una contraseña equivocada, un código TOTP equivocado y un código de recuperación equivocado. Un código TOTP son seis dígitos —un millón de posibilidades—, así que sin freno quien ya tuviera la contraseña podría probarlos todos. **No** cuenta llegar sin código (`TOTP_REQUIRED`): eso no es intentar adivinar nada.
+
+**El bloqueo se comprueba antes de mirar la contraseña**, o quien está bloqueado seguiría probando. Responde **429** con `Retry-After` en segundos, y el mismo cuerpo exista o no la cuenta: el contador va por correo haya usuario detrás o no, así que un bloqueo no delata qué correos están registrados. **El correo no se guarda en claro**: la llave es `email:<sha256>`, de modo que `login_throttles` no es una lista de correos que alguien intentó.
+
+**Tope de caudal.** 120 peticiones por minuto y por IP, y **20 en `/auth`**, donde cada petición cuesta un argon2id de 19 MiB. Los health checks no llevan tope: Docker los consulta cada pocos segundos. El contador es de memoria, lo correcto mientras la API corra en **un** proceso; con varias réplicas habría que mudarlo a algo compartido.
+
+### Los logs
+
+JSON con `pino`. Cada línea trae `requestId` (se respeta el `X-Request-Id` que llegue, para poder seguir una petición entre servicios), el `userId` —el identificador, **nunca** el correo—, el módulo que atendió y cuánto tardó.
+
+**La cabecera `Authorization` y las cookies salen como `[Redacted]`**, igual que el `Set-Cookie` de la respuesta: un log no puede servir para suplantar a nadie. Hay pruebas que fallan si alguno de esos valores aparece en una línea.
+
+### Qué se guarda en la bitácora, y cuánto
+
+| Acción                                              | Cuándo                                                |
+| --------------------------------------------------- | ----------------------------------------------------- |
+| `login.succeeded`                                   | Inicio de sesión correcto                             |
+| `login.failed`                                      | Intento fallido                                       |
+| `login.locked`                                      | El intento que deja bloqueado el correo o la IP       |
+| `password.changed`                                  | Cambio de contraseña                                  |
+| `totp.enabled` / `totp.disabled`                    | Activación y desactivación del segundo factor         |
+| `recovery_codes.regenerated` / `recovery_code.used` | Códigos de recuperación                               |
+| `refresh_token.reused`                              | Llegó un refresco ya canjeado: alguien lo copió       |
+| `personal_access_token.*`                           | Alta, revocación, uso y rechazos de un token personal |
+
+Se guardan `ip` y `userAgent` cuando existen. **Nunca** contraseñas, tokens, códigos ni correos: quien hizo algo se identifica por `userId`, y un intento contra un correo inexistente simplemente no tiene usuario.
+
+**Se conservan un año** (decisión del autor). Una tarea que corre al arrancar y luego una vez al día borra lo más viejo, y de paso los intentos fallidos ya olvidados: guardan IP y user agent, y conservarlos más tiempo del que sirven solo agranda lo que se pierde en una filtración.
+
 ### Pedir el código confirma que la contraseña era correcta
 
 Cuando la cuenta tiene segundo factor y no llega código, la respuesta es `TOTP_REQUIRED`, que revela que la contraseña acertó. Es **inevitable**: sin decirlo no habría forma de pedir el código. Y es justamente la razón de ser del segundo factor — que saber la contraseña ya no baste.
@@ -179,7 +225,8 @@ registro cerrado, verificar el correo de la única cuenta no protege de nada. La
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
 | `users`                  | La cuenta. Ya existía desde la migración inicial. `password_hash` guarda el hash argon2id completo y **nunca** sale en una respuesta |
 | `personal_access_tokens` | Credenciales por dispositivo. `ON DELETE CASCADE`: borrar la cuenta borra sus tokens                                                 |
-| `audit_logs`             | Bitácora de seguridad. **Sin clave foránea a propósito**                                                                             |
+| `audit_logs`             | Bitácora de seguridad. **Sin clave foránea a propósito**. Se conservan un año                                                        |
+| `login_throttles`        | Intentos fallidos por correo (hasheado) y por IP, para el bloqueo progresivo. Sin clave foránea: un correo sin cuenta también cuenta |
 
 Sobre `audit_logs`: una entrada de auditoría es un hecho inmutable sobre algo que ya pasó y debe
 sobrevivir al borrado de quien lo provocó. Con `onDelete: SetNull` se perdería quién hizo qué, y con

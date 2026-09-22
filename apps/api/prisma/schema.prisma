@@ -100,6 +100,30 @@ model PersonalAccessToken {
   @@map("personal_access_tokens")
 }
 
+/// Intentos fallidos de inicio de sesión de una llave, para el bloqueo progresivo.
+///
+/// Hay **dos llaves por intento** y se cuentan por separado: el correo (exista o no la cuenta)
+/// y la IP. Solo por IP no protegería —quien tiene muchas IPs probaría sin freno—, y solo por
+/// cuenta permitiría dejar a alguien fuera a propósito; con las dos, el tope de 15 minutos
+/// limita cuánto puede durar eso.
+///
+/// El correo **no se guarda en claro**: la llave es `email:<sha256>`. Así la tabla no es una
+/// lista de correos que alguien intentó, y aun así dos intentos contra el mismo correo caen en
+/// la misma fila. La IP sí va tal cual: hay que poder leerla al investigar.
+///
+/// A propósito **sin clave foránea** hacia `User`: un intento contra un correo que no existe
+/// no tiene usuario, y es justamente el caso que hay que frenar.
+model LoginThrottle {
+  key           String    @id
+  failures      Int       @default(0)
+  lastFailureAt DateTime  @map("last_failure_at") @db.Timestamptz(3)
+  /// Hasta cuándo no se aceptan intentos. Nulo mientras no haya bloqueo.
+  lockedUntil   DateTime? @map("locked_until") @db.Timestamptz(3)
+
+  @@index([lastFailureAt])
+  @@map("login_throttles")
+}
+
 /// Bitácora de seguridad: login (con éxito y fallido), cambios de 2FA, alta y revocación
 /// de tokens, y borrados.
 ///

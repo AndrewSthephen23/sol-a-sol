@@ -49,6 +49,7 @@ describe('session lifecycle', () => {
 
   beforeEach(async () => {
     await prisma.user.deleteMany();
+    await prisma.loginThrottle.deleteMany();
     // La bitácora no tiene clave foránea a propósito, así que sobrevive al borrado de usuarios:
     // hay que limpiarla aparte o una prueba ve las entradas de la anterior.
     await prisma.auditLog.deleteMany();
@@ -58,6 +59,7 @@ describe('session lifecycle', () => {
 
   afterAll(async () => {
     await prisma.user.deleteMany();
+    await prisma.loginThrottle.deleteMany();
     await prisma.auditLog.deleteMany();
     delete process.env.FEATURE_IDENTITY;
     delete process.env.REGISTRATION_MODE;

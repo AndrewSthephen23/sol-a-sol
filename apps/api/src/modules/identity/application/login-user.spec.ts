@@ -1,15 +1,20 @@
+import { FixedClock } from '@sol-a-sol/domain';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   InvalidCredentialsError,
   InvalidTotpCodeError,
+  TooManyLoginAttemptsError,
   TotpRequiredError,
 } from '../domain/errors.js';
 import type { DecoyPasswordHash } from '../infrastructure/decoy-password-hash.js';
 import type { SecretBox } from '../infrastructure/secret-box.js';
+import type { AuditEntry, AuditLogger } from '../ports/audit-logger.js';
+import { FakeLoginThrottleRepository } from '../ports/login-throttle-repository.fake.js';
 import type { PasswordHasher } from '../ports/password-hasher.js';
 import type { Totp, TotpVerification } from '../ports/totp.js';
 import { fakeCredentials, FakeUserRepository } from '../ports/user-repository.fake.js';
+import { LoginThrottle } from './login-throttle.js';
 import { LoginUser } from './login-user.js';
 import type { UseRecoveryCode } from './recovery-codes.js';
 
@@ -17,13 +22,28 @@ const DECOY = 'hash-senuelo';
 const CREDENTIALS = { email: 'ana@example.com', password: 'caballo grapa batería' };
 const SEALED = 'secreto-cifrado';
 const CODE = '123456';
+const IP = '203.0.113.7';
+const CLOCK = FixedClock.at('2026-09-22T15:00:00.000Z');
 
 describe('LoginUser', () => {
   let users: FakeUserRepository;
   let verify: ReturnType<typeof vi.fn<(plain: string, hash: string) => Promise<boolean>>>;
   let verifyTotp: ReturnType<typeof vi.fn<(s: string, c: string) => TotpVerification | null>>;
   let useRecovery: ReturnType<typeof vi.fn<(u: string, c: string) => Promise<boolean>>>;
+  let attempts: FakeLoginThrottleRepository;
+  let recorded: AuditEntry[];
   let loginUser: LoginUser;
+
+  /** Falla el login `times` veces seguidas con la contraseña equivocada. */
+  async function failLogin(times: number): Promise<void> {
+    verify.mockResolvedValue(false);
+
+    for (let attempt = 0; attempt < times; attempt++) {
+      await loginUser.execute({ ...CREDENTIALS, ip: IP }).catch(() => undefined);
+    }
+
+    verify.mockResolvedValue(true);
+  }
 
   beforeEach(() => {
     users = new FakeUserRepository({ credentials: fakeCredentials() });
@@ -38,7 +58,27 @@ describe('LoginUser', () => {
     useRecovery = vi.fn(() => Promise.resolve(true));
     const recoveryCodes = { execute: useRecovery } as unknown as UseRecoveryCode;
 
-    loginUser = new LoginUser(users, passwords, decoy, totp, secrets, recoveryCodes);
+    attempts = new FakeLoginThrottleRepository();
+    recorded = [];
+    const audit: AuditLogger = {
+      record: (entry) => {
+        recorded.push(entry);
+
+        return Promise.resolve();
+      },
+    };
+    const throttle = new LoginThrottle(attempts, audit, CLOCK);
+
+    loginUser = new LoginUser(
+      users,
+      passwords,
+      decoy,
+      totp,
+      secrets,
+      recoveryCodes,
+      throttle,
+      audit,
+    );
   });
 
   describe('with only a password', () => {
@@ -197,5 +237,153 @@ describe('LoginUser', () => {
     users.credentials = fakeCredentials({ totpSecret: SEALED, totpConfirmedAt: null });
 
     await expect(loginUser.execute(CREDENTIALS)).resolves.toBe('user-1');
+  });
+
+  describe('blocking brute force', () => {
+    it('lets the fifth failure through and blocks the sixth attempt', async () => {
+      await failLogin(5);
+
+      await expect(loginUser.execute({ ...CREDENTIALS, ip: IP })).rejects.toThrow(
+        TooManyLoginAttemptsError,
+      );
+    });
+
+    it('says how long is left, so the client does not have to guess', async () => {
+      await failLogin(5);
+
+      const error = await loginUser.execute({ ...CREDENTIALS, ip: IP }).catch((e: unknown) => e);
+
+      expect((error as TooManyLoginAttemptsError).retryAfterSeconds).toBe(60);
+    });
+
+    // Se comprueba antes de mirar la contraseña: si no, quien está bloqueado seguiría probando.
+    it('does not even check the password while it is blocked', async () => {
+      await failLogin(5);
+      verify.mockClear();
+
+      await expect(loginUser.execute({ ...CREDENTIALS, ip: IP })).rejects.toThrow();
+
+      expect(verify).not.toHaveBeenCalled();
+    });
+
+    it('counts the email and the ip separately', async () => {
+      await failLogin(5);
+
+      expect([...attempts.records.keys()].map((key) => key.split(':')[0])).toEqual(['email', 'ip']);
+    });
+
+    // Anti-enumeración: un correo sin cuenta se cuenta igual, así que el bloqueo no delata
+    // qué correos están registrados.
+    it('blocks an email that has no account just the same', async () => {
+      users.credentials = null;
+      await failLogin(5);
+
+      await expect(loginUser.execute({ ...CREDENTIALS, ip: IP })).rejects.toThrow(
+        TooManyLoginAttemptsError,
+      );
+    });
+
+    it('forgets the failures after signing in correctly', async () => {
+      await failLogin(4);
+
+      await loginUser.execute({ ...CREDENTIALS, ip: IP });
+
+      expect(attempts.records.size).toBe(0);
+    });
+
+    it('does not count arriving without a second factor code', async () => {
+      users.credentials = fakeCredentials({
+        totpSecret: SEALED,
+        totpConfirmedAt: new Date('2026-09-01T00:00:00.000Z'),
+      });
+
+      await expect(loginUser.execute({ ...CREDENTIALS, ip: IP })).rejects.toThrow(
+        TotpRequiredError,
+      );
+
+      expect(attempts.records.size).toBe(0);
+    });
+
+    // Un código TOTP son seis dígitos: sin freno, quien ya tiene la contraseña los prueba todos.
+    it('counts a wrong second factor code', async () => {
+      users.credentials = fakeCredentials({
+        totpSecret: SEALED,
+        totpConfirmedAt: new Date('2026-09-01T00:00:00.000Z'),
+      });
+      verifyTotp.mockReturnValue(null);
+
+      await expect(loginUser.execute({ ...CREDENTIALS, ip: IP, totpCode: CODE })).rejects.toThrow(
+        InvalidTotpCodeError,
+      );
+
+      expect(attempts.records.size).toBe(2);
+    });
+
+    it('counts a wrong recovery code', async () => {
+      users.credentials = fakeCredentials({
+        totpSecret: SEALED,
+        totpConfirmedAt: new Date('2026-09-01T00:00:00.000Z'),
+      });
+      useRecovery.mockResolvedValue(false);
+
+      await expect(
+        loginUser.execute({ ...CREDENTIALS, ip: IP, recoveryCode: 'ABCD-EFGH-JKMN' }),
+      ).rejects.toThrow(InvalidTotpCodeError);
+
+      expect(attempts.records.size).toBe(2);
+    });
+  });
+
+  describe('the audit log', () => {
+    it('records a successful sign-in with its origin', async () => {
+      await loginUser.execute({ ...CREDENTIALS, ip: IP, userAgent: 'Firefox' });
+
+      expect(recorded).toEqual([
+        {
+          userId: 'user-1',
+          action: 'login.succeeded',
+          entity: 'user',
+          entityId: 'user-1',
+          ip: IP,
+          userAgent: 'Firefox',
+        },
+      ]);
+    });
+
+    it('records a failed attempt', async () => {
+      await failLogin(1);
+
+      expect(recorded).toEqual([expect.objectContaining({ action: 'login.failed', ip: IP })]);
+    });
+
+    it('records the attempt that locks the account as such', async () => {
+      await failLogin(5);
+
+      expect(recorded.map((entry) => entry.action)).toEqual([
+        'login.failed',
+        'login.failed',
+        'login.failed',
+        'login.failed',
+        'login.locked',
+      ]);
+    });
+
+    // Sin cuenta detrás no hay a quién atribuirlo, pero la IP sí queda.
+    it('records an attempt against an unknown email without any user', async () => {
+      users.credentials = null;
+
+      await failLogin(1);
+
+      expect(recorded).toEqual([
+        expect.objectContaining({ action: 'login.failed', userId: undefined }),
+      ]);
+    });
+
+    it('never writes the password or the email down', async () => {
+      await failLogin(1);
+
+      expect(JSON.stringify(recorded)).not.toContain(CREDENTIALS.password);
+      expect(JSON.stringify(recorded)).not.toContain(CREDENTIALS.email);
+    });
   });
 });

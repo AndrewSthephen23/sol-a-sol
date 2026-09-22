@@ -86,6 +86,20 @@ export class TotpNotStartedError extends DomainError {
 }
 
 /**
+ * Demasiados intentos fallidos: el correo o la IP están bloqueados un rato.
+ *
+ * El mensaje es el mismo exista o no la cuenta, porque el contador va por correo, haya usuario
+ * detrás o no: un bloqueo no puede delatar qué correos están registrados.
+ */
+export class TooManyLoginAttemptsError extends DomainError {
+  readonly code = 'TOO_MANY_LOGIN_ATTEMPTS';
+
+  constructor(readonly retryAfterSeconds: number) {
+    super(`Too many failed attempts. Try again in ${String(retryAfterSeconds)} seconds.`);
+  }
+}
+
+/**
  * Al cambiar la contraseña, la actual no corresponde.
  *
  * 403 y no 401: la sesión es válida y la web no debe cerrarla; lo que falla es la prueba extra

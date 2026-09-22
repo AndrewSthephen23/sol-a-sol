@@ -90,6 +90,7 @@ describe('two factor authentication', () => {
 
   beforeEach(async () => {
     await prisma.user.deleteMany();
+    await prisma.loginThrottle.deleteMany();
     await prisma.auditLog.deleteMany();
     process.env.REGISTRATION_MODE = 'closed';
     clock.advancePeriods(10);
@@ -98,6 +99,7 @@ describe('two factor authentication', () => {
 
   afterAll(async () => {
     await prisma.user.deleteMany();
+    await prisma.loginThrottle.deleteMany();
     await prisma.auditLog.deleteMany();
     delete process.env.FEATURE_IDENTITY;
     delete process.env.REGISTRATION_MODE;
@@ -490,9 +492,10 @@ describe('two factor authentication', () => {
         .send({ code: codeFor(secret) })
         .expect(204);
 
-      const actions = (await prisma.auditLog.findMany({ orderBy: { at: 'asc' } })).map(
-        (e) => e.action,
-      );
+      const actions = (await prisma.auditLog.findMany({ orderBy: { at: 'asc' } }))
+        .map((e) => e.action)
+        // Los inicios de sesión también quedan registrados; esta prueba mira el segundo factor.
+        .filter((action) => !action.startsWith('login.'));
       expect(actions).toEqual(['totp.enabled', 'totp.disabled']);
     });
 

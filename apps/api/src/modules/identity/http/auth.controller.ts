@@ -89,9 +89,11 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async login(
     @Body(new ZodValidationPipe(loginRequestSchema)) body: LoginRequest,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent: string | undefined,
     @Res({ passthrough: true }) response: CookieResponse,
   ): Promise<AccessTokenResponse> {
-    const userId = await this.loginUser.execute(body);
+    const userId = await this.loginUser.execute({ ...body, ip, userAgent });
 
     return this.startSession(await this.issueSession.execute(userId), response);
   }

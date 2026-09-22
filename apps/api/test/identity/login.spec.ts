@@ -38,6 +38,7 @@ describe('POST /auth/login', () => {
 
   beforeEach(async () => {
     await prisma.user.deleteMany();
+    await prisma.loginThrottle.deleteMany();
     process.env.REGISTRATION_MODE = 'closed';
     await request(server).post(REGISTER).send(CREDENTIALS).expect(201);
   });
@@ -46,6 +47,7 @@ describe('POST /auth/login', () => {
     // Los archivos comparten el mismo PostgreSQL: se devuelve la tabla como se encontró,
     // o el siguiente se topa con cuentas que no creó.
     await prisma.user.deleteMany();
+    await prisma.loginThrottle.deleteMany();
     delete process.env.FEATURE_IDENTITY;
     delete process.env.REGISTRATION_MODE;
     delete process.env.AUTH_JWT_SECRET;

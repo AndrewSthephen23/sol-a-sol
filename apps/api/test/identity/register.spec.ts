@@ -36,6 +36,7 @@ describe('POST /auth/register', () => {
   beforeEach(async () => {
     // El modo `closed` depende de que no exista ninguna cuenta, así que cada prueba parte de cero.
     await prisma.user.deleteMany();
+    await prisma.loginThrottle.deleteMany();
     process.env.REGISTRATION_MODE = 'closed';
     delete process.env.REGISTRATION_INVITE_CODE;
   });
@@ -44,6 +45,7 @@ describe('POST /auth/register', () => {
     // Los archivos comparten el mismo PostgreSQL: se devuelve la tabla como se encontró,
     // o el siguiente se topa con cuentas que no creó.
     await prisma.user.deleteMany();
+    await prisma.loginThrottle.deleteMany();
     delete process.env.FEATURE_IDENTITY;
     delete process.env.REGISTRATION_MODE;
     await app.close();
