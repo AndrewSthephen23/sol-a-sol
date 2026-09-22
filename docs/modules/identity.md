@@ -193,7 +193,7 @@ Hay una prueba por endpoint, en [`access-isolation.spec.ts`](../../apps/api/test
 
 ### Cabeceras y CORS
 
-`helmet` con la política de contenido **desactivada**: esto sirve JSON, no páginas, y una CSP aquí no protegería de nada mientras hace creer que sí; la de la web la pone la web. Sí importan `nosniff`, `X-Frame-Options`, `Strict-Transport-Security` y no anunciar con qué está hecha la API.
+`helmet`, con la política de contenido **cerrada entera** (`default-src 'none'`, `frame-ancestors 'none'`, `form-action 'none'`, `base-uri 'none'`) en vez de desactivada: la API sirve JSON y no carga nada, así que esa política es exacta y además más estricta que la de por defecto, pensada para páginas. Si una respuesta acabara interpretándose como HTML, no podría cargar ni ejecutar nada. Se suman `nosniff`, `X-Frame-Options`, `Strict-Transport-Security` y no anunciar con qué está hecha la API.
 
 CORS restringido a `WEB_ORIGIN` (lista separada por comas), **con credenciales y nunca `*`**: la sesión viaja en una cookie, y esa combinación ni siquiera es válida para el navegador. Solo se aceptan los métodos y las cabeceras que la API usa de verdad. Sin la variable configurada queda solo `http://localhost:3000`, para que olvidarla no abra la API a cualquier página.
 

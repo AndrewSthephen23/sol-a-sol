@@ -28,13 +28,29 @@ export function configureApp(app: INestApplication): void {
 /**
  * Cabeceras de seguridad (helmet).
  *
- * Se desactiva la política de contenido: esto sirve **JSON**, no páginas, y una CSP aquí no
- * protege de nada mientras da a entender que sí. La de la web la pone la web. Lo que sí importa
- * es lo demás: `nosniff` (que el navegador no adivine el tipo de una respuesta), `X-Frame-Options`
- * (que nadie meta la API en un iframe) y que no se anuncie con qué está hecha.
+ * La política de contenido no se desactiva: se cierra **entera**. Esto sirve JSON y nunca carga
+ * nada, así que `default-src 'none'` es exacto, y es más estricto que la política por defecto de
+ * helmet, pensada para páginas. Si algún día una respuesta acabara interpretándose como HTML
+ * —por un error, o por un navegador viejo adivinando el tipo—, no podría cargar ni ejecutar nada.
+ *
+ * `frame-ancestors 'none'` impide meter la API en un iframe (y es lo que sustituye a
+ * `X-Frame-Options` en los navegadores actuales); `form-action` y `base-uri` cierran los dos
+ * caminos por los que un HTML inyectado mandaría datos a otra parte.
  */
 function secureHeaders(app: INestApplication): void {
-  app.use(helmet({ contentSecurityPolicy: false }));
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        useDefaults: false,
+        directives: {
+          'default-src': ["'none'"],
+          'frame-ancestors': ["'none'"],
+          'form-action': ["'none'"],
+          'base-uri': ["'none'"],
+        },
+      },
+    }),
+  );
 }
 
 /**

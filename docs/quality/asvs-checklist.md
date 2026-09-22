@@ -90,13 +90,13 @@
 
 ## V14 · Configuración
 
-| Control                         | Cómo se cubre                                                                                               | Estado |
-| ------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------ |
-| Cabeceras de seguridad          | `helmet`: `nosniff`, `X-Frame-Options`, HSTS y sin `X-Powered-By`. La CSP la pone la web, que sirve páginas | ✅     |
-| Dependencias vigiladas          | Dependabot, `pnpm audit` y Trivy sobre las imágenes, en CI                                                  | ✅     |
-| Análisis estático               | CodeQL (JS/TS y workflows) y SonarQube Cloud, obligatorios para fusionar                                    | ✅     |
-| Superficie mínima en producción | `pnpm deploy --prod --no-optional`; la CLI de Prisma no viaja en la imagen                                  | ✅     |
-| Módulos apagados no se anuncian | Un flag apagado responde 404 y **no aparece** en OpenAPI                                                    | ✅     |
+| Control                         | Cómo se cubre                                                                                                                                                   | Estado |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| Cabeceras de seguridad          | `helmet`: `nosniff`, `X-Frame-Options`, HSTS, sin `X-Powered-By` y una CSP **cerrada entera** (`default-src 'none'`), que es lo exacto para algo que sirve JSON | ✅     |
+| Dependencias vigiladas          | Dependabot, `pnpm audit` y Trivy sobre las imágenes, en CI                                                                                                      | ✅     |
+| Análisis estático               | CodeQL (JS/TS y workflows) y SonarQube Cloud, obligatorios para fusionar                                                                                        | ✅     |
+| Superficie mínima en producción | `pnpm deploy --prod --no-optional`; la CLI de Prisma no viaja en la imagen                                                                                      | ✅     |
+| Módulos apagados no se anuncian | Un flag apagado responde 404 y **no aparece** en OpenAPI                                                                                                        | ✅     |
 
 ## Lo que falta para el nivel 1 completo
 

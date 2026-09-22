@@ -57,11 +57,23 @@ describe('security headers and CORS', () => {
       expect(response.headers['strict-transport-security']).toContain('max-age=');
     });
 
-    // Esto sirve JSON, no páginas: una CSP aquí no protegería de nada y haría creer que sí.
-    it('leaves the content policy to the web', async () => {
+    // Esto sirve JSON y no carga nada, así que la política puede cerrarse entera: es más
+    // estricta que la de por defecto, que está pensada para páginas.
+    it('closes the content policy completely', async () => {
       const response = await request(server).get(OPENAPI).expect(200);
 
-      expect(response.headers['content-security-policy']).toBeUndefined();
+      const policy = response.headers['content-security-policy'];
+      expect(policy).toContain("default-src 'none'");
+      expect(policy).toContain("frame-ancestors 'none'");
+      expect(policy).toContain("form-action 'none'");
+      expect(policy).toContain("base-uri 'none'");
+    });
+
+    // Nada de lo que sirve la API debería poder ejecutarse en un navegador.
+    it('does not allow scripts from anywhere', async () => {
+      const response = await request(server).get(OPENAPI).expect(200);
+
+      expect(response.headers['content-security-policy']).not.toContain("'unsafe-inline'");
     });
   });
 
