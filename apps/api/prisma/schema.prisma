@@ -76,18 +76,22 @@ model RefreshToken {
 
 /// Token de larga duración para que un dispositivo (el celular) use la API sin la contraseña.
 /// Solo se guarda su hash: el valor se muestra una vez al crearlo y no se puede recuperar.
+///
+/// El token lleva dentro su `id` (`sas_pat_<id><secreto>`), así que se busca por clave primaria
+/// y el hash se compara en tiempo constante; por eso `tokenHash` no necesita índice.
 model PersonalAccessToken {
   id         String    @id @default(uuid(7)) @db.Uuid
   userId     String    @map("user_id") @db.Uuid
   /// Nombre del dispositivo ("iPhone"), para poder revocar uno solo.
   name       String
+  /// SHA-256 del secreto. Son 256 bits aleatorios: argon2 no aportaría nada (ver `RefreshToken`).
   tokenHash  String    @map("token_hash")
-  /// Permisos mínimos del token; el primero será `captures:write`.
+  /// Permisos mínimos del token; hoy solo existe `captures:write`.
   scopes     String[]
   /// Última vez que se usó, para saber si el token sigue vivo.
   lastUsedAt DateTime? @map("last_used_at") @db.Timestamptz(3)
-  /// Nulo significa que no caduca; por defecto se proponen 90 días.
-  expiresAt  DateTime? @map("expires_at") @db.Timestamptz(3)
+  /// Siempre caduca: entre 1 y 365 días desde que se crea, 90 por defecto.
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(3)
   revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(3)
   createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)

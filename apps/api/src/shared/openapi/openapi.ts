@@ -1,4 +1,5 @@
 import {
+  createPersonalAccessTokenRequestSchema,
   loginRequestSchema,
   problemDetailsSchema,
   PROBLEM_CONTENT_TYPE,
@@ -59,6 +60,25 @@ const ACCESS_TOKEN_SCHEMA = schemaOf(
     accessToken: z.string(),
     tokenType: z.literal('Bearer'),
     expiresIn: z.int().describe('Segundos de vida del token.'),
+  }),
+);
+
+const TOKEN_SUMMARY = z.object({
+  id: z.uuid(),
+  name: z.string(),
+  scopes: z.array(z.string()),
+  createdAt: z.iso.datetime(),
+  expiresAt: z.iso.datetime(),
+  lastUsedAt: z.iso.datetime().nullable().describe('Nulo si nunca se usó.'),
+});
+
+const TOKEN_LIST_SCHEMA = schemaOf(z.array(TOKEN_SUMMARY));
+
+const CREATED_TOKEN_SCHEMA = schemaOf(
+  TOKEN_SUMMARY.extend({
+    token: z
+      .string()
+      .describe('El token en claro (`sas_pat_…`). Es la única vez que se puede leer.'),
   }),
 );
 
@@ -173,6 +193,7 @@ function identityPaths(): Record<string, unknown> {
             content: { 'application/json': { schema: TOTP_SETUP_SCHEMA } },
           },
           '401': problem('Falta el token de acceso o no vale.'),
+          '403': problem('Llegó un token personal: la cuenta solo se toca desde una sesión.'),
           '409': problem('El segundo factor ya está activo; hay que desactivarlo primero.'),
         },
       },
@@ -192,6 +213,7 @@ function identityPaths(): Record<string, unknown> {
             content: { 'application/json': { schema: RECOVERY_CODES_SCHEMA } },
           },
           '401': problem('Falta el token de acceso, o el código no vale.'),
+          '403': problem('Llegó un token personal: la cuenta solo se toca desde una sesión.'),
           '409': problem('No hay ninguna activación en marcha, o ya estaba activo.'),
           '422': problem('El código no son seis dígitos.'),
         },
@@ -212,6 +234,7 @@ function identityPaths(): Record<string, unknown> {
             content: { 'application/json': { schema: RECOVERY_CODES_SCHEMA } },
           },
           '401': problem('Falta el token de acceso, o el código no vale.'),
+          '403': problem('Llegó un token personal: la cuenta solo se toca desde una sesión.'),
           '409': problem('La cuenta no tiene segundo factor activo.'),
           '422': problem('El código no son seis dígitos.'),
         },
@@ -227,8 +250,64 @@ function identityPaths(): Record<string, unknown> {
         responses: {
           '204': { description: 'Segundo factor desactivado.' },
           '401': problem('Falta el token de acceso, o el código no vale.'),
+          '403': problem('Llegó un token personal: la cuenta solo se toca desde una sesión.'),
           '409': problem('La cuenta no tiene segundo factor activo.'),
           '422': problem('El código no son seis dígitos.'),
+        },
+      },
+    },
+    [`/${API_PREFIX}/tokens`]: {
+      get: {
+        tags: ['identity'],
+        summary: 'Lista los tokens personales vigentes, sin su valor.',
+        description:
+          'Incluye los caducados, para que se vea por qué un dispositivo dejó de funcionar; ' +
+          'los revocados no aparecen.',
+        security: [{ accessToken: [] }],
+        responses: {
+          '200': {
+            description: 'Tokens de la cuenta, del más nuevo al más viejo.',
+            content: { 'application/json': { schema: TOKEN_LIST_SCHEMA } },
+          },
+          '401': problem('Falta el token de acceso o no vale.'),
+          '403': problem('Llegó un token personal: los tokens solo se gestionan desde una sesión.'),
+        },
+      },
+      post: {
+        tags: ['identity'],
+        summary: 'Crea un token personal para un dispositivo.',
+        description:
+          'El token se muestra **una sola vez**; en la base solo queda su hash. Caduca entre ' +
+          '1 y 365 días después, 90 si no se indica. Hoy el único scope es `captures:write`.',
+        security: [{ accessToken: [] }],
+        requestBody: jsonBody(createPersonalAccessTokenRequestSchema),
+        responses: {
+          '201': {
+            description: 'Token creado, con su valor en claro.',
+            content: { 'application/json': { schema: CREATED_TOKEN_SCHEMA } },
+          },
+          '401': problem('Falta el token de acceso o no vale.'),
+          '403': problem('Llegó un token personal: los tokens solo se gestionan desde una sesión.'),
+          '422': problem(
+            'El cuerpo no tiene la forma esperada, un scope no existe o la duración no vale.',
+          ),
+        },
+      },
+    },
+    [`/${API_PREFIX}/tokens/{id}`]: {
+      delete: {
+        tags: ['identity'],
+        summary: 'Revoca un token personal.',
+        description: 'Deja de valer en el acto. El dispositivo que lo usaba recibirá 401.',
+        security: [{ accessToken: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        responses: {
+          '204': { description: 'Token revocado.' },
+          '401': problem('Falta el token de acceso o no vale.'),
+          '403': problem('Llegó un token personal: los tokens solo se gestionan desde una sesión.'),
+          '404': problem('No existe, ya estaba revocado o es de otra cuenta.'),
         },
       },
     },
@@ -281,6 +360,14 @@ export function buildOpenApiDocument({
       schemas: { ProblemDetails: schemaOf(problemDetailsSchema) },
       securitySchemes: {
         accessToken: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+        personalAccessToken: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'sas_pat_…',
+          description:
+            'Token personal de un dispositivo. Solo vale en las rutas que lo aceptan y con el ' +
+            'scope que piden; en las demás responde 403.',
+        },
       },
     },
   };

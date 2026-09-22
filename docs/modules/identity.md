@@ -1,6 +1,6 @@
 # Módulo Identidad (`identity`)
 
-> Ficha del módulo. Estado: **en construcción** (hito H2). Funcionan el registro, el inicio de sesión, la renovación, el cierre y el segundo factor con sus códigos de recuperación; faltan los tokens personales y el resto de la auditoría.
+> Ficha del módulo. Estado: **en construcción** (hito H2). Funcionan el registro, el inicio de sesión, la renovación, el cierre, el segundo factor con sus códigos de recuperación y los tokens personales; faltan el límite de intentos y el resto de la auditoría.
 
 ## Qué resuelve
 
@@ -16,17 +16,17 @@ reescribir todos los endpoints.
 
 Decididas con el autor el 2026-09-18. No se cambian sin volver a preguntar.
 
-| Regla                                  | Decisión                                                                                                                                                                                                                                                    |
-| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Quién puede registrarse                | Política configurable `REGISTRATION_MODE=closed\|invite\|open`, **`closed` por defecto**. El primer usuario que se registra queda como dueño; después la ruta responde **404**, no 403, para no confirmar que existe                                        |
-| Contraseña                             | Mínimo **12 caracteres**, sin exigir mayúsculas ni números (criterio de NIST SP 800-63B), y se rechazan las de una lista de filtradas **embebida en el repositorio**: el dominio se compila sin tipos de Node ni del navegador y no puede consultar una API |
-| Almacenamiento de la contraseña        | **argon2id** (ver los parámetros más abajo)                                                                                                                                                                                                                 |
-| Duración de la sesión                  | Token de acceso **15 min**; refresh **30 días deslizante**, o sea que se renueva en cada uso                                                                                                                                                                |
-| Refresh                                | Rotativo: cada uso emite uno nuevo e invalida el anterior. Si llega uno ya usado se cierran **todas** las sesiones del usuario y queda en la bitácora                                                                                                       |
-| Segundo factor                         | **Opcional**, TOTP (RFC 6238, el estándar de las apps autenticadoras). Al activarlo se muestran una sola vez unos **códigos de recuperación** de un solo uso, guardados hasheados                                                                           |
-| Intentos fallidos                      | **5 intentos**, luego bloqueo progresivo **1 → 2 → 4 → 8 → 15 min**, contado por cuenta y por IP, con tope de 15 min para que nadie pueda bloquear la cuenta desde fuera. Se reinicia con un login correcto                                                 |
-| Tokens personales                      | Expiración elegible al crearlos, **90 días por defecto**. Se muestran una sola vez, se guardan hasheados, con scopes mínimos (el primero, `captures:write`) y revocación                                                                                    |
-| Al cambiar la contraseña o activar 2FA | Se cierran **todas las demás sesiones**. Los **tokens personales NO se revocan**, para no romper en silencio la captura desde el celular; la respuesta avisa y ofrece revocarlos                                                                            |
+| Regla                                  | Decisión                                                                                                                                                                                                                                                          |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Quién puede registrarse                | Política configurable `REGISTRATION_MODE=closed\|invite\|open`, **`closed` por defecto**. El primer usuario que se registra queda como dueño; después la ruta responde **404**, no 403, para no confirmar que existe                                              |
+| Contraseña                             | Mínimo **12 caracteres**, sin exigir mayúsculas ni números (criterio de NIST SP 800-63B), y se rechazan las de una lista de filtradas **embebida en el repositorio**: el dominio se compila sin tipos de Node ni del navegador y no puede consultar una API       |
+| Almacenamiento de la contraseña        | **argon2id** (ver los parámetros más abajo)                                                                                                                                                                                                                       |
+| Duración de la sesión                  | Token de acceso **15 min**; refresh **30 días deslizante**, o sea que se renueva en cada uso                                                                                                                                                                      |
+| Refresh                                | Rotativo: cada uso emite uno nuevo e invalida el anterior. Si llega uno ya usado se cierran **todas** las sesiones del usuario y queda en la bitácora                                                                                                             |
+| Segundo factor                         | **Opcional**, TOTP (RFC 6238, el estándar de las apps autenticadoras). Al activarlo se muestran una sola vez unos **códigos de recuperación** de un solo uso, guardados hasheados                                                                                 |
+| Intentos fallidos                      | **5 intentos**, luego bloqueo progresivo **1 → 2 → 4 → 8 → 15 min**, contado por cuenta y por IP, con tope de 15 min para que nadie pueda bloquear la cuenta desde fuera. Se reinicia con un login correcto                                                       |
+| Tokens personales                      | **Siempre caducan**: entre 1 y 365 días, elegible al crearlos, **90 por defecto**. Se muestran una sola vez, se guardan hasheados, con scopes mínimos (hoy solo `captures:write`) y revocación. Cada uso válido y cada rechazo quedan en la bitácora (2026-09-22) |
+| Al cambiar la contraseña o activar 2FA | Se cierran **todas las demás sesiones**. Los **tokens personales NO se revocan**, para no romper en silencio la captura desde el celular; la respuesta avisa y ofrece revocarlos                                                                                  |
 
 ### Parámetros de argon2id
 
@@ -113,6 +113,36 @@ Doce símbolos de un alfabeto de 32 son unos **60 bits**, que no se adivinan pro
 
 Rehacerlos **invalida los anteriores** y exige un código de la aplicación de autenticación, igual que desactivar el segundo factor: quien pille una sesión abierta un momento no puede llevarse diez llaves nuevas. Desactivar el segundo factor los borra: sin nada que sustituir, no tienen sentido.
 
+### Los tokens personales
+
+Para que el celular mande capturas (H7) sin la contraseña ni una sesión de navegador. La recomendación es **un token por dispositivo** ("iPhone", "Android"), para poder revocar uno solo si se pierde.
+
+**Formato:** `sas_pat_` + el `id` de la fila (32 hexadecimales, sin guiones) + 43 caracteres base64url de secreto, que son 256 bits de `randomBytes`. El prefijo tiene dos usos: el guard distingue un token personal de un JWT sin intentar verificarlo, y un escáner de secretos lo reconoce si alguien lo pega donde no debe (la misma idea que el `ghp_` de GitHub).
+
+**Se muestra una sola vez.** En la base queda solo el SHA-256 del secreto (SHA-256 y no argon2id por la misma razón que los refrescos: no hay nada que adivinar). Que el token lleve dentro su `id` permite buscar la fila **por clave primaria** y comparar el hash **en tiempo constante** (`timingSafeEqual`); buscar por el hash también funcionaría, pero entonces compararía el índice de la base, cuyo tiempo sí depende de cuántos caracteres coinciden. El `id` no es secreto: aparece en la lista de tokens de su dueño.
+
+**Scopes mínimos.** Hoy existe uno solo, `captures:write`. Un token personal solo entra en las rutas marcadas con `@AcceptsPersonalAccessToken('<scope>')` y con ese scope; en cualquier otra ruta protegida recibe **403** (`INSUFFICIENT_TOKEN_SCOPE`). Así, el token del celular no puede listar ni crear tokens, tocar el segundo factor ni nada de la cuenta: **los tokens solo se gestionan desde una sesión**. Un scope desconocido al crear el token se rechaza (422) en vez de ignorarse: suele ser un error de tipeo, y aceptarlo daría un token que no sirve para lo que su dueño cree.
+
+**Siempre caduca**, entre 1 y 365 días, 90 si no se indica (`expires_at` es `NOT NULL`). Un token revocado o caducado responde **401** con el mismo cuerpo que uno inexistente o falsificado, para no decirle a quien encontró un token si va por buen camino.
+
+**Revocar** marca `revoked_at` y el token deja de valer en el acto. El token de otra cuenta responde **404**, igual que uno que no existe o que ya se revocó: `user_id` va dentro del propio `UPDATE`.
+
+**`last_used_at`** se actualiza en cada uso válido, para saber si un token sigue vivo.
+
+**Bitácora.** Todo intento contra un token que existe queda registrado, con IP y user agent:
+
+| Acción                                   | Cuándo                                                       |
+| ---------------------------------------- | ------------------------------------------------------------ |
+| `personal_access_token.created`          | Al crearlo                                                   |
+| `personal_access_token.revoked`          | Al revocarlo                                                 |
+| `personal_access_token.used`             | En cada uso válido                                           |
+| `personal_access_token.rejected_secret`  | El `id` existe pero el secreto no coincide: alguien lo forjó |
+| `personal_access_token.rejected_revoked` | Se usó después de revocarlo                                  |
+| `personal_access_token.rejected_expired` | Se usó después de caducar                                    |
+| `personal_access_token.rejected_scope`   | Se usó en una ruta que no acepta su scope                    |
+
+Un token con un `id` que no existe no deja rastro: no hay usuario al que atribuirlo, y registrarlo dejaría a cualquiera llenar la tabla.
+
 ### Pedir el código confirma que la contraseña era correcta
 
 Cuando la cuenta tiene segundo factor y no llega código, la respuesta es `TOTP_REQUIRED`, que revela que la contraseña acertó. Es **inevitable**: sin decirlo no habría forma de pedir el código. Y es justamente la razón de ser del segundo factor — que saber la contraseña ya no baste.
@@ -164,9 +194,11 @@ Todos bajo `/api/v1` y con `@RequiresFeature('identity')`. Los que ya existen se
 | POST   | `/auth/2fa/setup`   | ✅ Devuelve el `otpauth://` una sola vez                        |
 | POST   | `/auth/2fa/verify`  | ✅ Confirma el código y activa el segundo factor                |
 | POST   | `/auth/2fa/disable` | ✅ Desactiva el segundo factor. Exige un código válido          |
-| GET    | `/tokens`           | Lista los tokens personales, **sin** su valor                   |
-| POST   | `/tokens`           | Crea uno y lo muestra **una sola vez**                          |
-| DELETE | `/tokens/:id`       | Lo revoca                                                       |
+| GET    | `/tokens`           | ✅ Lista los tokens personales, **sin** su valor                |
+| POST   | `/tokens`           | ✅ Crea uno y lo muestra **una sola vez**                       |
+| DELETE | `/tokens/:id`       | ✅ Lo revoca. 404 si es de otra cuenta                          |
+
+Las rutas protegidas solo aceptan el token de acceso de una sesión. Un token personal solo entra en las que llevan `@AcceptsPersonalAccessToken('<scope>')`; hoy ninguna, porque el módulo `capture` todavía no existe.
 
 ## Estado
 
