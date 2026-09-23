@@ -225,26 +225,19 @@ describe('catalog tables (categories and payment methods)', () => {
       expect(card).toMatchObject({ currency: null, institution: null, last4: null });
     });
 
-    it.each(['424', '42a4'])('rejects %j as the last 4 digits', async (last4) => {
-      const user = await createUser(`pagos-last4-${last4}@example.com`);
+    // Ni menos, ni letras, ni más: más de cuatro dígitos ya sería parte del número de tarjeta.
+    it.each(['424', '42a4', '12345', '12345678'])(
+      'rejects %j as the last 4 digits',
+      async (last4) => {
+        const user = await createUser(`pagos-last4-${last4}@example.com`);
 
-      await expect(
-        prisma.paymentMethod.create({
-          data: { userId: user.id, kind: 'CREDIT_CARD', alias: 'Tarjeta', last4 },
-        }),
-      ).rejects.toThrow(/payment_methods_last4_format/);
-    });
-
-    // CHAR(4) corta cualquier intento de guardar más dígitos que los últimos cuatro.
-    it.each(['12345', '12345678'])('rejects %j: longer than 4 digits', async (last4) => {
-      const user = await createUser(`pagos-largo-${last4}@example.com`);
-
-      await expect(
-        prisma.paymentMethod.create({
-          data: { userId: user.id, kind: 'CREDIT_CARD', alias: 'Tarjeta', last4 },
-        }),
-      ).rejects.toMatchObject({ code: 'P2000' });
-    });
+        await expect(
+          prisma.paymentMethod.create({
+            data: { userId: user.id, kind: 'CREDIT_CARD', alias: 'Tarjeta', last4 },
+          }),
+        ).rejects.toThrow(/payment_methods_last4_format/);
+      },
+    );
 
     it('rejects a blank alias', async () => {
       const user = await createUser('pagos-sin-alias@example.com');

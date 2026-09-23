@@ -246,8 +246,9 @@ model PaymentMethod {
   alias       String
   /// Banco o entidad ("BCP", "Interbank"). Nulo para el efectivo.
   institution String?
-  /// Últimos 4 dígitos, para reconocer la tarjeta o cuenta. Nada más.
-  last4       String?           @db.Char(4)
+  /// Últimos 4 dígitos, para reconocer la tarjeta o cuenta. Nada más. `TEXT` y no `CHAR(4)`,
+  /// que rellena con espacios: el `CHECK` de la migración ya exige exactamente cuatro dígitos.
+  last4       String?
   /// Nula = acepta las dos monedas (tarjeta bimoneda).
   currency    Currency?
   archivedAt  DateTime?         @map("archived_at") @db.Timestamptz(3)

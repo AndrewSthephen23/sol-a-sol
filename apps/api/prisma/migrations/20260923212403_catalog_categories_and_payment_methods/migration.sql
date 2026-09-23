@@ -30,7 +30,7 @@ CREATE TABLE "payment_methods" (
     "kind" "payment_method_kind" NOT NULL,
     "alias" TEXT NOT NULL,
     "institution" TEXT,
-    "last4" CHAR(4),
+    "last4" TEXT,
     "currency" "currency",
     "archived_at" TIMESTAMPTZ(3),
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
