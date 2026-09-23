@@ -32,6 +32,8 @@ model User {
   personalAccessTokens PersonalAccessToken[]
   refreshTokens        RefreshToken[]
   recoveryCodes        RecoveryCode[]
+  categories           Category[]
+  paymentMethods       PaymentMethod[]
 
   @@map("users")
 }
@@ -149,4 +151,111 @@ model AuditLog {
 
   @@index([userId, at])
   @@map("audit_logs")
+}
+
+/// Tipo de transacción (glosario). También clasifica las categorías: una categoría pertenece a un
+/// solo tipo, así que el formulario de un gasto variable solo ofrece categorías de gasto variable.
+///
+/// Los enums van como `ENUM` nativo de PostgreSQL: la base rechaza un valor inválido aunque alguien
+/// se salte la aplicación. Agregar un valor es una migración trivial; quitar uno no, pero estos
+/// salen del glosario y son estables. El dominio define los suyos y no importa estos.
+enum TransactionType {
+  INCOME
+  FIXED_EXPENSE
+  VARIABLE_EXPENSE
+  SAVING
+  INVESTMENT
+  DEBT
+
+  @@map("transaction_type")
+}
+
+enum PaymentMethodKind {
+  ACCOUNT
+  WALLET
+  CREDIT_CARD
+  CASH
+
+  @@map("payment_method_kind")
+}
+
+enum Currency {
+  PEN
+  USD
+
+  @@map("currency")
+}
+
+/// Categoría o subcategoría de un usuario. Cada usuario tiene su propia copia: editar la suya
+/// no cambia la de nadie.
+///
+/// **Un solo nivel de jerarquía:** una subcategoría apunta a su categoría con `parentId`, y no
+/// puede tener hijas. La base no puede exigir eso (tendría que mirar otra fila); lo exige el
+/// dominio.
+///
+/// Lo que **sí** exige la base, con una clave foránea compuesta `(parentId, userId, type)`, es
+/// que la categoría padre sea **del mismo usuario y del mismo tipo**: una subcategoría no puede
+/// colgar de la categoría de otra persona aunque alguien adivine su id.
+///
+/// **No se borra, se archiva** (`archivedAt`): sus transacciones siguen apuntando a ella. Una
+/// categoría con subcategorías tampoco se deja borrar (`NoAction`): primero hay que decidir qué
+/// pasa con ellas.
+///
+/// El nombre es único entre hermanas del mismo tipo, **sin distinguir mayúsculas** y contando
+/// las archivadas (para volver a usar un nombre se restaura la archivada). Ese índice no se
+/// puede escribir en Prisma: vive en la migración (`categories_unique_sibling_name`).
+model Category {
+  id         String          @id @default(uuid(7)) @db.Uuid
+  userId     String          @map("user_id") @db.Uuid
+  type       TransactionType
+  name       String
+  /// Categoría padre. Nulo = categoría de primer nivel.
+  parentId   String?         @map("parent_id") @db.Uuid
+  /// Color en hexadecimal (`#1E88E5`), para gráficos y listas.
+  color      String
+  /// Nombre del ícono en la web (`utensils`), no una imagen.
+  icon       String
+  archivedAt DateTime?       @map("archived_at") @db.Timestamptz(3)
+  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent     Category?       @relation("CategoryHierarchy", fields: [parentId, userId, type], references: [id, userId, type], onDelete: NoAction, onUpdate: NoAction)
+  children   Category[]      @relation("CategoryHierarchy")
+
+  /// Destino de la clave foránea compuesta de `parent`. `id` ya es único; esto solo le da a
+  /// PostgreSQL el índice que exige para referenciar las tres columnas juntas. Las búsquedas por
+  /// `(userId, type)` usan el índice único de nombres, que empieza por esas columnas.
+  @@unique([id, userId, type])
+  @@map("categories")
+}
+
+/// Con qué se paga o dónde entra la plata: una cuenta, una billetera (Yape, Plin), una tarjeta
+/// de crédito o efectivo.
+///
+/// **Nunca datos sensibles de tarjeta:** solo alias, banco y últimos 4 dígitos. Ni número
+/// completo, ni CVV, ni vencimiento: no existe columna donde ponerlos, y `last4` solo acepta
+/// cuatro dígitos (`payment_methods_last4_format`).
+///
+/// **Moneda opcional:** una cuenta o billetera suele tener una; una tarjeta bimoneda (consume en
+/// S/ y en US$) la deja nula. Cada transacción lleva siempre su propia moneda.
+model PaymentMethod {
+  id          String            @id @default(uuid(7)) @db.Uuid
+  userId      String            @map("user_id") @db.Uuid
+  kind        PaymentMethodKind
+  /// Cómo lo llama el usuario: "Visa BCP", "Yape".
+  alias       String
+  /// Banco o entidad ("BCP", "Interbank"). Nulo para el efectivo.
+  institution String?
+  /// Últimos 4 dígitos, para reconocer la tarjeta o cuenta. Nada más. `TEXT` y no `CHAR(4)`,
+  /// que rellena con espacios: el `CHECK` de la migración ya exige exactamente cuatro dígitos.
+  last4       String?
+  /// Nula = acepta las dos monedas (tarjeta bimoneda).
+  currency    Currency?
+  archivedAt  DateTime?         @map("archived_at") @db.Timestamptz(3)
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("payment_methods")
 }
