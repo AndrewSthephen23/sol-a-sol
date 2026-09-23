@@ -26,6 +26,18 @@ export const featureManifests: readonly FeatureManifest[] = [dashboardManifest];
     expect(result).toContain('[dashboardManifest, budgetingManifest]');
   });
 
+  // Prettier parte la lista en varias líneas, con coma final, cuando ya no cabe en una.
+  it('adds the manifest on its own line when the list spans several lines', () => {
+    const multiline = registry.replace(
+      '[dashboardManifest]',
+      '[\n  dashboardManifest,\n  transactionsManifest,\n]',
+    );
+
+    expect(addManifestToRegistry(multiline, budgeting)).toContain(
+      '[\n  dashboardManifest,\n  transactionsManifest,\n  budgetingManifest,\n]',
+    );
+  });
+
   it('does nothing when the module is already registered', () => {
     const once = addManifestToRegistry(registry, budgeting);
 
@@ -80,6 +92,18 @@ export class AppModule {}
       "import { BudgetingModule } from './modules/budgeting/budgeting.module.js';",
     );
     expect(result).toContain('HealthModule, BudgetingModule]');
+  });
+
+  // Es la forma real del AppModule desde H2: con [a, , b] NestJS recibe un import undefined.
+  it('adds the module on its own line when the array spans several lines', () => {
+    const multiline = appModule.replace(
+      '[PrismaModule, FeatureFlagsModule, HealthModule]',
+      '[\n    PrismaModule,\n    FeatureFlagsModule,\n    HealthModule,\n  ]',
+    );
+
+    expect(addModuleToAppModule(multiline, budgeting)).toContain(
+      '[\n    PrismaModule,\n    FeatureFlagsModule,\n    HealthModule,\n    BudgetingModule,\n  ]',
+    );
   });
 
   it('does nothing when the module is already imported', () => {
