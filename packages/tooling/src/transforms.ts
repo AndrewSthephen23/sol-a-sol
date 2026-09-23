@@ -38,8 +38,7 @@ export function addManifestToRegistry(source: string, names: ModuleNames): strin
     throw new MissingAnchorError(file, 'la lista featureManifests');
   }
   const [matched, start = '', current = ''] = list;
-  const separator = current.trim() === '' ? '' : ', ';
-  return withImport.replace(matched, `${start}${current}${separator}${names.manifestName}]`);
+  return withImport.replace(matched, `${start}${appendToList(current, names.manifestName)}]`);
 }
 
 /** Agrega el feature flag apagado al `.env.example` de la API. */
@@ -73,8 +72,7 @@ export function addModuleToAppModule(source: string, names: ModuleNames): string
     throw new MissingAnchorError(file, 'el arreglo imports del decorador @Module');
   }
   const [matched, start = '', current = ''] = imports;
-  const separator = current.trim() === '' ? '' : ', ';
-  return withImport.replace(matched, `${start}${current}${separator}${moduleClass}]`);
+  return withImport.replace(matched, `${start}${appendToList(current, moduleClass)}]`);
 }
 
 /** Habilita el módulo como scope válido de commitlint, para que sus commits no fallen. */
@@ -88,6 +86,26 @@ export function addCommitScope(source: string, names: ModuleNames): string {
   }
   const [matched, indent = ''] = anchor;
   return source.replace(matched, `${indent}'${names.name}',\n${matched}`);
+}
+
+/**
+ * Agrega un elemento al final del contenido de una lista (lo que va entre `[` y `]`).
+ *
+ * Respeta las dos formas que deja Prettier: en una línea (`a, b`) o, cuando ya no cabe, un
+ * elemento por línea con coma final. En esa segunda forma no basta con anteponer `, `: quedaría
+ * `b,\n, c`, y `[a, , c]` es un arreglo con un hueco (`undefined`), no un error de sintaxis.
+ */
+function appendToList(current: string, item: string): string {
+  if (current.trim() === '') {
+    return item;
+  }
+  const multiline = /^(?<body>[\s\S]*?,)(?<closing>\n *)$/u.exec(current);
+  if (multiline?.groups === undefined) {
+    return `${current}, ${item}`;
+  }
+  const { body = '', closing = '' } = multiline.groups;
+  const indent = /\n( *)\S/u.exec(body)?.[1] ?? '';
+  return `${body}\n${indent}${item},${closing}`;
 }
 
 function insertAfterLastMatch(
