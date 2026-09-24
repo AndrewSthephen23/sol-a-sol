@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
 
+import { EventsModule } from '../../shared/events/events.module.js';
 import { PrismaModule } from '../../shared/prisma/prisma.module.js';
 import { TimeModule } from '../../shared/time/time.module.js';
 import { ChangePassword } from './application/change-password.js';
 import { IssueSession } from './application/issue-session.js';
+import { ListAccountIds } from './application/list-account-ids.js';
 import { LoginThrottle } from './application/login-throttle.js';
 import { LoginUser } from './application/login-user.js';
 import { Logout } from './application/logout.js';
@@ -58,10 +60,11 @@ import { USER_REPOSITORY } from './ports/user-repository.js';
 @Module({
   // `PrismaModule` es global, pero se importa igualmente para que el módulo se sostenga solo:
   // así se puede montar en una prueba sin arrastrar el `AppModule` entero.
-  imports: [PrismaModule, TimeModule],
+  imports: [PrismaModule, TimeModule, EventsModule],
   controllers: [AuthController, PersonalAccessTokensController],
   providers: [
     RegisterUser,
+    ListAccountIds,
     LoginUser,
     LoginThrottle,
     PurgeSecurityLogs,
@@ -103,6 +106,13 @@ import { USER_REPOSITORY } from './ports/user-repository.js';
   ],
   // El guard y lo que necesita salen del módulo para que otros módulos protejan sus rutas con
   // él (el primero será `capture`, con `@AcceptsPersonalAccessToken('captures:write')`).
-  exports: [PASSWORD_HASHER, AccessTokenGuard, ACCESS_TOKENS, AuthenticatePersonalAccessToken],
+  exports: [
+    PASSWORD_HASHER,
+    AccessTokenGuard,
+    ACCESS_TOKENS,
+    AuthenticatePersonalAccessToken,
+    // Para `pnpm db:seed`: recorrer las cuentas sin ver nada de sus credenciales.
+    ListAccountIds,
+  ],
 })
 export class IdentityModule {}

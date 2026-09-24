@@ -6,6 +6,7 @@ import type {
   CategoryArchiving,
   CategoryChanges,
   CategoryRepository,
+  CategorySeed,
   NewCategory,
 } from './category-repository.js';
 
@@ -57,6 +58,18 @@ export class FakeCategoryRepository implements CategoryRepository {
     return Promise.resolve(
       this.rows.filter((row) => row.userId === userId && row.parentId === parentId).map(publicOf),
     );
+  }
+
+  async seedIfEmpty(userId: string, seed: readonly CategorySeed[]): Promise<boolean> {
+    if (this.rows.some((row) => row.userId === userId)) return false;
+    for (const { children, ...parent } of seed) {
+      const created = await this.create({ userId, parentId: null, ...parent });
+      for (const child of children) {
+        await this.create({ userId, type: parent.type, parentId: created.id, ...child });
+      }
+    }
+
+    return true;
   }
 
   update(

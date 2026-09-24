@@ -5,12 +5,17 @@ import { TimeModule } from '../../shared/time/time.module.js';
 import { IdentityModule } from '../identity/index.js';
 import { CreateCategory, ListCategories, UpdateCategory } from './application/categories.js';
 import {
+  SeedAccountsWithoutCategories,
+  SeedDefaultCategories,
+} from './application/default-categories.js';
+import {
   CreatePaymentMethod,
   ListPaymentMethods,
   UpdatePaymentMethod,
 } from './application/payment-methods.js';
 import { CategoriesController } from './http/categories.controller.js';
 import { PaymentMethodsController } from './http/payment-methods.controller.js';
+import { DefaultCategoriesOnRegistration } from './infrastructure/default-categories.listener.js';
 import { PrismaCategoryRepository } from './infrastructure/prisma-category-repository.js';
 import { PrismaPaymentMethodRepository } from './infrastructure/prisma-payment-method-repository.js';
 import { CATEGORY_REPOSITORY } from './ports/category-repository.js';
@@ -20,7 +25,8 @@ import { PAYMENT_METHOD_REPOSITORY } from './ports/payment-method-repository.js'
  * Módulo catalog. Entra a main detrás de FEATURE_CATALOG: sus rutas llevan
  * `@RequiresFeature('catalog')` y responden 404 mientras el flag esté apagado.
  *
- * Importa `IdentityModule` solo por su API pública: el guard que resuelve quién pide.
+ * Importa `IdentityModule` solo por su API pública: el guard que resuelve quién pide, el evento
+ * de registro (para sembrar las categorías iniciales) y la lista de cuentas (para `db:seed`).
  */
 @Module({
   imports: [PrismaModule, TimeModule, IdentityModule],
@@ -29,12 +35,16 @@ import { PAYMENT_METHOD_REPOSITORY } from './ports/payment-method-repository.js'
     CreateCategory,
     ListCategories,
     UpdateCategory,
+    SeedDefaultCategories,
+    SeedAccountsWithoutCategories,
+    DefaultCategoriesOnRegistration,
     { provide: CATEGORY_REPOSITORY, useClass: PrismaCategoryRepository },
     CreatePaymentMethod,
     ListPaymentMethods,
     UpdatePaymentMethod,
     { provide: PAYMENT_METHOD_REPOSITORY, useClass: PrismaPaymentMethodRepository },
   ],
-  exports: [],
+  // Para `pnpm db:seed` (src/seed.ts).
+  exports: [SeedAccountsWithoutCategories],
 })
 export class CatalogModule {}

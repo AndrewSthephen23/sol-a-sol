@@ -53,6 +53,13 @@ export interface CategoryRepository {
   children(userId: string, parentId: string): Promise<Category[]>;
 
   /**
+   * Crea la semilla **solo si la cuenta no tiene ninguna categoría**, en una sola transacción:
+   * o quedan todas, o ninguna. `false` si ya tenía alguna (y entonces no toca nada), también
+   * cuando otra petición la sembró al mismo tiempo.
+   */
+  seedIfEmpty(userId: string, seed: readonly CategorySeed[]): Promise<boolean>;
+
+  /**
    * Aplica los cambios y el archivado **en una sola transacción**: o cambia todo, o nada.
    * `null` si no existe o es de otra cuenta. Lanza `CategoryNameTakenError` si el nombre choca.
    */
@@ -62,6 +69,15 @@ export interface CategoryRepository {
     changes: CategoryChanges,
     archiving?: CategoryArchiving,
   ): Promise<Category | null>;
+}
+
+/** Una categoría de la semilla con sus subcategorías, ya con todos sus datos resueltos. */
+export interface CategorySeed {
+  type: TransactionType;
+  name: string;
+  color: string;
+  icon: string;
+  children: readonly { name: string; color: string; icon: string }[];
 }
 
 export const CATEGORY_REPOSITORY = Symbol('CategoryRepository');

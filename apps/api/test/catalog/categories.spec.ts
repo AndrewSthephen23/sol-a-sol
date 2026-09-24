@@ -66,6 +66,9 @@ describe('categories', () => {
     await request(server).post(REGISTER).send(BRUNO).expect(201);
     ana = await sessionOf(ANA);
     bruno = await sessionOf(BRUNO);
+    // Cada cuenta nace con la semilla (default-categories.spec.ts la prueba). Aquí se prueba el
+    // CRUD desde una cuenta vacía, para que los nombres y los conteos sean los de cada prueba.
+    await prisma.category.deleteMany();
   });
 
   afterAll(async () => {

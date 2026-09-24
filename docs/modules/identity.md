@@ -256,8 +256,9 @@ Se registran: login (con éxito y fallido), cambios de 2FA, alta y revocación d
 
 ## Eventos de dominio
 
-- **Emite:** todavía ninguno. Se definirán al implementar el registro y el login.
+- **Emite:** `identity.user.registered` (`USER_REGISTERED`, con `{ userId }`), después de crear la cuenta. Lo escucha `catalog` para dar las categorías iniciales. Cómo se publican y escuchan los eventos: [ADR-0004](../adr/0004-eventos-de-dominio.md).
 - **Escucha:** ninguno.
+- **API pública para otros módulos** (`index.ts`): el guard y `@CurrentUser()`, el evento de registro y `ListAccountIds`. Este último devuelve solo los ids de las cuentas, sin correo ni credenciales; lo usa `pnpm db:seed`.
 
 ## Endpoints
 

@@ -30,6 +30,13 @@ export class PrismaUserRepository implements UserRepository {
     return (await this.prisma.user.findFirst({ select: { id: true } })) !== null;
   }
 
+  async listIds(): Promise<string[]> {
+    // UUIDv7 ordena por fecha de creación.
+    const users = await this.prisma.user.findMany({ select: { id: true }, orderBy: { id: 'asc' } });
+
+    return users.map((user) => user.id);
+  }
+
   async findCredentialsByEmail(email: string): Promise<UserCredentials | null> {
     return this.prisma.user.findUnique({ where: { email }, select: CREDENTIALS_FIELDS });
   }

@@ -14,7 +14,13 @@ export class FakeUserRepository implements UserRepository {
   readonly disabled: string[] = [];
   readonly passwordChanges: { userId: string; passwordHash: string }[] = [];
 
-  constructor(private options: { anyUser?: boolean; credentials?: UserCredentials | null } = {}) {}
+  constructor(
+    private options: {
+      anyUser?: boolean;
+      credentials?: UserCredentials | null;
+      ids?: string[];
+    } = {},
+  ) {}
 
   set credentials(credentials: UserCredentials | null) {
     this.options = { ...this.options, credentials };
@@ -22,6 +28,10 @@ export class FakeUserRepository implements UserRepository {
 
   hasAnyUser(): Promise<boolean> {
     return Promise.resolve(this.options.anyUser ?? false);
+  }
+
+  listIds(): Promise<string[]> {
+    return Promise.resolve(this.options.ids ?? []);
   }
 
   findCredentialsByEmail(): Promise<UserCredentials | null> {
