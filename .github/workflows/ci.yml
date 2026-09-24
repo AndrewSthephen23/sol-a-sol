@@ -195,6 +195,12 @@ jobs:
       - name: Cobertura para el análisis
         if: env.SONAR_TOKEN != ''
         run: pnpm turbo run test -- --coverage
+      # Controllers y repositorios se prueban contra PostgreSQL real, no en las unitarias: sin
+      # esta cobertura Sonar los vería sin probar. Va después de las unitarias, que limpian su
+      # carpeta `coverage/` al empezar.
+      - name: Cobertura de integración para el análisis
+        if: env.SONAR_TOKEN != ''
+        run: pnpm turbo run test:integration -- --coverage
       - name: Versión del producto
         id: version
         if: env.SONAR_TOKEN != ''

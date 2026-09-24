@@ -1,3 +1,5 @@
+import { fileURLToPath } from 'node:url';
+
 import swc from 'unplugin-swc';
 import { defineConfig } from 'vitest/config';
 
@@ -23,5 +25,18 @@ export default defineConfig({
     fileParallelism: false,
     hookTimeout: 120_000,
     testTimeout: 30_000,
+    // Controllers y repositorios de Prisma se prueban aquí, contra PostgreSQL real, y no en las
+    // unitarias. Sin esta cobertura, SonarQube Cloud los vería sin probar. Va en su propia
+    // carpeta para no pisar la de las unitarias; Sonar suma los dos reportes.
+    coverage: {
+      provider: 'v8',
+      reportsDirectory: 'coverage/integration',
+      reporter: [
+        'text-summary',
+        ['lcov', { projectRoot: fileURLToPath(new URL('../..', import.meta.url)) }],
+      ],
+      include: ['src/**/*.ts'],
+      exclude: ['src/**/*.spec.ts', 'src/**/*.fake.ts', 'src/main.ts', 'src/generated/**'],
+    },
   },
 });
