@@ -91,3 +91,14 @@ export {
   MAX_LOCKOUT_MINUTES,
 } from './identity/login-throttle-policy.js';
 export { AUDIT_LOG_RETENTION_DAYS, auditLogCutoff } from './identity/audit-retention-policy.js';
+export {
+  assertValidPaymentMethod,
+  InstitutionNotAllowedError,
+  InvalidLast4Error,
+  Last4NotAllowedError,
+  Last4RequiredError,
+  PAYMENT_METHOD_KINDS,
+  PaymentMethodCurrencyRequiredError,
+  type PaymentMethodDetails,
+  type PaymentMethodKind,
+} from './catalog/payment-method-policy.js';

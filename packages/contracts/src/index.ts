@@ -26,3 +26,16 @@ export {
   type ProblemFieldError,
   problemFieldErrorSchema,
 } from './http/problem-details.js';
+export {
+  type CreatePaymentMethodRequest,
+  createPaymentMethodRequestSchema,
+  currencySchema,
+  INSTITUTION_MAX_LENGTH,
+  LAST4_INPUT_MAX_LENGTH,
+  type ListPaymentMethodsQuery,
+  listPaymentMethodsQuerySchema,
+  PAYMENT_METHOD_ALIAS_MAX_LENGTH,
+  paymentMethodKindSchema,
+  type UpdatePaymentMethodRequest,
+  updatePaymentMethodRequestSchema,
+} from './catalog/payment-methods.js';

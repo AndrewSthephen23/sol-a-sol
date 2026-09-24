@@ -195,7 +195,7 @@ Cada imagen lleva dos etiquetas: `X.Y.Z` y `sha-<commit>`. No hay `latest`: obli
 
 > **La primera vez.** GHCR crea los paquetes **privados**: hasta hacerlos públicos en _Packages → Package settings → Change visibility_, `docker pull` exige autenticarse (`docker login ghcr.io` con un token con `read:packages`). La etiqueta `org.opencontainers.image.source` de los Dockerfiles es la que vincula cada paquete con este repositorio.
 
-El job **SonarQube Cloud** ejecuta el análisis estático con el quality gate bloqueante (`sonar.qualitygate.wait=true`) sobre la cobertura `lcov` que generan los dos paquetes. Mientras no exista el secreto `SONAR_TOKEN`, sus pasos se omiten con un aviso.
+El job **SonarQube Cloud** ejecuta el análisis estático con el quality gate bloqueante (`sonar.qualitygate.wait=true`) sobre la cobertura `lcov` de las pruebas unitarias de cada paquete **y** de las de integración de la API (`apps/api/coverage/integration/`), que son las que ejercitan controllers y repositorios contra PostgreSQL real; Sonar suma los dos reportes. Mientras no exista el secreto `SONAR_TOKEN`, sus pasos se omiten con un aviso.
 
 **Conectar SonarQube Cloud** (una sola vez):
 
