@@ -15,7 +15,7 @@
     "@sol-a-sol/config": "workspace:*",
     "@types/node": "24.13.4",
     "@vitest/coverage-v8": "5.0.0",
-    "eslint": "10.10.0",
+    "eslint": "10.11.0",
     "typescript": "6.0.3",
     "vitest": "5.0.0"
   }
