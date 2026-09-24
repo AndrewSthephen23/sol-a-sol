@@ -1,0 +1,75 @@
+# language: es
+Característica: Transacciones
+  Para saber en qué se va mi plata
+  Como dueño de mis finanzas
+  Quiero registrar cada ingreso, gasto, ahorro, inversión y pago de deuda
+
+  # Reglas decididas con el autor el 2026-09-24 (ver docs/modules/transactions.md).
+  # Los escenarios de alta, edición y listado se detallan en las tareas 05 y 06 de H3.
+
+  Regla: El monto siempre es positivo; el signo lo da el tipo
+
+    Escenario: Un gasto se registra con su monto en positivo
+      Cuando registro un gasto variable de "S/ 25.90"
+      Entonces queda guardado por "S/ 25.90"
+      Y resta "S/ 25.90" al saldo del mes
+
+    Escenario: Un monto cero o negativo se rechaza
+      Cuando intento registrar un gasto de "S/ -25.90"
+      Entonces se rechaza porque el monto debe ser mayor que cero
+
+    Escenario: El ahorro también sale de lo disponible
+      Cuando registro un ahorro de "S/ 500.00"
+      Entonces resta "S/ 500.00" al saldo del mes
+      Y suma "S/ 500.00" al ahorro del mes
+
+  Regla: Gasto es fijo más variable; ahorro es ahorro más inversión
+
+    Escenario: El pago de una deuda no es gasto
+      Dado que pagué "S/ 300.00" de un préstamo
+      Cuando veo el gasto del mes
+      Entonces ese pago no está incluido
+      Pero sí resta del saldo del mes
+
+    Escenario: La inversión cuenta para la tasa de ahorro
+      Dado que en el mes tuve ingresos por "S/ 4,000.00"
+      Y ahorré "S/ 400.00" e invertí "S/ 200.00"
+      Cuando veo la tasa de ahorro del mes
+      Entonces es 15.00 %
+
+  Regla: Solo se registra lo que ya pasó
+
+    Escenario: Una fecha futura se rechaza
+      Dado que hoy es 24/09/2026 en Lima
+      Cuando intento registrar un gasto con fecha 25/09/2026
+      Entonces se rechaza porque la fecha es futura
+
+    Escenario: Lo de hoy se acepta aunque en UTC ya sea mañana
+      Dado que son las 21:30 del 24/09/2026 en Lima
+      Cuando registro un gasto con fecha 24/09/2026
+      Entonces queda guardado
+
+  Regla: La moneda nunca se supone ni se convierte
+
+    Escenario: Sin moneda, se usa la del método de pago
+      Dado que tengo la cuenta "Sueldo BCP" en soles
+      Cuando registro un gasto con esa cuenta sin indicar moneda
+      Entonces queda en soles
+
+    Escenario: Con una tarjeta bimoneda, la moneda es obligatoria
+      Dado que tengo la tarjeta bimoneda "Visa Interbank"
+      Cuando intento registrar un gasto con esa tarjeta sin indicar moneda
+      Entonces se rechaza pidiendo la moneda
+
+  Regla: La categoría coincide con el tipo y está activa
+
+    Escenario: Un ingreso no va en una categoría de gastos
+      Dado que tengo la categoría de gasto variable "Comida"
+      Cuando intento registrar un ingreso en "Comida"
+      Entonces se rechaza
+
+    Escenario: Una categoría archivada no se usa en transacciones nuevas
+      Dado que archivé la categoría "Netflix"
+      Cuando intento registrar un gasto en "Netflix"
+      Entonces se rechaza
+      Pero mis gastos viejos siguen en "Netflix"
