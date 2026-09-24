@@ -236,8 +236,14 @@ model Category {
 /// completo, ni CVV, ni vencimiento: no existe columna donde ponerlos, y `last4` solo acepta
 /// cuatro dígitos (`payment_methods_last4_format`).
 ///
-/// **Moneda opcional:** una cuenta o billetera suele tener una; una tarjeta bimoneda (consume en
-/// S/ y en US$) la deja nula. Cada transacción lleva siempre su propia moneda.
+/// **Reglas por tipo** (`payment_methods_*_by_kind`, en la migración): una tarjeta de crédito
+/// lleva sus últimos 4 (una cuenta puede; billetera y efectivo no), una cuenta o billetera lleva
+/// moneda (una tarjeta bimoneda y el efectivo pueden no llevarla), y el efectivo no tiene banco.
+/// Las mismas reglas viven en el dominio; aquí son la red por si alguien se lo salta.
+///
+/// **Alias único** por usuario, sin distinguir mayúsculas y contando los archivados
+/// (`payment_methods_unique_alias`): es lo que se ve al registrar un gasto, y dos iguales serían
+/// indistinguibles.
 model PaymentMethod {
   id          String            @id @default(uuid(7)) @db.Uuid
   userId      String            @map("user_id") @db.Uuid
@@ -256,6 +262,7 @@ model PaymentMethod {
   updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
   user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
+  /// Sin `@@index([userId])`: las búsquedas por usuario usan el índice único del alias, que
+  /// empieza por esa columna.
   @@map("payment_methods")
 }

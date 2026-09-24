@@ -55,10 +55,66 @@ Característica: Catálogo
       Cuando registro la tarjeta de crédito "Visa BCP" del banco "BCP" terminada en "4242"
       Entonces queda guardada con esos tres datos y nada más
 
-    Escenario: No se aceptan más de 4 dígitos
-      Cuando intento registrar una tarjeta terminada en "12345"
+    Escenario: Un número largo se rechaza, no se recorta
+      Cuando intento registrar una tarjeta terminada en "1234567890"
+      Entonces se rechaza porque los últimos dígitos deben ser exactamente 4
+      Y no queda guardado ningún dígito de ese número
+
+    Escenario: No hay dónde mandar el CVV
+      Cuando intento registrar una tarjeta con su CVV
+      Entonces se rechaza sin guardar nada
+
+  Regla: Cada tipo de método de pago tiene sus datos
+
+    Escenario: Una tarjeta de crédito necesita sus últimos 4 dígitos
+      Cuando intento registrar la tarjeta de crédito "Visa BCP" sin sus últimos 4 dígitos
       Entonces se rechaza
 
+    Escenario: Una billetera no tiene últimos 4 dígitos
+      Cuando intento registrar la billetera "Yape" terminada en "4242"
+      Entonces se rechaza
+
+    Escenario: Una cuenta necesita moneda
+      Cuando intento registrar la cuenta "Sueldo BCP" sin moneda
+      Entonces se rechaza porque una cuenta guarda una sola moneda
+
     Escenario: Una tarjeta bimoneda no tiene moneda propia
-      Cuando registro la tarjeta de crédito "Visa Interbank" sin moneda
-      Entonces acepta transacciones en soles y en dólares
+      Cuando registro la tarjeta de crédito "Visa Interbank" terminada en "0931" sin moneda
+      Entonces queda guardada aceptando soles y dólares
+
+    Escenario: El efectivo no tiene banco
+      Cuando intento registrar "Efectivo" con el banco "BCP"
+      Entonces se rechaza
+
+  Regla: No hay dos métodos de pago con el mismo alias
+
+    Escenario: El alias no distingue mayúsculas
+      Dado que tengo la tarjeta "Visa BCP"
+      Cuando intento registrar otro método llamado "visa bcp"
+      Entonces se rechaza porque el alias ya existe
+
+    Escenario: Para reusar el alias de uno archivado, se restaura
+      Dado que tengo la tarjeta "Visa BCP" archivada
+      Cuando intento registrar otro método llamado "Visa BCP"
+      Entonces se rechaza y se sugiere restaurar la archivada
+
+  Regla: Un método de pago se archiva, no se borra
+
+    Escenario: Archivar lo saca de los métodos para registrar
+      Dado que tengo la tarjeta "Visa BCP"
+      Cuando la archivo
+      Entonces ya no aparece en mi lista de métodos
+      Y aparece si pido ver también los archivados
+
+    Escenario: El tipo no se cambia
+      Dado que tengo la tarjeta "Visa BCP"
+      Cuando intento convertirla en efectivo
+      Entonces se rechaza
+
+  Regla: Los métodos de pago de cada persona son solo suyos
+
+    Escenario: No veo ni toco los métodos de otra persona
+      Dado que Bruno tiene la tarjeta "Visa BCP"
+      Cuando intento archivarla desde mi cuenta
+      Entonces la respuesta es que no existe
+      Y su tarjeta sigue intacta

@@ -47,6 +47,7 @@ describe('GET /openapi.json', () => {
   beforeAll(async () => {
     process.env.DATABASE_URL = inject('databaseUrl');
     process.env.FEATURE_IDENTITY = 'true';
+    process.env.FEATURE_CATALOG = 'true';
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     configureApp(app);
@@ -56,6 +57,7 @@ describe('GET /openapi.json', () => {
 
   afterAll(async () => {
     delete process.env.FEATURE_IDENTITY;
+    delete process.env.FEATURE_CATALOG;
     await app.close();
   });
 
@@ -115,6 +117,15 @@ describe('GET /openapi.json', () => {
 
       process.env.FEATURE_IDENTITY = 'true';
       expect(JSON.stringify(response.body)).not.toContain('/auth/');
+    });
+
+    it('leaves the catalog out too', async () => {
+      process.env.FEATURE_CATALOG = 'false';
+
+      const response = await request(server).get(DOCUMENT).expect(200);
+
+      process.env.FEATURE_CATALOG = 'true';
+      expect(JSON.stringify(response.body)).not.toContain('/payment-methods');
     });
   });
 });

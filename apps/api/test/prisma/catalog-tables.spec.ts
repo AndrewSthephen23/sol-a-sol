@@ -219,10 +219,97 @@ describe('catalog tables (categories and payment methods)', () => {
       const user = await createUser('pagos-bimoneda@example.com');
 
       const card = await prisma.paymentMethod.create({
-        data: { userId: user.id, kind: 'CREDIT_CARD', alias: 'Visa Interbank' },
+        data: { userId: user.id, kind: 'CREDIT_CARD', alias: 'Visa Interbank', last4: '0931' },
       });
 
-      expect(card).toMatchObject({ currency: null, institution: null, last4: null });
+      expect(card).toMatchObject({ currency: null, institution: null });
+    });
+
+    // Las reglas por tipo (migración catalog_payment_method_rules): la red por si alguien se
+    // salta el dominio.
+    it.each([
+      [
+        'a credit card without its last 4 digits',
+        { kind: 'CREDIT_CARD', alias: 'Visa', currency: 'PEN' },
+        'payment_methods_last4_by_kind',
+      ],
+      [
+        'a wallet with last 4 digits',
+        { kind: 'WALLET', alias: 'Yape', last4: '4242', currency: 'PEN' },
+        'payment_methods_last4_by_kind',
+      ],
+      [
+        'cash with last 4 digits',
+        { kind: 'CASH', alias: 'Efectivo', last4: '4242' },
+        'payment_methods_last4_by_kind',
+      ],
+      [
+        'an account without currency',
+        { kind: 'ACCOUNT', alias: 'Sueldo' },
+        'payment_methods_currency_by_kind',
+      ],
+      [
+        'a wallet without currency',
+        { kind: 'WALLET', alias: 'Plin' },
+        'payment_methods_currency_by_kind',
+      ],
+      [
+        'cash with a bank',
+        { kind: 'CASH', alias: 'Efectivo', institution: 'BCP' },
+        'payment_methods_institution_by_kind',
+      ],
+    ] as const)('rejects %s', async (_case, data, constraint) => {
+      const user = await createUser(`pagos-${constraint}-${data.alias}@example.com`);
+
+      await expect(
+        prisma.paymentMethod.create({ data: { userId: user.id, ...data } }),
+      ).rejects.toThrow(new RegExp(constraint));
+    });
+
+    it('accepts an account with or without its last 4 digits', async () => {
+      const user = await createUser('pagos-cuentas@example.com');
+
+      await expect(
+        prisma.paymentMethod.create({
+          data: {
+            userId: user.id,
+            kind: 'ACCOUNT',
+            alias: 'Sueldo',
+            currency: 'PEN',
+            last4: '0931',
+          },
+        }),
+      ).resolves.toBeDefined();
+      await expect(
+        prisma.paymentMethod.create({
+          data: { userId: user.id, kind: 'ACCOUNT', alias: 'Ahorros', currency: 'USD' },
+        }),
+      ).resolves.toBeDefined();
+    });
+
+    it('rejects a second method with the same alias, ignoring case, archived or not', async () => {
+      const user = await createUser('pagos-alias@example.com');
+      const other = await createUser('pagos-alias-otra@example.com');
+      await prisma.paymentMethod.create({
+        data: {
+          userId: user.id,
+          kind: 'WALLET',
+          alias: 'Yape',
+          currency: 'PEN',
+          archivedAt: new Date('2026-09-01T05:00:00.000Z'),
+        },
+      });
+
+      await expect(
+        prisma.paymentMethod.create({
+          data: { userId: user.id, kind: 'WALLET', alias: 'YAPE', currency: 'PEN' },
+        }),
+      ).rejects.toMatchObject({ code: 'P2002' });
+      await expect(
+        prisma.paymentMethod.create({
+          data: { userId: other.id, kind: 'WALLET', alias: 'Yape', currency: 'PEN' },
+        }),
+      ).resolves.toBeDefined();
     });
 
     // Ni menos, ni letras, ni más: más de cuatro dígitos ya sería parte del número de tarjeta.

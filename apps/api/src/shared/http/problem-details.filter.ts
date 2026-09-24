@@ -38,6 +38,9 @@ const STATUS_BY_DOMAIN_CODE = new Map<string, number>([
   // Se sabe quién es, pero su token no puede hacer eso: 403, no 401.
   ['INSUFFICIENT_TOKEN_SCOPE', HttpStatus.FORBIDDEN],
   ['PERSONAL_ACCESS_TOKEN_NOT_FOUND', HttpStatus.NOT_FOUND],
+  ['PAYMENT_METHOD_NOT_FOUND', HttpStatus.NOT_FOUND],
+  // El alias está bien escrito, pero choca con otro método que ya existe (quizá archivado).
+  ['PAYMENT_METHOD_ALIAS_TAKEN', HttpStatus.CONFLICT],
 ]);
 
 /** Una regla de negocio rechazó una petición bien formada: contenido no procesable. */

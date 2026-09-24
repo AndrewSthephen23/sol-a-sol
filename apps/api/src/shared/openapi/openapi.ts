@@ -1,6 +1,10 @@
 import {
   changePasswordRequestSchema,
+  createPaymentMethodRequestSchema,
   createPersonalAccessTokenRequestSchema,
+  currencySchema,
+  paymentMethodKindSchema,
+  updatePaymentMethodRequestSchema,
   loginRequestSchema,
   problemDetailsSchema,
   PROBLEM_CONTENT_TYPE,
@@ -100,6 +104,30 @@ const CREATED_TOKEN_SCHEMA = schemaOf(
       .describe('El token en claro (`sas_pat_…`). Es la única vez que se puede leer.'),
   }),
 );
+
+const PAYMENT_METHOD = z.object({
+  id: z.uuid(),
+  kind: paymentMethodKindSchema,
+  alias: z.string(),
+  institution: z.string().nullable().describe('Banco o entidad. Nulo en el efectivo.'),
+  last4: z
+    .string()
+    .nullable()
+    .describe('Últimos 4 dígitos. Nunca se guarda ni se devuelve nada más de una tarjeta.'),
+  currency: currencySchema.nullable().describe('Nula = acepta soles y dólares (bimoneda).'),
+  archivedAt: z.iso.datetime().nullable().describe('Nulo si está activo.'),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+
+const PAYMENT_METHOD_SCHEMA = schemaOf(PAYMENT_METHOD);
+const PAYMENT_METHOD_LIST_SCHEMA = schemaOf(z.array(PAYMENT_METHOD));
+
+const PAYMENT_METHOD_RULES =
+  'Una tarjeta de crédito lleva sus últimos 4 dígitos; una cuenta puede llevarlos; una ' +
+  'billetera y el efectivo, no. Una cuenta o billetera lleva moneda; una tarjeta bimoneda y el ' +
+  'efectivo pueden no llevarla. El efectivo no tiene banco. Un número más largo que 4 dígitos ' +
+  'se rechaza, nunca se recorta.';
 
 const ALWAYS_ON_PATHS: Record<string, unknown> = {
   [`/${API_PREFIX}/openapi.json`]: {
@@ -372,9 +400,89 @@ function identityPaths(): Record<string, unknown> {
   };
 }
 
+function catalogPaths(): Record<string, unknown> {
+  return {
+    [`/${API_PREFIX}/payment-methods`]: {
+      get: {
+        tags: ['catalog'],
+        summary: 'Lista los métodos de pago de la cuenta, ordenados por alias.',
+        description: 'Sin los archivados, salvo con `includeArchived=true`.',
+        security: [{ accessToken: [] }],
+        parameters: [
+          {
+            name: 'includeArchived',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['true', 'false'], default: 'false' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Métodos de pago de la cuenta.',
+            content: { 'application/json': { schema: PAYMENT_METHOD_LIST_SCHEMA } },
+          },
+          '401': problem('Falta el token de acceso o no vale.'),
+          '403': problem('Llegó un token personal: el catálogo solo se gestiona desde una sesión.'),
+          '422': problem('`includeArchived` no es `true` ni `false`.'),
+        },
+      },
+      post: {
+        tags: ['catalog'],
+        summary: 'Registra un método de pago: cuenta, billetera, tarjeta o efectivo.',
+        description: PAYMENT_METHOD_RULES,
+        security: [{ accessToken: [] }],
+        requestBody: jsonBody(createPaymentMethodRequestSchema),
+        responses: {
+          '201': {
+            description: 'Método de pago creado.',
+            content: { 'application/json': { schema: PAYMENT_METHOD_SCHEMA } },
+          },
+          '401': problem('Falta el token de acceso o no vale.'),
+          '403': problem('Llegó un token personal: el catálogo solo se gestiona desde una sesión.'),
+          '409': problem('Ya existe un método con ese alias (quizá archivado: se restaura).'),
+          '422': problem(
+            'El cuerpo no tiene la forma esperada, trae un campo desconocido o rompe una regla ' +
+              'de su tipo.',
+          ),
+        },
+      },
+    },
+    [`/${API_PREFIX}/payment-methods/{id}`]: {
+      patch: {
+        tags: ['catalog'],
+        summary: 'Corrige, archiva o restaura un método de pago.',
+        description:
+          'Se puede cambiar todo menos el tipo. `archived: true` lo archiva (deja de ofrecerse ' +
+          'al registrar, pero sigue en lo ya registrado) y `false` lo restaura. No hay `DELETE`. ' +
+          PAYMENT_METHOD_RULES,
+        security: [{ accessToken: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        requestBody: jsonBody(updatePaymentMethodRequestSchema),
+        responses: {
+          '200': {
+            description: 'Método de pago como quedó.',
+            content: { 'application/json': { schema: PAYMENT_METHOD_SCHEMA } },
+          },
+          '401': problem('Falta el token de acceso o no vale.'),
+          '403': problem('Llegó un token personal: el catálogo solo se gestiona desde una sesión.'),
+          '404': problem('No existe o es de otra cuenta.'),
+          '409': problem('Ya existe otro método con ese alias.'),
+          '422': problem(
+            'El cuerpo está vacío, intenta cambiar el tipo o deja el método rompiendo una regla ' +
+              'de su tipo.',
+          ),
+        },
+      },
+    },
+  };
+}
+
 /** Rutas que aporta cada módulo de negocio, para omitirlas cuando su flag está apagado. */
 const PATHS_BY_MODULE: Partial<Record<FeatureModule, () => Record<string, unknown>>> = {
   identity: identityPaths,
+  catalog: catalogPaths,
 };
 
 export interface OpenApiOptions {

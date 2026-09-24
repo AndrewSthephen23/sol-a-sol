@@ -22,6 +22,7 @@ interface Document {
 
 const REGISTER = '/api/v1/auth/register';
 const LOGIN = '/api/v1/auth/login';
+const PAYMENT_METHODS = '/api/v1/payment-methods';
 
 function documentWith(identityEnabled: boolean): Document {
   return buildOpenApiDocument({
@@ -70,6 +71,18 @@ describe('buildOpenApiDocument', () => {
 
     it('says nothing about identity anywhere in the document', () => {
       expect(JSON.stringify(documentWith(false))).not.toMatch(/auth|identity/i);
+    });
+
+    it('documents the payment methods only while catalog is on', () => {
+      const withCatalog = buildOpenApiDocument({
+        version: '1.2.3',
+        isFeatureEnabled: (module) => module === 'catalog',
+      }) as unknown as Document;
+
+      expect(withCatalog.paths).toHaveProperty([PAYMENT_METHODS, 'get']);
+      expect(withCatalog.paths).toHaveProperty([PAYMENT_METHODS, 'post']);
+      expect(withCatalog.paths).toHaveProperty([`${PAYMENT_METHODS}/{id}`, 'patch']);
+      expect(JSON.stringify(documentWith(true))).not.toMatch(/payment|catalog/i);
     });
   });
 
