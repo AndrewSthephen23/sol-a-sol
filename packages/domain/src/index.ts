@@ -102,3 +102,22 @@ export {
   type PaymentMethodDetails,
   type PaymentMethodKind,
 } from './catalog/payment-method-policy.js';
+export {
+  ArchivedCategoryError,
+  assertCategoryUsable,
+  assertTransactionAmount,
+  assertTransactionDate,
+  type CategoryForTransaction,
+  CategoryTypeMismatchError,
+  countsAsExpense,
+  countsAsSaving,
+  FutureTransactionDateError,
+  NonPositiveTransactionAmountError,
+  resolveTransactionCurrency,
+  signedAmount,
+  TRANSACTION_SOURCES,
+  TRANSACTION_TYPES,
+  TransactionCurrencyRequiredError,
+  type TransactionSource,
+  type TransactionType,
+} from './transactions/transaction-policy.js';

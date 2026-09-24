@@ -34,6 +34,7 @@ model User {
   recoveryCodes        RecoveryCode[]
   categories           Category[]
   paymentMethods       PaymentMethod[]
+  transactions         Transaction[]
 
   @@map("users")
 }
@@ -205,22 +206,23 @@ enum Currency {
 /// las archivadas (para volver a usar un nombre se restaura la archivada). Ese índice no se
 /// puede escribir en Prisma: vive en la migración (`categories_unique_sibling_name`).
 model Category {
-  id         String          @id @default(uuid(7)) @db.Uuid
-  userId     String          @map("user_id") @db.Uuid
-  type       TransactionType
-  name       String
+  id           String          @id @default(uuid(7)) @db.Uuid
+  userId       String          @map("user_id") @db.Uuid
+  type         TransactionType
+  name         String
   /// Categoría padre. Nulo = categoría de primer nivel.
-  parentId   String?         @map("parent_id") @db.Uuid
+  parentId     String?         @map("parent_id") @db.Uuid
   /// Color en hexadecimal (`#1E88E5`), para gráficos y listas.
-  color      String
+  color        String
   /// Nombre del ícono en la web (`utensils`), no una imagen.
-  icon       String
-  archivedAt DateTime?       @map("archived_at") @db.Timestamptz(3)
-  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt  DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
-  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parent     Category?       @relation("CategoryHierarchy", fields: [parentId, userId, type], references: [id, userId, type], onDelete: NoAction, onUpdate: NoAction)
-  children   Category[]      @relation("CategoryHierarchy")
+  icon         String
+  archivedAt   DateTime?       @map("archived_at") @db.Timestamptz(3)
+  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent       Category?       @relation("CategoryHierarchy", fields: [parentId, userId, type], references: [id, userId, type], onDelete: NoAction, onUpdate: NoAction)
+  children     Category[]      @relation("CategoryHierarchy")
+  transactions Transaction[]
 
   /// Destino de la clave foránea compuesta de `parent`. `id` ya es único; esto solo le da a
   /// PostgreSQL el índice que exige para referenciar las tres columnas juntas. Las búsquedas por
@@ -245,24 +247,89 @@ model Category {
 /// (`payment_methods_unique_alias`): es lo que se ve al registrar un gasto, y dos iguales serían
 /// indistinguibles.
 model PaymentMethod {
-  id          String            @id @default(uuid(7)) @db.Uuid
-  userId      String            @map("user_id") @db.Uuid
-  kind        PaymentMethodKind
+  id           String            @id @default(uuid(7)) @db.Uuid
+  userId       String            @map("user_id") @db.Uuid
+  kind         PaymentMethodKind
   /// Cómo lo llama el usuario: "Visa BCP", "Yape".
-  alias       String
+  alias        String
   /// Banco o entidad ("BCP", "Interbank"). Nulo para el efectivo.
-  institution String?
+  institution  String?
   /// Últimos 4 dígitos, para reconocer la tarjeta o cuenta. Nada más. `TEXT` y no `CHAR(4)`,
   /// que rellena con espacios: el `CHECK` de la migración ya exige exactamente cuatro dígitos.
-  last4       String?
+  last4        String?
   /// Nula = acepta las dos monedas (tarjeta bimoneda).
-  currency    Currency?
-  archivedAt  DateTime?         @map("archived_at") @db.Timestamptz(3)
-  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
-  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currency     Currency?
+  archivedAt   DateTime?         @map("archived_at") @db.Timestamptz(3)
+  createdAt    DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
 
+  /// Destino de la clave foránea compuesta de `Transaction.paymentMethod`: `id` ya es único; esto
+  /// solo le da a PostgreSQL el índice que exige para referenciar las dos columnas juntas.
+  @@unique([id, userId])
   /// Sin `@@index([userId])`: las búsquedas por usuario usan el índice único del alias, que
   /// empieza por esa columna.
   @@map("payment_methods")
+}
+
+/// De dónde llegó una transacción: a mano, desde el celular (H7) o importada de un CSV.
+enum TransactionSource {
+  MANUAL
+  IOS_SHORTCUT
+  ANDROID_AUTOMATION
+  IMPORT
+
+  @@map("transaction_source")
+}
+
+/// Un movimiento de plata: un ingreso, un gasto, un ahorro, una inversión o un pago de deuda.
+///
+/// **El monto siempre es positivo** (`transactions_amount_positive`): el signo lo da el tipo.
+/// `NUMERIC(18,2)`, nunca un número de coma flotante.
+///
+/// **La fecha es de negocio** (`DATE`, sin hora): el día en que pasó, en la hora de Lima. No hay
+/// fechas futuras, pero eso lo exige el dominio: la base no sabe qué día es "hoy" para el usuario.
+///
+/// **La categoría es del mismo usuario y del mismo tipo** que la transacción: lo exige la clave
+/// foránea compuesta `(categoryId, userId, type)`, igual que en las subcategorías. El método de
+/// pago, si lo hay, también es del mismo usuario (`(paymentMethodId, userId)`). Adivinar el id de
+/// otra persona no alcanza para usar su categoría o su tarjeta.
+///
+/// Una categoría o un método con transacciones **no se borra** (`NoAction`): se archiva.
+///
+/// **Borrado lógico** (`deletedAt`): una transacción borrada se conserva para la auditoría y se
+/// puede deshacer al momento; las consultas normales la excluyen.
+model Transaction {
+  id              String            @id @default(uuid(7)) @db.Uuid
+  userId          String            @map("user_id") @db.Uuid
+  /// Día en que pasó, sin hora.
+  date            DateTime          @db.Date
+  type            TransactionType
+  categoryId      String            @map("category_id") @db.Uuid
+  /// Siempre positivo; el signo lo da `type`.
+  amount          Decimal           @db.Decimal(18, 2)
+  currency        Currency
+  description     String
+  paymentMethodId String?           @map("payment_method_id") @db.Uuid
+  /// Dónde se gastó ("TAMBO"), si se sabe.
+  merchant        String?
+  source          TransactionSource
+  /// Captura del celular de la que salió. Sin relación todavía: la tabla `captures` llega en
+  /// H7, y entonces una migración agrega la clave foránea.
+  captureId       String?           @map("capture_id") @db.Uuid
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  /// Borrado lógico. Nulo = vigente.
+  deletedAt       DateTime?         @map("deleted_at") @db.Timestamptz(3)
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category        Category          @relation(fields: [categoryId, userId, type], references: [id, userId, type], onDelete: NoAction, onUpdate: NoAction)
+  paymentMethod   PaymentMethod?    @relation(fields: [paymentMethodId, userId], references: [id, userId], onDelete: NoAction, onUpdate: NoAction)
+
+  /// Por donde se lista y se filtra siempre: las transacciones de un usuario en un rango de fechas.
+  @@index([userId, date])
+  /// Para que comprobar "¿esta categoría o este método tienen transacciones?" no recorra la tabla.
+  @@index([categoryId])
+  @@index([paymentMethodId])
+  @@map("transactions")
 }

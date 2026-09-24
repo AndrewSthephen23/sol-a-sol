@@ -9,6 +9,7 @@ import { ThrottlingModule } from './shared/throttling/throttling.module.js';
 import { TimeModule } from './shared/time/time.module.js';
 import { IdentityModule } from './modules/identity/identity.module.js';
 import { CatalogModule } from './modules/catalog/catalog.module.js';
+import { TransactionsModule } from './modules/transactions/transactions.module.js';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { CatalogModule } from './modules/catalog/catalog.module.js';
     OpenApiModule,
     IdentityModule,
     CatalogModule,
+    TransactionsModule,
   ],
 })
 export class AppModule {}
