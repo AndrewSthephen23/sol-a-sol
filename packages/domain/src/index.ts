@@ -121,3 +121,16 @@ export {
   type TransactionSource,
   type TransactionType,
 } from './transactions/transaction-policy.js';
+export {
+  ArchivedParentCategoryError,
+  assertCanBeParent,
+  assertCanRestore,
+  assertCategoryColor,
+  CategoryTooDeepError,
+  CategoryTypeRequiredError,
+  categoryNameKey,
+  childrenArchivedWith,
+  InvalidCategoryColorError,
+  resolveCategoryType,
+  SubcategoryTypeMismatchError,
+} from './catalog/category-policy.js';

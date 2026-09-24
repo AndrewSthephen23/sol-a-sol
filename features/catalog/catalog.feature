@@ -24,12 +24,29 @@ Característica: Catálogo
       Cuando intento crear una subcategoría de gasto variable dentro de "Vivienda"
       Entonces se rechaza
 
+  Regla: Una subcategoría hereda lo de su madre
+
+    Escenario: Sin tipo, color ni ícono, los toma de su madre
+      Dado que tengo la categoría de gasto variable "Comida" en azul
+      Cuando creo la subcategoría "Delivery" dentro de "Comida" sin indicar tipo ni color
+      Entonces "Delivery" queda como gasto variable y en azul
+
   Regla: No hay dos categorías hermanas con el mismo nombre en el mismo tipo
 
     Escenario: El nombre no distingue mayúsculas
       Dado que tengo la categoría de gasto variable "Comida"
       Cuando intento crear la categoría de gasto variable "comida"
       Entonces se rechaza porque ya existe
+
+    Escenario: El nombre no distingue acentos
+      Dado que tengo la categoría de gasto variable "Café"
+      Cuando intento crear la categoría de gasto variable "Cafe"
+      Entonces se rechaza porque ya existe
+
+    Escenario: La ñ no es un acento
+      Dado que tengo la categoría de ahorro "Año nuevo"
+      Cuando creo la categoría de ahorro "Ano nuevo"
+      Entonces quedan las dos
 
     Escenario: El mismo nombre puede existir en otro tipo
       Dado que tengo la categoría de gasto variable "Otros"
@@ -44,10 +61,40 @@ Característica: Catálogo
       Entonces ya no aparece para registrar gastos nuevos
       Y sus transacciones siguen mostrando "Netflix"
 
+    Escenario: Archivar una categoría archiva sus subcategorías
+      Dado que tengo la categoría "Comida" con las subcategorías "Delivery" y "Supermercado"
+      Cuando archivo "Comida"
+      Entonces "Delivery" y "Supermercado" también quedan archivadas
+
+    Escenario: Restaurar una categoría devuelve solo las subcategorías archivadas con ella
+      Dado que archivé "Mercado", subcategoría de "Comida"
+      Y después archivé "Comida" con su subcategoría "Delivery"
+      Cuando restauro "Comida"
+      Entonces "Delivery" vuelve con ella
+      Pero "Mercado" sigue archivada
+
+    Escenario: Una subcategoría no se restaura con su madre archivada
+      Dado que archivé "Comida" con su subcategoría "Delivery"
+      Cuando intento restaurar solo "Delivery"
+      Entonces se rechaza pidiendo restaurar primero "Comida"
+
+    Escenario: El tipo de una categoría no se cambia
+      Dado que tengo la categoría de gasto variable "Comida"
+      Cuando intento convertirla en ingreso
+      Entonces se rechaza
+
     Escenario: Para volver a usar un nombre se restaura la archivada
       Dado que tengo la categoría "Netflix" archivada
       Cuando intento crear otra categoría "Netflix" del mismo tipo
       Entonces se rechaza y se sugiere restaurar la archivada
+
+  Regla: Las categorías de cada persona son solo suyas
+
+    Escenario: No veo ni toco las categorías de otra persona
+      Dado que Bruno tiene la categoría "Comida"
+      Cuando intento renombrarla o colgarle una subcategoría desde mi cuenta
+      Entonces la respuesta es que no existe
+      Y su categoría sigue intacta
 
   Regla: De una tarjeta solo se guardan alias, banco y últimos 4 dígitos
 

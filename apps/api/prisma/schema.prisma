@@ -202,9 +202,10 @@ enum Currency {
 /// categoría con subcategorías tampoco se deja borrar (`NoAction`): primero hay que decidir qué
 /// pasa con ellas.
 ///
-/// El nombre es único entre hermanas del mismo tipo, **sin distinguir mayúsculas** y contando
-/// las archivadas (para volver a usar un nombre se restaura la archivada). Ese índice no se
-/// puede escribir en Prisma: vive en la migración (`categories_unique_sibling_name`).
+/// El nombre es único entre hermanas del mismo tipo, **sin distinguir mayúsculas ni acentos**
+/// ("Café" = "cafe"; la ñ sí cuenta) y contando las archivadas (para volver a usar un nombre se
+/// restaura la archivada). Ese índice no se puede escribir en Prisma: vive en las migraciones
+/// (`categories_unique_sibling_name`), igual que el `CHECK` del color `#RRGGBB`.
 model Category {
   id           String          @id @default(uuid(7)) @db.Uuid
   userId       String          @map("user_id") @db.Uuid

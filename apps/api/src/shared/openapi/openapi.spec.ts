@@ -82,7 +82,10 @@ describe('buildOpenApiDocument', () => {
       expect(withCatalog.paths).toHaveProperty([PAYMENT_METHODS, 'get']);
       expect(withCatalog.paths).toHaveProperty([PAYMENT_METHODS, 'post']);
       expect(withCatalog.paths).toHaveProperty([`${PAYMENT_METHODS}/{id}`, 'patch']);
-      expect(JSON.stringify(documentWith(true))).not.toMatch(/payment|catalog/i);
+      expect(withCatalog.paths).toHaveProperty(['/api/v1/categories', 'get']);
+      expect(withCatalog.paths).toHaveProperty(['/api/v1/categories', 'post']);
+      expect(withCatalog.paths).toHaveProperty(['/api/v1/categories/{id}', 'patch']);
+      expect(JSON.stringify(documentWith(true))).not.toMatch(/payment|catalog|categor/i);
     });
   });
 
