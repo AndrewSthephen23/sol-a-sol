@@ -1,6 +1,6 @@
 # Módulo Catálogo (`catalog`)
 
-> Ficha del módulo. Estado: **en construcción** (hito H3). **Categorías** (tarea 02) y **métodos de pago** (tarea 03) completos en la API; falta la semilla de categorías, que llega en un PR aparte. Flag **apagado**.
+> Ficha del módulo. Estado: **en construcción** (hito H3). **Categorías** con su semilla (tarea 02) y **métodos de pago** (tarea 03) completos en la API. Flag **apagado**.
 
 ## Qué resuelve
 
@@ -34,7 +34,15 @@ Decididas con el autor el 2026-09-23 (tarea 01) y el 2026-09-24 (tarea 02).
 
 #### La semilla
 
-Lista decidida con el autor el 2026-09-24. Trae **solo lo nombrado**: el resto lo crea cada usuario.
+Lista decidida con el autor el 2026-09-24. Trae **solo lo nombrado**: el resto lo crea cada usuario. Vive en `apps/api/src/modules/catalog/domain/default-categories.ts`, con color e ícono (de Lucide) para cada una; las subcategorías toman el color de su madre. Una prueba comprueba que la lista siga siendo esta y que cada entrada la aceptaría la API.
+
+- **Al registrarse:** `catalog` escucha `identity.user.registered` ([ADR-0004](../adr/0004-eventos-de-dominio.md)) y siembra la cuenta nueva antes de que responda el registro. **Siembra aunque `FEATURE_CATALOG` esté apagado**: el flag decide qué se expone, no qué datos existen. Así, al encenderlo, cada cuenta ya tiene sus categorías.
+- **Si la semilla falla al registrarse**, el registro sigue (la cuenta ya existe) y el error queda en el log. `pnpm db:seed` la completa después.
+- **`pnpm db:seed`** siembra las cuentas **sin ninguna categoría** y no toca a las que ya tienen alguna, aunque sea una sola: ni completa ni mezcla. Es idempotente y se puede correr las veces que haga falta.
+  - **En desarrollo:** `pnpm db:seed`, que usa el `DATABASE_URL` del entorno o, si no hay, el de `apps/api/.env`.
+  - **En la imagen de producción:** `node dist/seed.js`. **Nunca corre sola**: es un comando explícito.
+  - Arranca solo el módulo del catálogo, sin servidor HTTP, y usa los mismos casos de uso que la API.
+- **Cada cuenta se siembra en una sola transacción:** o quedan las 34, o ninguna. Si dos semillas coinciden sobre la misma cuenta, el índice único frena los duplicados.
 
 | Tipo           | Categorías (y subcategorías)                                                                                                                                         |
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -91,7 +99,7 @@ Por eso la regla se protege en capas. Ninguna depende de las otras:
 ## Eventos de dominio
 
 - **Emite:** ninguno todavía.
-- **Escucha:** el registro de un usuario, para crear su semilla de categorías (tarea 02).
+- **Escucha:** `identity.user.registered`, para sembrar las categorías iniciales de la cuenta nueva.
 
 ## Endpoints
 

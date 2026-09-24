@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { EventsModule } from './shared/events/events.module.js';
 import { FeatureFlagsModule } from './shared/feature-flags/feature-flags.module.js';
 import { LoggingModule } from './shared/logging/logging.module.js';
 import { HealthModule } from './shared/health/health.module.js';
@@ -17,6 +18,7 @@ import { TransactionsModule } from './modules/transactions/transactions.module.j
     ThrottlingModule,
     PrismaModule,
     TimeModule,
+    EventsModule,
     FeatureFlagsModule,
     HealthModule,
     OpenApiModule,

@@ -2,11 +2,12 @@
 
 Cada decisión técnica estructural se registra aquí, con su contexto y sus consecuencias, para poder releerla (o revertirla) meses después sabiendo **por qué** se tomó.
 
-| ADR                                  | Título                                      | Estado   |
-| ------------------------------------ | ------------------------------------------- | -------- |
-| [0001](0001-monolito-modular.md)     | Monolito modular con arquitectura hexagonal | Aceptada |
-| [0002](0002-stack-typescript.md)     | TypeScript de punta a punta en un monorepo  | Aceptada |
-| [0003](0003-docker-desarrollo-ci.md) | Docker para desarrollo y CI; hosting en H8  | Aceptada |
+| ADR                                  | Título                                                          | Estado   |
+| ------------------------------------ | --------------------------------------------------------------- | -------- |
+| [0001](0001-monolito-modular.md)     | Monolito modular con arquitectura hexagonal                     | Aceptada |
+| [0002](0002-stack-typescript.md)     | TypeScript de punta a punta en un monorepo                      | Aceptada |
+| [0003](0003-docker-desarrollo-ci.md) | Docker para desarrollo y CI; hosting en H8                      | Aceptada |
+| [0004](0004-eventos-de-dominio.md)   | Eventos de dominio en memoria, esperados y con errores aislados | Aceptada |
 
 ## Cuándo escribir un ADR
 

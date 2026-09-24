@@ -30,6 +30,9 @@ export interface UserRepository {
   /** Si existe alguna cuenta. Es lo que decide el registro en modo `closed`. */
   hasAnyUser(): Promise<boolean>;
 
+  /** Ids de todas las cuentas, de la más vieja a la más nueva. Nada más: ni correo ni hash. */
+  listIds(): Promise<string[]>;
+
   /** `null` si no hay cuenta con ese correo. Quien llama no debe delatar la diferencia. */
   findCredentialsByEmail(email: string): Promise<UserCredentials | null>;
 

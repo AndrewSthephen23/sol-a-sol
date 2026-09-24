@@ -8,6 +8,7 @@ import type {
   CategoryArchiving,
   CategoryChanges,
   CategoryRepository,
+  CategorySeed,
   NewCategory,
 } from '../ports/category-repository.js';
 
@@ -50,6 +51,35 @@ export class PrismaCategoryRepository implements CategoryRepository {
 
   async children(userId: string, parentId: string): Promise<Category[]> {
     return this.prisma.category.findMany({ where: { userId, parentId }, select: PUBLIC_FIELDS });
+  }
+
+  async seedIfEmpty(userId: string, seed: readonly CategorySeed[]): Promise<boolean> {
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        if ((await tx.category.count({ where: { userId } })) > 0) return false;
+        for (const { children, ...parent } of seed) {
+          const created = await tx.category.create({
+            data: { userId, ...parent },
+            select: { id: true },
+          });
+          await tx.category.createMany({
+            data: children.map((child) => ({
+              userId,
+              type: parent.type,
+              parentId: created.id,
+              ...child,
+            })),
+          });
+        }
+
+        return true;
+      });
+    } catch (error) {
+      // Otra petición la sembró a la vez: el índice único frenó los duplicados y la transacción
+      // se deshizo entera. La cuenta ya tiene su semilla, que es lo que se buscaba.
+      if (isUniqueViolation(error)) return false;
+      throw error;
+    }
   }
 
   async update(
