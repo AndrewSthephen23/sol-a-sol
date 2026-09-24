@@ -41,6 +41,9 @@ const STATUS_BY_DOMAIN_CODE = new Map<string, number>([
   ['PAYMENT_METHOD_NOT_FOUND', HttpStatus.NOT_FOUND],
   // El alias está bien escrito, pero choca con otro método que ya existe (quizá archivado).
   ['PAYMENT_METHOD_ALIAS_TAKEN', HttpStatus.CONFLICT],
+  ['CATEGORY_NOT_FOUND', HttpStatus.NOT_FOUND],
+  // El nombre está bien escrito, pero choca con una hermana que ya existe (quizá archivada).
+  ['CATEGORY_NAME_TAKEN', HttpStatus.CONFLICT],
 ]);
 
 /** Una regla de negocio rechazó una petición bien formada: contenido no procesable. */

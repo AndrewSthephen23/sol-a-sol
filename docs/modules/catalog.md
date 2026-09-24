@@ -1,6 +1,6 @@
 # Módulo Catálogo (`catalog`)
 
-> Ficha del módulo. Estado: **en construcción** (hito H3). Los **métodos de pago** están completos en la API (tarea 03); las **categorías** tienen tabla, pero sus reglas y endpoints llegan con la tarea 02. Flag **apagado**.
+> Ficha del módulo. Estado: **en construcción** (hito H3). **Categorías** (tarea 02) y **métodos de pago** (tarea 03) completos en la API; falta la semilla de categorías, que llega en un PR aparte. Flag **apagado**.
 
 ## Qué resuelve
 
@@ -14,16 +14,36 @@ Decididas con el autor el 2026-09-23. No se cambian sin volver a preguntar.
 
 ### Categorías
 
-| Regla                | Decisión                                                                                                                                                                            |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| De quién son         | **De cada usuario.** Cada uno tiene su propia copia y la edita sin afectar a nadie                                                                                                  |
-| Tipo                 | Cada categoría pertenece a **un solo tipo** de transacción (`INCOME`, `FIXED_EXPENSE`, `VARIABLE_EXPENSE`, `SAVING`, `INVESTMENT`, `DEBT`)                                          |
-| Jerarquía            | **Un solo nivel:** categoría → subcategoría. Una subcategoría no tiene hijas                                                                                                        |
-| Subcategoría         | Del **mismo usuario y del mismo tipo** que su categoría. Lo exige la base con una clave foránea compuesta, no solo la aplicación                                                    |
-| Nombre repetido      | Único entre hermanas **del mismo tipo**, **sin distinguir mayúsculas** (`Comida` = `comida`). `Otros` puede existir como gasto fijo y como gasto variable                           |
-| Borrar               | **No se borra: se archiva** (`archivedAt`), porque sus transacciones siguen apuntando a ella. Una categoría con subcategorías tampoco se puede borrar en la base                    |
-| Archivadas y nombres | **Las archivadas cuentan** para la unicidad: para volver a usar un nombre se restaura la archivada, y su historial sigue junto                                                      |
-| Semilla              | Se crea **al registrarse** cada usuario, escuchando el evento de registro (`identity` no importa `catalog`). `pnpm db:seed` usa la misma lista en desarrollo. Llega con la tarea 02 |
+Decididas con el autor el 2026-09-23 (tarea 01) y el 2026-09-24 (tarea 02).
+
+| Regla                | Decisión                                                                                                                                                                                                                                                     |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| De quién son         | **De cada usuario.** Cada uno crea las suyas y edita su copia de la semilla sin afectar a nadie                                                                                                                                                              |
+| Tipo                 | Cada categoría pertenece a **un solo tipo** de transacción (`INCOME`, `FIXED_EXPENSE`, `VARIABLE_EXPENSE`, `SAVING`, `INVESTMENT`, `DEBT`). Una de primer nivel **lo exige** (`CATEGORY_TYPE_REQUIRED`)                                                      |
+| Jerarquía            | **Un solo nivel:** categoría → subcategoría. Colgar una hija de una subcategoría se rechaza (`CATEGORY_TOO_DEEP`). Lo exige el dominio: la base no puede mirar otra fila                                                                                     |
+| Subcategoría         | Del **mismo usuario y del mismo tipo** que su madre (clave foránea compuesta en la base). **Hereda el tipo**: mandar otro es un error (`SUBCATEGORY_TYPE_MISMATCH`), no algo que se corrige en silencio. Si no trae color o ícono, **toma los de su madre**  |
+| Color e ícono        | Color `#RRGGBB` (`INVALID_CATEGORY_COLOR`, y un `CHECK` en la base); ícono en kebab-case (`shopping-cart`), el nombre de un ícono de la web. Sin ellos, una de primer nivel recibe `#607D8B` y `tag`                                                         |
+| Nombre repetido      | Único entre hermanas **del mismo tipo**, **sin distinguir mayúsculas ni acentos**: `Café` = `cafe` = `CAFÉ` (`CATEGORY_NAME_TAKEN`, 409). **La ñ no es un acento**: `Año` y `Ano` son distintas. `Otros` puede existir como gasto fijo y como gasto variable |
+| Archivadas y nombres | **Las archivadas cuentan** para la unicidad: para volver a usar un nombre se restaura la archivada, y su historial sigue junto                                                                                                                               |
+| Borrar               | **No hay `DELETE`: se archiva** (`archivedAt`), porque sus transacciones siguen apuntando a ella. Una archivada no se ofrece para transacciones nuevas, pero **sigue en las viejas y en los informes**: archivar no reescribe el pasado                      |
+| Archivar una madre   | **Archiva sus hijas activas**, con la misma fecha exacta, en una sola transacción                                                                                                                                                                            |
+| Restaurar una madre  | Devuelve **solo las hijas que se archivaron con ella** (misma fecha); las que ya estaban archivadas antes siguen así                                                                                                                                         |
+| Restaurar una hija   | **No, mientras su madre siga archivada** (`PARENT_CATEGORY_ARCHIVED`): primero se restaura la madre. Tampoco se crea una hija nueva bajo una madre archivada                                                                                                 |
+| Cambiar tipo o madre | **No se puede.** Sus transacciones quedarían con otro tipo que su categoría (la base lo impide). Si está mal clasificada, se archiva y se crea otra                                                                                                          |
+| Semilla              | Se crea **al registrarse** cada usuario (evento de registro: `identity` no importa `catalog`), y `pnpm db:seed` la aplica a las cuentas **sin ninguna categoría**, nunca a las que ya tienen alguna. Llega en un PR aparte (ver abajo)                       |
+
+#### La semilla
+
+Lista decidida con el autor el 2026-09-24. Trae **solo lo nombrado**: el resto lo crea cada usuario.
+
+| Tipo           | Categorías (y subcategorías)                                                                                                                                         |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ingreso        | Sueldo o Salario · Depósitos                                                                                                                                         |
+| Gasto fijo     | Vivienda (Alquiler, Luz, Agua, Internet, Comunicaciones) · Suscripciones (Netflix, Spotify)                                                                          |
+| Gasto variable | Comida (Supermercado, Restaurantes, Delivery) · Transporte (Taxi, Combustible) · Entretenimiento · Deportes · Facturas · Higiene · Mascotas · Ropa · Regalos · Salud |
+| Ahorro         | Fondo de emergencia · Cuenta de ahorro · Depósito a plazo · CTS                                                                                                      |
+| Inversión      | Acciones · ETFs                                                                                                                                                      |
+| Deuda          | Préstamo · Tarjeta de crédito                                                                                                                                        |
 
 ### Métodos de pago
 
@@ -63,7 +83,9 @@ Por eso la regla se protege en capas. Ninguna depende de las otras:
   - `CHECK` de nombre y alias no vacíos, de que una categoría no sea su propia madre, y del formato de `last4` (`^[0-9]{4}$`).
   - `payment_methods_unique_alias`: índice único sobre `(user_id, lower(alias))`.
   - `payment_methods_last4_by_kind`, `payment_methods_currency_by_kind` y `payment_methods_institution_by_kind`: las reglas por tipo de la tabla de arriba. El dominio las aplica primero; en la base son la red por si alguien se lo salta.
-- **Lo que la base no puede exigir** y queda para el dominio (tarea 02): que una subcategoría no tenga hijas (habría que mirar otra fila) y el formato del color.
+- **Lo que la base no puede exigir** y queda para el dominio: que una subcategoría no tenga hijas (habría que mirar otra fila) y las reglas de archivado en cascada.
+- `categories_unique_sibling_name` se rehízo en `catalog_category_names_ignore_accents` para ignorar también los acentos. La tabla de acentos está **dos veces**: en el índice y en `categoryNameKey` (dominio). Una prueba de integración comprueba que coincidan. El índice traduce las mayúsculas acentuadas antes de `lower`, para no depender del locale de la base (con el locale `C`, `lower('É')` devuelve `'É'`).
+- `categories_color_format`: `CHECK` de `#RRGGBB`.
 - Borrar un usuario borra sus categorías y métodos de pago (`onDelete: Cascade`).
 
 ## Eventos de dominio
@@ -75,25 +97,33 @@ Por eso la regla se protege en capas. Ninguna depende de las otras:
 
 Todos exigen una sesión (`Authorization: Bearer <token de acceso>`), filtran por el `userId` del token y responden **404** con el flag apagado. Detalle en `/api/v1/openapi.json`.
 
-| Método  | Ruta                           | Qué hace                                                                                                    |
-| ------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| `GET`   | `/api/v1/payment-methods`      | Lista los métodos de la cuenta por alias; `?includeArchived=true` suma los archivados                       |
-| `POST`  | `/api/v1/payment-methods`      | Registra uno. **409** si el alias ya existe; **422** si rompe una regla de su tipo                          |
-| `PATCH` | `/api/v1/payment-methods/{id}` | Corrige cualquier campo menos el tipo, y archiva o restaura con `archived`. **404** si no existe o es ajeno |
-
-Las categorías (`/api/v1/categories`) llegan con la tarea 02.
+| Método  | Ruta                           | Qué hace                                                                                                          |
+| ------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| `GET`   | `/api/v1/categories`           | Lista las categorías anidadas por nombre; `?type=` filtra y `?includeArchived=true` suma las archivadas           |
+| `POST`  | `/api/v1/categories`           | Crea una categoría o, con `parentId`, una subcategoría. **409** si el nombre choca                                |
+| `PATCH` | `/api/v1/categories/{id}`      | Renombra, cambia color o ícono, y archiva o restaura (en cascada) con `archived`. **404** si no existe o es ajena |
+| `GET`   | `/api/v1/payment-methods`      | Lista los métodos de la cuenta por alias; `?includeArchived=true` suma los archivados                             |
+| `POST`  | `/api/v1/payment-methods`      | Registra uno. **409** si el alias ya existe; **422** si rompe una regla de su tipo                                |
+| `PATCH` | `/api/v1/payment-methods/{id}` | Corrige cualquier campo menos el tipo, y archiva o restaura con `archived`. **404** si no existe o es ajeno       |
 
 ### Errores
 
-| `code`                             | Estado | Cuándo                                                              |
-| ---------------------------------- | ------ | ------------------------------------------------------------------- |
-| `INVALID_LAST4`                    | 422    | Los últimos 4 no son exactamente cuatro dígitos                     |
-| `LAST4_REQUIRED`                   | 422    | Una tarjeta de crédito sin sus últimos 4                            |
-| `LAST4_NOT_ALLOWED`                | 422    | Últimos 4 en una billetera o en el efectivo                         |
-| `PAYMENT_METHOD_CURRENCY_REQUIRED` | 422    | Una cuenta o billetera sin moneda                                   |
-| `INSTITUTION_NOT_ALLOWED`          | 422    | Efectivo con banco                                                  |
-| `PAYMENT_METHOD_ALIAS_TAKEN`       | 409    | El alias ya existe, sin distinguir mayúsculas y contando archivados |
-| `PAYMENT_METHOD_NOT_FOUND`         | 404    | No existe o es de otra cuenta                                       |
+| `code`                             | Estado | Cuándo                                                                                |
+| ---------------------------------- | ------ | ------------------------------------------------------------------------------------- |
+| `INVALID_LAST4`                    | 422    | Los últimos 4 no son exactamente cuatro dígitos                                       |
+| `LAST4_REQUIRED`                   | 422    | Una tarjeta de crédito sin sus últimos 4                                              |
+| `LAST4_NOT_ALLOWED`                | 422    | Últimos 4 en una billetera o en el efectivo                                           |
+| `PAYMENT_METHOD_CURRENCY_REQUIRED` | 422    | Una cuenta o billetera sin moneda                                                     |
+| `INSTITUTION_NOT_ALLOWED`          | 422    | Efectivo con banco                                                                    |
+| `PAYMENT_METHOD_ALIAS_TAKEN`       | 409    | El alias ya existe, sin distinguir mayúsculas y contando archivados                   |
+| `PAYMENT_METHOD_NOT_FOUND`         | 404    | No existe o es de otra cuenta                                                         |
+| `CATEGORY_TYPE_REQUIRED`           | 422    | Una categoría de primer nivel sin tipo                                                |
+| `SUBCATEGORY_TYPE_MISMATCH`        | 422    | Una subcategoría con un tipo distinto al de su madre                                  |
+| `CATEGORY_TOO_DEEP`                | 422    | Una subcategoría usada como madre                                                     |
+| `PARENT_CATEGORY_ARCHIVED`         | 422    | Restaurar una hija, o crear una nueva, con la madre archivada                         |
+| `INVALID_CATEGORY_COLOR`           | 422    | El color no es `#RRGGBB`                                                              |
+| `CATEGORY_NAME_TAKEN`              | 409    | Una hermana del mismo tipo ya se llama así, sin mayúsculas ni acentos, archivada o no |
+| `CATEGORY_NOT_FOUND`               | 404    | La categoría, o la madre elegida, no existe o es de otra cuenta                       |
 
 ## Estado
 

@@ -1,5 +1,9 @@
-import { currencySchema, paymentMethodKindSchema } from '@sol-a-sol/contracts';
-import { CURRENCIES, PAYMENT_METHOD_KINDS } from '@sol-a-sol/domain';
+import {
+  currencySchema,
+  paymentMethodKindSchema,
+  transactionTypeSchema,
+} from '@sol-a-sol/contracts';
+import { CURRENCIES, PAYMENT_METHOD_KINDS, TRANSACTION_TYPES } from '@sol-a-sol/domain';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -10,6 +14,10 @@ import { describe, expect, it } from 'vitest';
 describe('contracts and domain', () => {
   it('agree on the payment method kinds', () => {
     expect(paymentMethodKindSchema.options).toEqual([...PAYMENT_METHOD_KINDS]);
+  });
+
+  it('agree on the transaction types, which also classify the categories', () => {
+    expect(transactionTypeSchema.options).toEqual([...TRANSACTION_TYPES]);
   });
 
   it('agree on the currencies', () => {

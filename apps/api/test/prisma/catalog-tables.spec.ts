@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
 
+import { categoryNameKey } from '@sol-a-sol/domain';
+
 import { PrismaService } from '../../src/shared/prisma/prisma.service.js';
 
 const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -108,6 +110,41 @@ describe('catalog tables (categories and payment methods)', () => {
       await expect(
         createCategory(user.id, 'RESTAURANTES', { parentId: parent.id }),
       ).rejects.toMatchObject({ code: 'P2002' });
+    });
+
+    // La tabla de acentos está dos veces: en el índice (migración) y en categoryNameKey (dominio).
+    // Si un día se separan, la API diría "libre" a un nombre que la base rechaza, o al revés.
+    it.each([
+      ['Café', 'CAFE'],
+      ['Árbol', 'arbol'],
+      ['Pingüino', 'PINGUINO'],
+      ['Àgora', 'agora'],
+      ['Ëxito', 'exito'],
+      ['AÑO', 'año'],
+    ])('treats %j and %j as the same name, like the domain does', async (first, second) => {
+      const user = await createUser(`catalog-acentos-${categoryNameKey(first)}@example.com`);
+      await createCategory(user.id, first);
+
+      expect(categoryNameKey(first)).toBe(categoryNameKey(second));
+      await expect(createCategory(user.id, second)).rejects.toMatchObject({ code: 'P2002' });
+    });
+
+    it('treats "Año" and "Ano" as different names, like the domain does', async () => {
+      const user = await createUser('catalog-enie@example.com');
+      await createCategory(user.id, 'Año');
+
+      expect(categoryNameKey('Año')).not.toBe(categoryNameKey('Ano'));
+      await expect(createCategory(user.id, 'Ano')).resolves.toBeDefined();
+    });
+
+    it.each(['azul', '#1E88E', '1E88E5'])('rejects %j as the color', async (color) => {
+      const user = await createUser(`catalog-color-${color}@example.com`);
+
+      await expect(
+        prisma.category.create({
+          data: { userId: user.id, type: 'SAVING', name: 'CTS', color, icon: 'tag' },
+        }),
+      ).rejects.toThrow(/categories_color_format/);
     });
 
     // Sin NULLS NOT DISTINCT, PostgreSQL trataría cada parent_id nulo como distinto.

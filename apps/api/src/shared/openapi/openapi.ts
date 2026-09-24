@@ -1,9 +1,12 @@
 import {
   changePasswordRequestSchema,
+  createCategoryRequestSchema,
   createPaymentMethodRequestSchema,
   createPersonalAccessTokenRequestSchema,
   currencySchema,
   paymentMethodKindSchema,
+  transactionTypeSchema,
+  updateCategoryRequestSchema,
   updatePaymentMethodRequestSchema,
   loginRequestSchema,
   problemDetailsSchema,
@@ -122,6 +125,30 @@ const PAYMENT_METHOD = z.object({
 
 const PAYMENT_METHOD_SCHEMA = schemaOf(PAYMENT_METHOD);
 const PAYMENT_METHOD_LIST_SCHEMA = schemaOf(z.array(PAYMENT_METHOD));
+
+const CATEGORY = z.object({
+  id: z.uuid(),
+  type: transactionTypeSchema,
+  name: z.string(),
+  parentId: z.uuid().nullable().describe('Nulo en una categoría de primer nivel.'),
+  color: z.string().describe('#RRGGBB'),
+  icon: z.string().describe('Nombre del ícono en la web, en kebab-case.'),
+  archivedAt: z.iso.datetime().nullable().describe('Nulo si está activa.'),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+
+const CATEGORY_SCHEMA = schemaOf(CATEGORY);
+const CATEGORY_TREE_SCHEMA = schemaOf(
+  z.array(CATEGORY.extend({ children: z.array(CATEGORY).describe('Sus subcategorías.') })),
+);
+
+const CATEGORY_ID_PARAMETER = {
+  name: 'id',
+  in: 'path',
+  required: true,
+  schema: { type: 'string', format: 'uuid' },
+};
 
 const PAYMENT_METHOD_RULES =
   'Una tarjeta de crédito lleva sus últimos 4 dígitos; una cuenta puede llevarlos; una ' +
@@ -402,6 +429,91 @@ function identityPaths(): Record<string, unknown> {
 
 function catalogPaths(): Record<string, unknown> {
   return {
+    [`/${API_PREFIX}/categories`]: {
+      get: {
+        tags: ['catalog'],
+        summary: 'Lista las categorías de la cuenta, con sus subcategorías anidadas.',
+        description:
+          'Ordenadas por nombre. Sin las archivadas, salvo con `includeArchived=true`; `type` ' +
+          'filtra por tipo de transacción.',
+        security: [{ accessToken: [] }],
+        parameters: [
+          {
+            name: 'type',
+            in: 'query',
+            required: false,
+            schema: schemaOf(transactionTypeSchema),
+          },
+          {
+            name: 'includeArchived',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['true', 'false'], default: 'false' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Categorías de primer nivel, cada una con sus subcategorías.',
+            content: { 'application/json': { schema: CATEGORY_TREE_SCHEMA } },
+          },
+          '401': problem('Falta el token de acceso o no vale.'),
+          '403': problem('Llegó un token personal: el catálogo solo se gestiona desde una sesión.'),
+          '422': problem('`type` o `includeArchived` no tienen un valor válido.'),
+        },
+      },
+      post: {
+        tags: ['catalog'],
+        summary: 'Crea una categoría o, con `parentId`, una subcategoría.',
+        description:
+          'Un solo nivel: una subcategoría no puede ser madre. Una categoría de primer nivel ' +
+          'necesita `type`; una subcategoría hereda el de su madre, y también su color e ícono ' +
+          'si no se mandan. El nombre no se repite entre hermanas del mismo tipo, sin distinguir ' +
+          'mayúsculas ni acentos (la ñ sí cuenta).',
+        security: [{ accessToken: [] }],
+        requestBody: jsonBody(createCategoryRequestSchema),
+        responses: {
+          '201': {
+            description: 'Categoría creada.',
+            content: { 'application/json': { schema: CATEGORY_SCHEMA } },
+          },
+          '401': problem('Falta el token de acceso o no vale.'),
+          '403': problem('Llegó un token personal: el catálogo solo se gestiona desde una sesión.'),
+          '404': problem('La madre no existe o es de otra cuenta.'),
+          '409': problem('Una hermana ya tiene ese nombre (quizá archivada: se restaura).'),
+          '422': problem(
+            'El cuerpo no tiene la forma esperada, falta el tipo, el tipo no es el de la madre, ' +
+              'la madre es una subcategoría o está archivada, o el color no es #RRGGBB.',
+          ),
+        },
+      },
+    },
+    [`/${API_PREFIX}/categories/{id}`]: {
+      patch: {
+        tags: ['catalog'],
+        summary: 'Renombra, cambia color o ícono, archiva o restaura una categoría.',
+        description:
+          'El tipo y la madre no se cambian. `archived: true` archiva la categoría y sus hijas; ' +
+          '`false` la restaura junto con las hijas que se archivaron con ella. Una subcategoría ' +
+          'no se restaura mientras su madre siga archivada. No hay `DELETE`.',
+        security: [{ accessToken: [] }],
+        parameters: [CATEGORY_ID_PARAMETER],
+        requestBody: jsonBody(updateCategoryRequestSchema),
+        responses: {
+          '200': {
+            description: 'Categoría como quedó.',
+            content: { 'application/json': { schema: CATEGORY_SCHEMA } },
+          },
+          '401': problem('Falta el token de acceso o no vale.'),
+          '403': problem('Llegó un token personal: el catálogo solo se gestiona desde una sesión.'),
+          '404': problem('No existe o es de otra cuenta.'),
+          '409': problem('Una hermana ya tiene ese nombre.'),
+          '422': problem(
+            'El cuerpo está vacío, intenta cambiar el tipo o la madre, el color no es #RRGGBB, ' +
+              'o la madre de la subcategoría sigue archivada.',
+          ),
+        },
+      },
+    },
     [`/${API_PREFIX}/payment-methods`]: {
       get: {
         tags: ['catalog'],

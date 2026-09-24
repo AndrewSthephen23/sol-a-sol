@@ -39,3 +39,15 @@ export {
   type UpdatePaymentMethodRequest,
   updatePaymentMethodRequestSchema,
 } from './catalog/payment-methods.js';
+export {
+  CATEGORY_COLOR_MAX_LENGTH,
+  CATEGORY_ICON_MAX_LENGTH,
+  CATEGORY_NAME_MAX_LENGTH,
+  type CreateCategoryRequest,
+  createCategoryRequestSchema,
+  type ListCategoriesQuery,
+  listCategoriesQuerySchema,
+  transactionTypeSchema,
+  type UpdateCategoryRequest,
+  updateCategoryRequestSchema,
+} from './catalog/categories.js';

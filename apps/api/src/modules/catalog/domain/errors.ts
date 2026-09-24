@@ -25,3 +25,26 @@ export class PaymentMethodAliasTakenError extends DomainError {
     );
   }
 }
+
+/** No existe **o es de otra cuenta**, sea la categoría pedida o la madre elegida. */
+export class CategoryNotFoundError extends DomainError {
+  readonly code = 'CATEGORY_NOT_FOUND';
+
+  constructor() {
+    super('Category not found.');
+  }
+}
+
+/**
+ * Ya hay una categoría hermana del mismo tipo con ese nombre, sin distinguir mayúsculas ni
+ * acentos. Cuenta las archivadas: para volver a usar un nombre se restaura la archivada.
+ */
+export class CategoryNameTakenError extends DomainError {
+  readonly code = 'CATEGORY_NAME_TAKEN';
+
+  constructor() {
+    super(
+      'A sibling category of the same type already has that name. If it is archived, restore it instead.',
+    );
+  }
+}
