@@ -13,7 +13,7 @@
   },
   "devDependencies": {
     "@sol-a-sol/config": "workspace:*",
-    "@types/node": "24.13.4",
+    "@types/node": "24.13.6",
     "@vitest/coverage-v8": "5.0.0",
     "eslint": "10.10.0",
     "typescript": "6.0.3",

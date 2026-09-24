@@ -46,7 +46,7 @@
     "@sol-a-sol/config": "workspace:*",
     "@swc/core": "1.16.2",
     "@testcontainers/postgresql": "12.1.0",
-    "@types/node": "24.13.4",
+    "@types/node": "24.13.6",
     "@types/supertest": "7.2.1",
     "@vitest/coverage-v8": "5.0.0",
     "eslint": "10.10.0",
