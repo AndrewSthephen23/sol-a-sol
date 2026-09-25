@@ -5,6 +5,7 @@ import { PrismaService } from '../../../shared/prisma/prisma.service.js';
 import type {
   NewTransaction,
   Transaction,
+  TransactionChanges,
   TransactionRepository,
 } from '../ports/transaction-repository.js';
 
@@ -70,6 +71,46 @@ export class PrismaTransactionRepository implements TransactionRepository {
     });
 
     return row === null ? null : toTransaction(row);
+  }
+
+  async update(
+    userId: string,
+    id: string,
+    changes: TransactionChanges,
+  ): Promise<Transaction | null> {
+    const { amount, date, ...fields } = changes;
+    // `userId` y `deletedAt` van en el propio UPDATE: una ajena o una borrada no se tocan aunque
+    // alguien adivine su id. La clave foránea compuesta, además, impide que tipo y categoría
+    // queden distintos si la categoría cambió entre la comprobación y la escritura.
+    const { count } = await this.prisma.transaction.updateMany({
+      where: { id, userId, deletedAt: null },
+      data: {
+        ...fields,
+        ...(date === undefined ? {} : { date: toDatabaseDate(date) }),
+        ...(amount === undefined ? {} : { amount: amount.toFixed(), currency: amount.currency }),
+      },
+    });
+    if (count === 0) return null;
+
+    return this.find(userId, id);
+  }
+
+  async softDelete(userId: string, id: string, deletedAt: Date): Promise<boolean> {
+    const { count } = await this.prisma.transaction.updateMany({
+      where: { id, userId, deletedAt: null },
+      data: { deletedAt },
+    });
+
+    return count > 0;
+  }
+
+  async restore(userId: string, id: string): Promise<boolean> {
+    const { count } = await this.prisma.transaction.updateMany({
+      where: { id, userId, deletedAt: { not: null } },
+      data: { deletedAt: null },
+    });
+
+    return count > 0;
   }
 }
 

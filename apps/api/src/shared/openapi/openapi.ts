@@ -10,6 +10,7 @@ import {
   transactionTypeSchema,
   updateCategoryRequestSchema,
   updatePaymentMethodRequestSchema,
+  updateTransactionRequestSchema,
   loginRequestSchema,
   problemDetailsSchema,
   PROBLEM_CONTENT_TYPE,
@@ -179,6 +180,17 @@ const TRANSACTION_SCHEMA = schemaOf(
     updatedAt: z.iso.datetime(),
   }),
 );
+
+const TRANSACTION_ID_PARAMETER = {
+  name: 'id',
+  in: 'path',
+  required: true,
+  schema: { type: 'string', format: 'uuid' },
+};
+
+function transactionResponse(description: string): Record<string, unknown> {
+  return { description, content: { 'application/json': { schema: TRANSACTION_SCHEMA } } };
+}
 
 const TRANSACTION_RULES =
   'El monto viaja como string decimal, siempre positivo y con hasta 2 decimales: un tercer ' +
@@ -627,6 +639,8 @@ function transactionsPaths(): Record<string, unknown> {
   const forbidden = problem(
     'Llegó un token personal: las transacciones solo se gestionan desde una sesión.',
   );
+  const unauthorized = problem('Falta el token de acceso o no vale.');
+  const notFound = problem('No existe, es de otra cuenta o está borrada.');
 
   return {
     [`/${API_PREFIX}/transactions`]: {
@@ -637,11 +651,8 @@ function transactionsPaths(): Record<string, unknown> {
         security: [{ accessToken: [] }],
         requestBody: jsonBody(createTransactionRequestSchema),
         responses: {
-          '201': {
-            description: 'Transacción registrada.',
-            content: { 'application/json': { schema: TRANSACTION_SCHEMA } },
-          },
-          '401': problem('Falta el token de acceso o no vale.'),
+          '201': transactionResponse('Transacción registrada.'),
+          '401': unauthorized,
           '403': forbidden,
           '404': problem('La categoría o el método de pago no existen o son de otra cuenta.'),
           '422': problem(
@@ -657,17 +668,68 @@ function transactionsPaths(): Record<string, unknown> {
         tags: ['transactions'],
         summary: 'Devuelve una transacción.',
         security: [{ accessToken: [] }],
-        parameters: [
-          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
-        ],
+        parameters: [TRANSACTION_ID_PARAMETER],
         responses: {
-          '200': {
-            description: 'La transacción.',
-            content: { 'application/json': { schema: TRANSACTION_SCHEMA } },
-          },
-          '401': problem('Falta el token de acceso o no vale.'),
+          '200': transactionResponse('La transacción.'),
+          '401': unauthorized,
           '403': forbidden,
-          '404': problem('No existe, es de otra cuenta o está borrada.'),
+          '404': notFound,
+        },
+      },
+      patch: {
+        tags: ['transactions'],
+        summary: 'Corrige una transacción, también de meses pasados.',
+        description:
+          'Se manda solo lo que cambia. El origen (`source`) no se corrige. El tipo se cambia ' +
+          'junto con una categoría de ese tipo. Sin `currency` la moneda no cambia, aunque cambie ' +
+          'el método de pago. Una categoría o un método archivados que la transacción ya tenía ' +
+          'siguen valiendo; elegirlos ahora, no. Una fecha nueva no puede ser futura.',
+        security: [{ accessToken: [] }],
+        parameters: [TRANSACTION_ID_PARAMETER],
+        requestBody: jsonBody(updateTransactionRequestSchema),
+        responses: {
+          '200': transactionResponse('La transacción como quedó.'),
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem(
+            'La transacción no existe, es de otra cuenta o está borrada; o la categoría o el ' +
+              'método elegidos no existen o son de otra cuenta.',
+          ),
+          '422': problem(
+            'El cuerpo está vacío, trae `source` u otro campo desconocido, o la transacción ' +
+              'quedaría rompiendo una regla.',
+          ),
+        },
+      },
+      delete: {
+        tags: ['transactions'],
+        summary: 'Borra una transacción (borrado lógico).',
+        description:
+          'Deja de aparecer, pero la fila queda para la auditoría y se puede restaurar sin plazo.',
+        security: [{ accessToken: [] }],
+        parameters: [TRANSACTION_ID_PARAMETER],
+        responses: {
+          '204': { description: 'Borrada.' },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem('No existe, es de otra cuenta o ya estaba borrada.'),
+        },
+      },
+    },
+    [`/${API_PREFIX}/transactions/{id}/restore`]: {
+      post: {
+        tags: ['transactions'],
+        summary: 'Deshace el borrado de una transacción.',
+        description:
+          'Sin plazo: el aviso de «Deshacer» de unos segundos es cosa de la interfaz. Con una ' +
+          'transacción que no está borrada, la devuelve tal cual y no hace nada más.',
+        security: [{ accessToken: [] }],
+        parameters: [TRANSACTION_ID_PARAMETER],
+        responses: {
+          '200': transactionResponse('La transacción, otra vez vigente.'),
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem('No existe o es de otra cuenta.'),
         },
       },
     },

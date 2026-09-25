@@ -1,6 +1,7 @@
 import type {
   NewTransaction,
   Transaction,
+  TransactionChanges,
   TransactionRepository,
 } from './transaction-repository.js';
 
@@ -32,12 +33,43 @@ export class FakeTransactionRepository implements TransactionRepository {
   }
 
   find(userId: string, id: string): Promise<Transaction | null> {
+    const row = this.liveRow(userId, id);
+
+    return Promise.resolve(row === undefined ? null : publicOf(row));
+  }
+
+  update(userId: string, id: string, changes: TransactionChanges): Promise<Transaction | null> {
+    const row = this.liveRow(userId, id);
+    if (row === undefined) return Promise.resolve(null);
+    Object.assign(row, changes, { updatedAt: this.now });
+
+    return Promise.resolve(publicOf(row));
+  }
+
+  softDelete(userId: string, id: string, deletedAt: Date): Promise<boolean> {
+    const row = this.liveRow(userId, id);
+    if (row === undefined) return Promise.resolve(false);
+    row.deletedAt = deletedAt;
+
+    return Promise.resolve(true);
+  }
+
+  restore(userId: string, id: string): Promise<boolean> {
     const row = this.rows.find(
+      (candidate) =>
+        candidate.userId === userId && candidate.id === id && candidate.deletedAt !== null,
+    );
+    if (row === undefined) return Promise.resolve(false);
+    row.deletedAt = null;
+
+    return Promise.resolve(true);
+  }
+
+  private liveRow(userId: string, id: string): Row | undefined {
+    return this.rows.find(
       (candidate) =>
         candidate.userId === userId && candidate.id === id && candidate.deletedAt === null,
     );
-
-    return Promise.resolve(row === undefined ? null : publicOf(row));
   }
 }
 

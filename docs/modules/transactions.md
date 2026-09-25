@@ -1,6 +1,6 @@
 # Módulo Transacciones (`transactions`)
 
-> Ficha del módulo. Estado: **en construcción** (hito H3). Hoy se registra una transacción y se lee una por su id; la edición, el borrado y la restauración llegan en el siguiente PR de la tarea 05, y el listado con la 06. Flag **apagado**.
+> Ficha del módulo. Estado: **en construcción** (hito H3). Hoy se registra, se lee, se corrige, se borra (lógicamente) y se restaura una transacción; el listado llega con la tarea 06. Flag **apagado**.
 
 ## Qué resuelve
 
@@ -13,23 +13,24 @@ celular (H7) calculan **sobre** las transacciones.
 Decididas con el autor el 2026-09-24. No se cambian sin volver a preguntar. Viven en
 `packages/domain/src/transactions/transaction-policy.ts`, con mutation testing al 100 %.
 
-| Regla                        | Decisión                                                                                                                                                                                                                                      |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tipos                        | `INCOME`, `FIXED_EXPENSE`, `VARIABLE_EXPENSE`, `SAVING`, `INVESTMENT`, `DEBT` (glosario)                                                                                                                                                      |
-| Monto                        | **Siempre positivo**: el signo lo da el tipo. Un cero o un negativo se rechaza (`TRANSACTION_AMOUNT_NOT_POSITIVE`). Hasta 2 decimales, como todo `Money`                                                                                      |
-| Signo, para el saldo del mes | **Solo el ingreso suma.** Gastos, ahorro, inversión y deuda salen de lo disponible (`signedAmount`)                                                                                                                                           |
-| Qué es **gasto**             | **Fijo + variable.** La deuda (pagar un préstamo o la tarjeta) se muestra aparte (`countsAsExpense`)                                                                                                                                          |
-| Qué es **ahorro**            | **Ahorro + inversión**, para la tasa de ahorro = ahorro / ingresos: las dos son plata que no se consume (`countsAsSaving`)                                                                                                                    |
-| Fecha                        | Fecha de negocio sin hora (`LocalDate`), **hasta hoy** en la hora de Lima. Una fecha futura se rechaza (`TRANSACTION_DATE_IN_FUTURE`): un pago programado se registra el día que ocurre, para que un resumen no muestre plata que no se movió |
-| Moneda                       | La indicada o, si no, **la del método de pago**. Si ninguno la dice (tarjeta bimoneda, efectivo, sin método) **se exige** (`TRANSACTION_CURRENCY_REQUIRED`): el dominio no supone soles. **Nunca se convierte**                               |
-| Categoría                    | **Del mismo tipo** que la transacción (`CATEGORY_TYPE_MISMATCH`) y **no archivada** para una transacción nueva (`CATEGORY_ARCHIVED`); una archivada sigue en las viejas                                                                       |
-| Subcategoría                 | **Opcional.** Vale una categoría de primer nivel aunque tenga subcategorías («Comida» sin decir «Delivery»), o una subcategoría (2026-09-25)                                                                                                  |
-| Método de pago               | **Opcional** (2026-09-25). Si se indica, tiene que ser propio y **no estar archivado** (`PAYMENT_METHOD_ARCHIVED`); uno archivado sigue en las transacciones viejas                                                                           |
-| Descripción y comercio       | La descripción es **obligatoria** (hasta 200 caracteres); el comercio, opcional (hasta 80)                                                                                                                                                    |
-| Origen (`source`)            | Lo pone la API, nunca quien llama: lo registrado desde la web es `MANUAL`. **No cambia al editar**                                                                                                                                            |
-| Categoría y método ajenos    | Si no son del usuario, **404**, no 403: no se confirma que existen (tarea 05)                                                                                                                                                                 |
-| Borrar                       | **Lógico** (`deletedAt`). Las consultas normales excluyen las borradas. Restaurar **no tiene plazo** en la API: el aviso de «Deshacer» de unos segundos es cosa de la interfaz (2026-09-25)                                                   |
-| Editar                       | **Siempre**, también en meses pasados: no existe el mes cerrado, y los resúmenes se calculan al consultar (decisión 6 de H3). El tipo se puede cambiar, **junto con** una categoría de ese tipo (2026-09-25)                                  |
+| Regla                        | Decisión                                                                                                                                                                                                                                             |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tipos                        | `INCOME`, `FIXED_EXPENSE`, `VARIABLE_EXPENSE`, `SAVING`, `INVESTMENT`, `DEBT` (glosario)                                                                                                                                                             |
+| Monto                        | **Siempre positivo**: el signo lo da el tipo. Un cero o un negativo se rechaza (`TRANSACTION_AMOUNT_NOT_POSITIVE`). Hasta 2 decimales, como todo `Money`                                                                                             |
+| Signo, para el saldo del mes | **Solo el ingreso suma.** Gastos, ahorro, inversión y deuda salen de lo disponible (`signedAmount`)                                                                                                                                                  |
+| Qué es **gasto**             | **Fijo + variable.** La deuda (pagar un préstamo o la tarjeta) se muestra aparte (`countsAsExpense`)                                                                                                                                                 |
+| Qué es **ahorro**            | **Ahorro + inversión**, para la tasa de ahorro = ahorro / ingresos: las dos son plata que no se consume (`countsAsSaving`)                                                                                                                           |
+| Fecha                        | Fecha de negocio sin hora (`LocalDate`), **hasta hoy** en la hora de Lima. Una fecha futura se rechaza (`TRANSACTION_DATE_IN_FUTURE`): un pago programado se registra el día que ocurre, para que un resumen no muestre plata que no se movió        |
+| Moneda                       | La indicada o, si no, **la del método de pago**. Si ninguno la dice (tarjeta bimoneda, efectivo, sin método) **se exige** (`TRANSACTION_CURRENCY_REQUIRED`): el dominio no supone soles. **Nunca se convierte**                                      |
+| Categoría                    | **Del mismo tipo** que la transacción (`CATEGORY_TYPE_MISMATCH`) y **no archivada** para una transacción nueva (`CATEGORY_ARCHIVED`); una archivada sigue en las viejas                                                                              |
+| Subcategoría                 | **Opcional.** Vale una categoría de primer nivel aunque tenga subcategorías («Comida» sin decir «Delivery»), o una subcategoría (2026-09-25)                                                                                                         |
+| Método de pago               | **Opcional** (2026-09-25). Si se indica, tiene que ser propio y **no estar archivado** (`PAYMENT_METHOD_ARCHIVED`); uno archivado sigue en las transacciones viejas                                                                                  |
+| Descripción y comercio       | La descripción es **obligatoria** (hasta 200 caracteres); el comercio, opcional (hasta 80)                                                                                                                                                           |
+| Origen (`source`)            | Lo pone la API, nunca quien llama: lo registrado desde la web es `MANUAL`. **No cambia al editar**                                                                                                                                                   |
+| Categoría y método ajenos    | Si no son del usuario, **404**, no 403: no se confirma que existen (tarea 05)                                                                                                                                                                        |
+| Borrar                       | **Lógico** (`deletedAt`). Las consultas normales excluyen las borradas. Restaurar **no tiene plazo** en la API: el aviso de «Deshacer» de unos segundos es cosa de la interfaz (2026-09-25)                                                          |
+| Editar                       | **Siempre**, también en meses pasados: no existe el mes cerrado, y los resúmenes se calculan al consultar (decisión 6 de H3). El tipo se puede cambiar, **junto con** una categoría de ese tipo (2026-09-25)                                         |
+| Reglas al editar             | Se juzga la transacción **como quedaría**. Una fecha nueva no puede ser futura. Una categoría o un método archivados que ya tenía **siguen valiendo**; elegirlos ahora, no. Sin `currency`, la moneda **no cambia**, aunque cambie el método de pago |
 
 ## Modelo de datos
 
@@ -47,11 +48,14 @@ Decididas con el autor el 2026-09-24. No se cambian sin volver a preguntar. Vive
 
 Se publican **después de guardar**, esperando a los oyentes, y llevan solo ids (ADR-0004). Nadie los escucha todavía: existen para que el presupuesto (H4), las tarjetas (H5) y los resúmenes (H6) no tengan que tocar este módulo.
 
-| Evento                             | Cuándo                      | Datos                       |
-| ---------------------------------- | --------------------------- | --------------------------- |
-| `transactions.transaction.created` | Se registró una transacción | `{ userId, transactionId }` |
+| Evento                              | Cuándo                                 | Datos                       |
+| ----------------------------------- | -------------------------------------- | --------------------------- |
+| `transactions.transaction.created`  | Se registró una transacción            | `{ userId, transactionId }` |
+| `transactions.transaction.updated`  | Se corrigió                            | `{ userId, transactionId }` |
+| `transactions.transaction.deleted`  | Se borró (lógicamente): deja de contar | `{ userId, transactionId }` |
+| `transactions.transaction.restored` | Se deshizo el borrado: vuelve a contar | `{ userId, transactionId }` |
 
-Con la edición y el borrado llegan `…updated`, `…deleted` y `…restored`: restaurar también se anuncia, para que quien lleve una cuenta con los otros tres no se desincronice.
+Restaurar también se anuncia, para que quien lleve una cuenta con los otros tres no se desincronice. Borrar una ya borrada responde 404 y restaurar una vigente no hace nada: ninguno anuncia dos veces.
 
 - **Escucha:** nada todavía.
 

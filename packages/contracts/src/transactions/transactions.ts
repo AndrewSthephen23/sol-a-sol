@@ -62,3 +62,27 @@ export const createTransactionRequestSchema = z.strictObject({
 });
 
 export type CreateTransactionRequest = z.infer<typeof createTransactionRequestSchema>;
+
+/**
+ * Corrige una transacción: todo menos su origen (`source`), que sigue diciendo de dónde vino
+ * aunque se corrija a mano. Se manda solo lo que cambia, y al menos un campo.
+ *
+ * El tipo se puede cambiar, pero la categoría tiene que quedar del mismo tipo: en la práctica
+ * `type` viaja junto con un `categoryId` nuevo. Eso lo decide el dominio.
+ *
+ * Sin `currency`, la moneda **no cambia**, aunque cambie el método de pago: nunca se supone.
+ */
+export const updateTransactionRequestSchema = z
+  .strictObject({
+    date: z.iso.date().optional(),
+    type: transactionTypeSchema.optional(),
+    categoryId: z.uuid().optional(),
+    amount: decimalAmountSchema.optional(),
+    currency: currencySchema.optional(),
+    description: description.optional(),
+    paymentMethodId: z.uuid().nullable().optional(),
+    merchant: merchant.optional(),
+  })
+  .refine((body) => Object.keys(body).length > 0, { message: 'Nothing to change.' });
+
+export type UpdateTransactionRequest = z.infer<typeof updateTransactionRequestSchema>;

@@ -115,3 +115,60 @@ Característica: Transacciones
     Escenario: Lo registrado desde la web queda como manual
       Cuando registro un gasto desde la web
       Entonces su origen es "MANUAL"
+
+  Regla: Todo se puede corregir, también en meses pasados, menos el origen
+
+    Escenario: Corrijo el monto de un gasto del mes pasado
+      Dado que registré un gasto de "S/ 25.90" en agosto
+      Cuando corrijo el monto a "S/ 29.50"
+      Entonces queda guardado por "S/ 29.50"
+
+    Escenario: El tipo cambia junto con su categoría
+      Dado que registré un gasto variable en "Comida"
+      Cuando lo cambio a gasto fijo en "Alquiler"
+      Entonces queda como gasto fijo en "Alquiler"
+
+    Escenario: El tipo no cambia solo
+      Dado que registré un gasto variable en "Comida"
+      Cuando intento cambiarlo a gasto fijo sin cambiar la categoría
+      Entonces se rechaza porque la categoría es de otro tipo
+
+    Escenario: La moneda no cambia sin que la diga
+      Dado que registré un gasto de "S/ 25.90" con la cuenta "Sueldo BCP"
+      Cuando cambio el método de pago a la cuenta "Ahorros USD"
+      Entonces el gasto sigue en soles
+
+    Escenario: Una transacción importada sigue diciendo que vino del CSV
+      Dado que importé un gasto desde el CSV
+      Cuando corrijo su descripción
+      Entonces su origen sigue siendo "IMPORT"
+
+    Escenario: Una categoría archivada después no impide corregir
+      Dado que registré un gasto en "Netflix"
+      Y después archivé la categoría "Netflix"
+      Cuando corrijo su monto
+      Entonces queda guardado en "Netflix"
+
+  Regla: Borrar se puede deshacer
+
+    Escenario: Una transacción borrada deja de aparecer
+      Dado que registré un gasto
+      Cuando lo borro
+      Entonces ya no aparece
+      Pero sigue guardado para la auditoría
+
+    Escenario: Deshago el borrado
+      Dado que borré un gasto
+      Cuando deshago el borrado
+      Entonces vuelve a aparecer tal como estaba
+
+    Escenario: Deshacer dos veces no cuenta dos veces
+      Dado que borré un gasto y deshice el borrado
+      Cuando vuelvo a deshacer el borrado
+      Entonces el gasto sigue apareciendo una sola vez
+
+    Escenario: No puedo borrar lo de otra persona
+      Dado que Bruno registró un gasto
+      Cuando intento borrarlo
+      Entonces la transacción no se encuentra
+      Y Bruno la sigue viendo

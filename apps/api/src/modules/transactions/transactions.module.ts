@@ -4,7 +4,13 @@ import { PrismaModule } from '../../shared/prisma/prisma.module.js';
 import { TimeModule } from '../../shared/time/time.module.js';
 import { CatalogLookup, CatalogModule } from '../catalog/index.js';
 import { IdentityModule } from '../identity/index.js';
-import { CreateTransaction, GetTransaction } from './application/transactions.js';
+import {
+  CreateTransaction,
+  DeleteTransaction,
+  GetTransaction,
+  RestoreTransaction,
+  UpdateTransaction,
+} from './application/transactions.js';
 import { TransactionsController } from './http/transactions.controller.js';
 import { PrismaTransactionRepository } from './infrastructure/prisma-transaction-repository.js';
 import { CATALOG_READER } from './ports/catalog-reader.js';
@@ -23,6 +29,9 @@ import { TRANSACTION_REPOSITORY } from './ports/transaction-repository.js';
   providers: [
     CreateTransaction,
     GetTransaction,
+    UpdateTransaction,
+    DeleteTransaction,
+    RestoreTransaction,
     { provide: TRANSACTION_REPOSITORY, useClass: PrismaTransactionRepository },
     { provide: CATALOG_READER, useExisting: CatalogLookup },
   ],
