@@ -104,7 +104,9 @@ export {
 } from './catalog/payment-method-policy.js';
 export {
   ArchivedCategoryError,
+  ArchivedPaymentMethodError,
   assertCategoryUsable,
+  assertPaymentMethodUsable,
   assertTransactionAmount,
   assertTransactionDate,
   type CategoryForTransaction,
@@ -113,6 +115,7 @@ export {
   countsAsSaving,
   FutureTransactionDateError,
   NonPositiveTransactionAmountError,
+  type PaymentMethodForTransaction,
   resolveTransactionCurrency,
   signedAmount,
   TRANSACTION_SOURCES,

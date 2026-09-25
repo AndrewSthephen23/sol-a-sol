@@ -4,8 +4,8 @@ Característica: Transacciones
   Como dueño de mis finanzas
   Quiero registrar cada ingreso, gasto, ahorro, inversión y pago de deuda
 
-  # Reglas decididas con el autor el 2026-09-24 (ver docs/modules/transactions.md).
-  # Los escenarios de alta, edición y listado se detallan en las tareas 05 y 06 de H3.
+  # Reglas decididas con el autor el 2026-09-24 y el 2026-09-25 (ver docs/modules/transactions.md).
+  # La edición, el borrado y el listado se detallan con su tarea.
 
   Regla: El monto siempre es positivo; el signo lo da el tipo
 
@@ -73,3 +73,45 @@ Característica: Transacciones
       Cuando intento registrar un gasto en "Netflix"
       Entonces se rechaza
       Pero mis gastos viejos siguen en "Netflix"
+
+    Escenario: La subcategoría es opcional
+      Dado que tengo la categoría "Comida" con la subcategoría "Delivery"
+      Cuando registro un gasto en "Comida"
+      Entonces queda guardado en "Comida"
+
+  Regla: El método de pago es opcional, pero si se indica debe estar activo
+
+    Escenario: Un gasto sin método de pago
+      Cuando registro un gasto de "S/ 12.00" sin indicar con qué pagué
+      Entonces queda guardado sin método de pago
+
+    Escenario: Una tarjeta archivada no se usa en transacciones nuevas
+      Dado que archivé la tarjeta "Visa vieja"
+      Cuando intento registrar un gasto con "Visa vieja"
+      Entonces se rechaza porque el método de pago está archivado
+
+  Regla: El monto se guarda exacto, sin redondear
+
+    Escenario: Los céntimos llegan intactos a la base
+      Cuando registro un gasto de "S/ 1,234,567,890,123.45"
+      Entonces queda guardado por "S/ 1,234,567,890,123.45"
+
+    Escenario: Un tercer decimal se rechaza en vez de redondearse
+      Cuando intento registrar un gasto de "S/ 25.905"
+      Entonces se rechaza porque el monto tiene más de dos decimales
+
+  Regla: Cada quien ve solo lo suyo
+
+    Escenario: No puedo usar la categoría de otra persona
+      Dado que Bruno tiene la categoría "Almuerzos"
+      Cuando intento registrar un gasto en la categoría de Bruno
+      Entonces la categoría no se encuentra
+
+    Escenario: No puedo ver la transacción de otra persona
+      Dado que Bruno registró un gasto
+      Cuando intento verlo
+      Entonces la transacción no se encuentra
+
+    Escenario: Lo registrado desde la web queda como manual
+      Cuando registro un gasto desde la web
+      Entonces su origen es "MANUAL"

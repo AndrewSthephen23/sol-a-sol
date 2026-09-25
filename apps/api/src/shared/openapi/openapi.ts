@@ -3,8 +3,10 @@ import {
   createCategoryRequestSchema,
   createPaymentMethodRequestSchema,
   createPersonalAccessTokenRequestSchema,
+  createTransactionRequestSchema,
   currencySchema,
   paymentMethodKindSchema,
+  transactionSourceSchema,
   transactionTypeSchema,
   updateCategoryRequestSchema,
   updatePaymentMethodRequestSchema,
@@ -155,6 +157,36 @@ const PAYMENT_METHOD_RULES =
   'billetera y el efectivo, no. Una cuenta o billetera lleva moneda; una tarjeta bimoneda y el ' +
   'efectivo pueden no llevarla. El efectivo no tiene banco. Un número más largo que 4 dígitos ' +
   'se rechaza, nunca se recorta.';
+
+const TRANSACTION_SCHEMA = schemaOf(
+  z.object({
+    id: z.uuid(),
+    date: z.iso.date().describe('Día en que pasó, sin hora.'),
+    type: transactionTypeSchema,
+    categoryId: z.uuid(),
+    amount: z
+      .string()
+      .describe(
+        'String decimal con 2 decimales (`"25.90"`). Siempre positivo: el signo lo da `type`.',
+      ),
+    currency: currencySchema,
+    description: z.string(),
+    paymentMethodId: z.uuid().nullable().describe('Nulo si no se dijo con qué se pagó.'),
+    merchant: z.string().nullable(),
+    source: transactionSourceSchema.describe('De dónde llegó. No cambia al editar.'),
+    captureId: z.uuid().nullable().describe('Captura del celular de la que salió (H7).'),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
+  }),
+);
+
+const TRANSACTION_RULES =
+  'El monto viaja como string decimal, siempre positivo y con hasta 2 decimales: un tercer ' +
+  'decimal se rechaza, no se redondea. La fecha es de hoy o anterior, en la hora de Lima. La ' +
+  'categoría es del mismo tipo que la transacción y no está archivada; puede ser una categoría ' +
+  'de primer nivel o una subcategoría. El método de pago es opcional; si se indica, no puede ' +
+  'estar archivado. Sin `currency` se usa la del método de pago; si este acepta las dos ' +
+  'monedas, o no hay método, se exige. Nunca se convierte.';
 
 const ALWAYS_ON_PATHS: Record<string, unknown> = {
   [`/${API_PREFIX}/openapi.json`]: {
@@ -591,10 +623,62 @@ function catalogPaths(): Record<string, unknown> {
   };
 }
 
+function transactionsPaths(): Record<string, unknown> {
+  const forbidden = problem(
+    'Llegó un token personal: las transacciones solo se gestionan desde una sesión.',
+  );
+
+  return {
+    [`/${API_PREFIX}/transactions`]: {
+      post: {
+        tags: ['transactions'],
+        summary: 'Registra una transacción.',
+        description: `Queda con \`source: MANUAL\`. ${TRANSACTION_RULES}`,
+        security: [{ accessToken: [] }],
+        requestBody: jsonBody(createTransactionRequestSchema),
+        responses: {
+          '201': {
+            description: 'Transacción registrada.',
+            content: { 'application/json': { schema: TRANSACTION_SCHEMA } },
+          },
+          '401': problem('Falta el token de acceso o no vale.'),
+          '403': forbidden,
+          '404': problem('La categoría o el método de pago no existen o son de otra cuenta.'),
+          '422': problem(
+            'El cuerpo no tiene la forma esperada, o rompe una regla: monto no positivo o con ' +
+              'más de 2 decimales, fecha futura, categoría de otro tipo o archivada, método ' +
+              'archivado, o falta la moneda.',
+          ),
+        },
+      },
+    },
+    [`/${API_PREFIX}/transactions/{id}`]: {
+      get: {
+        tags: ['transactions'],
+        summary: 'Devuelve una transacción.',
+        security: [{ accessToken: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        responses: {
+          '200': {
+            description: 'La transacción.',
+            content: { 'application/json': { schema: TRANSACTION_SCHEMA } },
+          },
+          '401': problem('Falta el token de acceso o no vale.'),
+          '403': forbidden,
+          '404': problem('No existe, es de otra cuenta o está borrada.'),
+        },
+      },
+    },
+  };
+}
+
 /** Rutas que aporta cada módulo de negocio, para omitirlas cuando su flag está apagado. */
 const PATHS_BY_MODULE: Partial<Record<FeatureModule, () => Record<string, unknown>>> = {
   identity: identityPaths,
   catalog: catalogPaths,
+  transactions: transactionsPaths,
 };
 
 export interface OpenApiOptions {
