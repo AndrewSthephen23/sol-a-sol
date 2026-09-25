@@ -4,7 +4,9 @@ import { Money } from '../money/money.js';
 import { LocalDate } from '../time/local-date.js';
 import {
   ArchivedCategoryError,
+  ArchivedPaymentMethodError,
   assertCategoryUsable,
+  assertPaymentMethodUsable,
   assertTransactionAmount,
   assertTransactionDate,
   CategoryTypeMismatchError,
@@ -133,6 +135,21 @@ describe('assertCategoryUsable', () => {
   });
 });
 
+describe('assertPaymentMethodUsable', () => {
+  it('accepts an active payment method', () => {
+    expect(() => {
+      assertPaymentMethodUsable({ archived: false });
+    }).not.toThrow();
+  });
+
+  // Como la categoría: un método archivado sigue en lo ya registrado, pero no en lo nuevo.
+  it('rejects an archived payment method', () => {
+    expect(() => {
+      assertPaymentMethodUsable({ archived: true });
+    }).toThrow(ArchivedPaymentMethodError);
+  });
+});
+
 describe('errors', () => {
   it.each([
     [
@@ -160,6 +177,12 @@ describe('errors', () => {
       /VARIABLE_EXPENSE category .* INCOME transaction/,
     ],
     ['ArchivedCategoryError', () => new ArchivedCategoryError(), 'CATEGORY_ARCHIVED', /archived/],
+    [
+      'ArchivedPaymentMethodError',
+      () => new ArchivedPaymentMethodError(),
+      'PAYMENT_METHOD_ARCHIVED',
+      /payment method is archived/,
+    ],
   ])('%s has a stable code and says which rule broke', (name, build, code, message) => {
     const error = build();
 

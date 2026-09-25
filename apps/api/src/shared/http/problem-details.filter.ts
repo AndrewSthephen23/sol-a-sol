@@ -44,6 +44,7 @@ const STATUS_BY_DOMAIN_CODE = new Map<string, number>([
   ['CATEGORY_NOT_FOUND', HttpStatus.NOT_FOUND],
   // El nombre está bien escrito, pero choca con una hermana que ya existe (quizá archivada).
   ['CATEGORY_NAME_TAKEN', HttpStatus.CONFLICT],
+  ['TRANSACTION_NOT_FOUND', HttpStatus.NOT_FOUND],
 ]);
 
 /** Una regla de negocio rechazó una petición bien formada: contenido no procesable. */

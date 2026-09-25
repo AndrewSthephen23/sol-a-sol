@@ -101,6 +101,10 @@ Por eso la regla se protege en capas. Ninguna depende de las otras:
 - **Emite:** ninguno todavía.
 - **Escucha:** `identity.user.registered`, para sembrar las categorías iniciales de la cuenta nueva.
 
+## API pública para otros módulos
+
+`CatalogLookup` (exportado por `index.ts`) responde, para una cuenta, **el tipo y si está archivada** una categoría, y **la moneda y si está archivado** un método de pago; `null` si no existe o es ajeno. Lo usa `transactions` para validar una transacción sin leer estas tablas. Devuelve lo mínimo a propósito: quien consulta no queda atado a la forma de las entidades.
+
 ## Endpoints
 
 Todos exigen una sesión (`Authorization: Bearer <token de acceso>`), filtran por el `userId` del token y responden **404** con el flag apagado. Detalle en `/api/v1/openapi.json`.

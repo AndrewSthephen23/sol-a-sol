@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../shared/prisma/prisma.module.js';
 import { TimeModule } from '../../shared/time/time.module.js';
 import { IdentityModule } from '../identity/index.js';
+import { CatalogLookup } from './application/catalog-lookup.js';
 import { CreateCategory, ListCategories, UpdateCategory } from './application/categories.js';
 import {
   SeedAccountsWithoutCategories,
@@ -27,6 +28,8 @@ import { PAYMENT_METHOD_REPOSITORY } from './ports/payment-method-repository.js'
  *
  * Importa `IdentityModule` solo por su API pública: el guard que resuelve quién pide, el evento
  * de registro (para sembrar las categorías iniciales) y la lista de cuentas (para `db:seed`).
+ *
+ * Exporta `CatalogLookup`, con el que `transactions` comprueba la categoría y el método de pago.
  */
 @Module({
   imports: [PrismaModule, TimeModule, IdentityModule],
@@ -43,8 +46,9 @@ import { PAYMENT_METHOD_REPOSITORY } from './ports/payment-method-repository.js'
     ListPaymentMethods,
     UpdatePaymentMethod,
     { provide: PAYMENT_METHOD_REPOSITORY, useClass: PrismaPaymentMethodRepository },
+    CatalogLookup,
   ],
-  // Para `pnpm db:seed` (src/seed.ts).
-  exports: [SeedAccountsWithoutCategories],
+  // `SeedAccountsWithoutCategories` es para `pnpm db:seed` (src/seed.ts).
+  exports: [SeedAccountsWithoutCategories, CatalogLookup],
 })
 export class CatalogModule {}

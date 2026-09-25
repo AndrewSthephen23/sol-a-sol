@@ -51,3 +51,12 @@ export {
   type UpdateCategoryRequest,
   updateCategoryRequestSchema,
 } from './catalog/categories.js';
+export {
+  AMOUNT_MAX_INTEGER_DIGITS,
+  type CreateTransactionRequest,
+  createTransactionRequestSchema,
+  decimalAmountSchema,
+  MERCHANT_MAX_LENGTH,
+  TRANSACTION_DESCRIPTION_MAX_LENGTH,
+  transactionSourceSchema,
+} from './transactions/transactions.js';

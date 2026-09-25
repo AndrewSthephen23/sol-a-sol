@@ -87,6 +87,17 @@ describe('buildOpenApiDocument', () => {
       expect(withCatalog.paths).toHaveProperty(['/api/v1/categories/{id}', 'patch']);
       expect(JSON.stringify(documentWith(true))).not.toMatch(/payment|catalog|categor/i);
     });
+
+    it('documents the transactions only while transactions is on', () => {
+      const withTransactions = buildOpenApiDocument({
+        version: '1.2.3',
+        isFeatureEnabled: (module) => module === 'transactions',
+      }) as unknown as Document;
+
+      expect(withTransactions.paths).toHaveProperty(['/api/v1/transactions', 'post']);
+      expect(withTransactions.paths).toHaveProperty(['/api/v1/transactions/{id}', 'get']);
+      expect(JSON.stringify(documentWith(true))).not.toMatch(/transaction/i);
+    });
   });
 
   describe('the schemas come from the same Zod objects the API validates with', () => {

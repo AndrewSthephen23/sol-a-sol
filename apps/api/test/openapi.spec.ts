@@ -48,6 +48,7 @@ describe('GET /openapi.json', () => {
     process.env.DATABASE_URL = inject('databaseUrl');
     process.env.FEATURE_IDENTITY = 'true';
     process.env.FEATURE_CATALOG = 'true';
+    process.env.FEATURE_TRANSACTIONS = 'true';
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     configureApp(app);
@@ -58,6 +59,7 @@ describe('GET /openapi.json', () => {
   afterAll(async () => {
     delete process.env.FEATURE_IDENTITY;
     delete process.env.FEATURE_CATALOG;
+    delete process.env.FEATURE_TRANSACTIONS;
     await app.close();
   });
 
@@ -126,6 +128,15 @@ describe('GET /openapi.json', () => {
 
       process.env.FEATURE_CATALOG = 'true';
       expect(JSON.stringify(response.body)).not.toContain('/payment-methods');
+    });
+
+    it('leaves the transactions out too', async () => {
+      process.env.FEATURE_TRANSACTIONS = 'false';
+
+      const response = await request(server).get(DOCUMENT).expect(200);
+
+      process.env.FEATURE_TRANSACTIONS = 'true';
+      expect(JSON.stringify(response.body)).not.toContain('/transactions');
     });
   });
 });

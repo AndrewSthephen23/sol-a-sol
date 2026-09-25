@@ -77,6 +77,14 @@ export class ArchivedCategoryError extends DomainError {
   }
 }
 
+export class ArchivedPaymentMethodError extends DomainError {
+  readonly code = 'PAYMENT_METHOD_ARCHIVED';
+
+  constructor() {
+    super('The payment method is archived: restore it to use it in new transactions.');
+  }
+}
+
 /**
  * Un monto de transacción **siempre es positivo**: el signo lo da el tipo. Un gasto de S/ 25 se
  * registra como 25; un cero no es un movimiento, y un negativo suele ser un signo duplicado.
@@ -144,4 +152,17 @@ export function assertCategoryUsable(
     throw new CategoryTypeMismatchError(category.type, transactionType);
   }
   if (category.archived) throw new ArchivedCategoryError();
+}
+
+/** Lo que las reglas miran del método de pago elegido. */
+export interface PaymentMethodForTransaction {
+  archived: boolean;
+}
+
+/**
+ * Como con la categoría, un método de pago archivado (una tarjeta que se canceló) sigue en las
+ * transacciones viejas, pero no se usa en las nuevas.
+ */
+export function assertPaymentMethodUsable(method: PaymentMethodForTransaction): void {
+  if (method.archived) throw new ArchivedPaymentMethodError();
 }
