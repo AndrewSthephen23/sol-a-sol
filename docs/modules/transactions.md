@@ -1,6 +1,6 @@
 # Módulo Transacciones (`transactions`)
 
-> Ficha del módulo. Estado: **en construcción** (hito H3). Hoy se registra, se lee, se corrige, se borra (lógicamente) y se restaura una transacción; el listado llega con la tarea 06. Flag **apagado**.
+> Ficha del módulo. Estado: **en construcción** (hito H3). Hoy se registra, se lista con filtros, se lee, se corrige, se borra (lógicamente) y se restaura una transacción. Flag **apagado**.
 
 ## Qué resuelve
 
@@ -13,24 +13,29 @@ celular (H7) calculan **sobre** las transacciones.
 Decididas con el autor el 2026-09-24. No se cambian sin volver a preguntar. Viven en
 `packages/domain/src/transactions/transaction-policy.ts`, con mutation testing al 100 %.
 
-| Regla                        | Decisión                                                                                                                                                                                                                                             |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tipos                        | `INCOME`, `FIXED_EXPENSE`, `VARIABLE_EXPENSE`, `SAVING`, `INVESTMENT`, `DEBT` (glosario)                                                                                                                                                             |
-| Monto                        | **Siempre positivo**: el signo lo da el tipo. Un cero o un negativo se rechaza (`TRANSACTION_AMOUNT_NOT_POSITIVE`). Hasta 2 decimales, como todo `Money`                                                                                             |
-| Signo, para el saldo del mes | **Solo el ingreso suma.** Gastos, ahorro, inversión y deuda salen de lo disponible (`signedAmount`)                                                                                                                                                  |
-| Qué es **gasto**             | **Fijo + variable.** La deuda (pagar un préstamo o la tarjeta) se muestra aparte (`countsAsExpense`)                                                                                                                                                 |
-| Qué es **ahorro**            | **Ahorro + inversión**, para la tasa de ahorro = ahorro / ingresos: las dos son plata que no se consume (`countsAsSaving`)                                                                                                                           |
-| Fecha                        | Fecha de negocio sin hora (`LocalDate`), **hasta hoy** en la hora de Lima. Una fecha futura se rechaza (`TRANSACTION_DATE_IN_FUTURE`): un pago programado se registra el día que ocurre, para que un resumen no muestre plata que no se movió        |
-| Moneda                       | La indicada o, si no, **la del método de pago**. Si ninguno la dice (tarjeta bimoneda, efectivo, sin método) **se exige** (`TRANSACTION_CURRENCY_REQUIRED`): el dominio no supone soles. **Nunca se convierte**                                      |
-| Categoría                    | **Del mismo tipo** que la transacción (`CATEGORY_TYPE_MISMATCH`) y **no archivada** para una transacción nueva (`CATEGORY_ARCHIVED`); una archivada sigue en las viejas                                                                              |
-| Subcategoría                 | **Opcional.** Vale una categoría de primer nivel aunque tenga subcategorías («Comida» sin decir «Delivery»), o una subcategoría (2026-09-25)                                                                                                         |
-| Método de pago               | **Opcional** (2026-09-25). Si se indica, tiene que ser propio y **no estar archivado** (`PAYMENT_METHOD_ARCHIVED`); uno archivado sigue en las transacciones viejas                                                                                  |
-| Descripción y comercio       | La descripción es **obligatoria** (hasta 200 caracteres); el comercio, opcional (hasta 80)                                                                                                                                                           |
-| Origen (`source`)            | Lo pone la API, nunca quien llama: lo registrado desde la web es `MANUAL`. **No cambia al editar**                                                                                                                                                   |
-| Categoría y método ajenos    | Si no son del usuario, **404**, no 403: no se confirma que existen (tarea 05)                                                                                                                                                                        |
-| Borrar                       | **Lógico** (`deletedAt`). Las consultas normales excluyen las borradas. Restaurar **no tiene plazo** en la API: el aviso de «Deshacer» de unos segundos es cosa de la interfaz (2026-09-25)                                                          |
-| Editar                       | **Siempre**, también en meses pasados: no existe el mes cerrado, y los resúmenes se calculan al consultar (decisión 6 de H3). El tipo se puede cambiar, **junto con** una categoría de ese tipo (2026-09-25)                                         |
-| Reglas al editar             | Se juzga la transacción **como quedaría**. Una fecha nueva no puede ser futura. Una categoría o un método archivados que ya tenía **siguen valiendo**; elegirlos ahora, no. Sin `currency`, la moneda **no cambia**, aunque cambie el método de pago |
+| Regla                        | Decisión                                                                                                                                                                                                                                                               |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tipos                        | `INCOME`, `FIXED_EXPENSE`, `VARIABLE_EXPENSE`, `SAVING`, `INVESTMENT`, `DEBT` (glosario)                                                                                                                                                                               |
+| Monto                        | **Siempre positivo**: el signo lo da el tipo. Un cero o un negativo se rechaza (`TRANSACTION_AMOUNT_NOT_POSITIVE`). Hasta 2 decimales, como todo `Money`                                                                                                               |
+| Signo, para el saldo del mes | **Solo el ingreso suma.** Gastos, ahorro, inversión y deuda salen de lo disponible (`signedAmount`)                                                                                                                                                                    |
+| Qué es **gasto**             | **Fijo + variable.** La deuda (pagar un préstamo o la tarjeta) se muestra aparte (`countsAsExpense`)                                                                                                                                                                   |
+| Qué es **ahorro**            | **Ahorro + inversión**, para la tasa de ahorro = ahorro / ingresos: las dos son plata que no se consume (`countsAsSaving`)                                                                                                                                             |
+| Fecha                        | Fecha de negocio sin hora (`LocalDate`), **hasta hoy** en la hora de Lima. Una fecha futura se rechaza (`TRANSACTION_DATE_IN_FUTURE`): un pago programado se registra el día que ocurre, para que un resumen no muestre plata que no se movió                          |
+| Moneda                       | La indicada o, si no, **la del método de pago**. Si ninguno la dice (tarjeta bimoneda, efectivo, sin método) **se exige** (`TRANSACTION_CURRENCY_REQUIRED`): el dominio no supone soles. **Nunca se convierte**                                                        |
+| Categoría                    | **Del mismo tipo** que la transacción (`CATEGORY_TYPE_MISMATCH`) y **no archivada** para una transacción nueva (`CATEGORY_ARCHIVED`); una archivada sigue en las viejas                                                                                                |
+| Subcategoría                 | **Opcional.** Vale una categoría de primer nivel aunque tenga subcategorías («Comida» sin decir «Delivery»), o una subcategoría (2026-09-25)                                                                                                                           |
+| Método de pago               | **Opcional** (2026-09-25). Si se indica, tiene que ser propio y **no estar archivado** (`PAYMENT_METHOD_ARCHIVED`); uno archivado sigue en las transacciones viejas                                                                                                    |
+| Descripción y comercio       | La descripción es **obligatoria** (hasta 200 caracteres); el comercio, opcional (hasta 80)                                                                                                                                                                             |
+| Origen (`source`)            | Lo pone la API, nunca quien llama: lo registrado desde la web es `MANUAL`. **No cambia al editar**                                                                                                                                                                     |
+| Categoría y método ajenos    | Si no son del usuario, **404**, no 403: no se confirma que existen (tarea 05)                                                                                                                                                                                          |
+| Borrar                       | **Lógico** (`deletedAt`). Las consultas normales excluyen las borradas. Restaurar **no tiene plazo** en la API: el aviso de «Deshacer» de unos segundos es cosa de la interfaz (2026-09-25)                                                                            |
+| Editar                       | **Siempre**, también en meses pasados: no existe el mes cerrado, y los resúmenes se calculan al consultar (decisión 6 de H3). El tipo se puede cambiar, **junto con** una categoría de ese tipo (2026-09-25)                                                           |
+| Listado                      | De la fecha más reciente a la más antigua y, en el mismo día, del id más nuevo al más viejo (UUIDv7 ordena por creación). **Sin fechas trae todo** (2026-09-25): la web manda el mes que muestra. Las borradas no aparecen; las de categorías o métodos archivados, sí |
+| Filtros                      | `month` o `from`/`to` (inclusivos), `type`, `categoryId` (**con sus subcategorías**), `paymentMethodId`, `currency` y `q`. Una categoría ajena no trae nada, sin decir si existe                                                                                       |
+| Búsqueda (`q`)               | Dentro de la descripción o el comercio, **sin distinguir mayúsculas ni tildes**. La ñ es otra letra: «ano» no encuentra «año». `%` y `_` se buscan como letras, no son comodines                                                                                       |
+| Paginación                   | Por **cursor opaco** (`nextCursor`), nunca por número de página: lo que se registre o se borre entre dos páginas no hace repetir ni saltar filas. `limit` por defecto 50; más de 100 se recorta a 100                                                                  |
+| Totales del listado          | **En la misma respuesta**, de todo lo filtrado (no solo de la página), **por moneda** y sin convertir: ingresos, gasto (fijo + variable), ahorro (ahorro + inversión), deuda y saldo (2026-09-25). Viven en `totalsByCurrency` (dominio)                               |
+| Reglas al editar             | Se juzga la transacción **como quedaría**. Una fecha nueva no puede ser futura. Una categoría o un método archivados que ya tenía **siguen valiendo**; elegirlos ahora, no. Sin `currency`, la moneda **no cambia**, aunque cambie el método de pago                   |
 
 ## Modelo de datos
 
@@ -42,6 +47,7 @@ Decididas con el autor el 2026-09-24. No se cambian sin volver a preguntar. Vive
 - `source`: `MANUAL`, `IOS_SHORTCUT`, `ANDROID_AUTOMATION`, `IMPORT`.
 - `capture_id` queda **sin clave foránea** hasta H7, cuando exista la tabla de capturas.
 - Índice `(user_id, date)`, por el que se lista y se filtra siempre; y los de `category_id` y `payment_method_id`, para que comprobar si una categoría o un método tienen transacciones no recorra la tabla.
+- **El listado va en SQL parametrizado** (`Prisma.sql`), no con `findMany`: la búsqueda sin tildes necesita `lower(translate(…))`, que Prisma no expresa. La tabla de acentos es **una sola**, `ACCENT_FOLD_FROM`/`ACCENT_FOLD_TO` del dominio, que usan tanto `searchKey` como la consulta.
 - **Lo que la base no puede exigir** queda para el dominio: que la fecha no sea futura (la base no sabe qué día es "hoy" para el usuario) y que la categoría no esté archivada.
 
 ## Eventos de dominio
@@ -61,7 +67,7 @@ Restaurar también se anuncia, para que quien lleve una cuenta con los otros tre
 
 ## Dependencias
 
-Comprueba la categoría y el método de pago con `CatalogLookup`, de la API pública de `catalog`, a través de su puerto `CatalogReader`. No lee las tablas del catálogo.
+Comprueba la categoría y el método de pago, y obtiene las subcategorías para filtrar, con `CatalogLookup`, de la API pública de `catalog`, a través de su puerto `CatalogReader`. No lee las tablas del catálogo.
 
 ## Endpoints
 

@@ -1,7 +1,11 @@
+import { searchKey, type TypedAmount } from '@sol-a-sol/domain';
+
 import type {
   NewTransaction,
+  PagePosition,
   Transaction,
   TransactionChanges,
+  TransactionFilter,
   TransactionRepository,
 } from './transaction-repository.js';
 
@@ -65,12 +69,57 @@ export class FakeTransactionRepository implements TransactionRepository {
     return Promise.resolve(true);
   }
 
+  list(
+    userId: string,
+    filter: TransactionFilter,
+    page: { after: PagePosition | null; limit: number },
+  ): Promise<Transaction[]> {
+    const { after } = page;
+
+    return Promise.resolve(
+      this.matching(userId, filter)
+        .toSorted(newestFirst)
+        .filter((row) => after === null || newestFirst(row, after) > 0)
+        .slice(0, page.limit)
+        .map(publicOf),
+    );
+  }
+
+  totals(userId: string, filter: TransactionFilter): Promise<TypedAmount[]> {
+    return Promise.resolve(
+      this.matching(userId, filter).map((row) => ({ type: row.type, amount: row.amount })),
+    );
+  }
+
+  private matching(userId: string, filter: TransactionFilter): Row[] {
+    return this.rows.filter(
+      (row) =>
+        row.userId === userId &&
+        row.deletedAt === null &&
+        (filter.from === undefined || !row.date.isBefore(filter.from)) &&
+        (filter.to === undefined || !row.date.isAfter(filter.to)) &&
+        (filter.type === undefined || row.type === filter.type) &&
+        (filter.categoryIds === undefined || filter.categoryIds.includes(row.categoryId)) &&
+        (filter.paymentMethodId === undefined || row.paymentMethodId === filter.paymentMethodId) &&
+        (filter.currency === undefined || row.amount.currency === filter.currency) &&
+        (filter.search === undefined ||
+          [row.description, row.merchant ?? ''].some((text) =>
+            searchKey(text).includes(filter.search ?? ''),
+          )),
+    );
+  }
+
   private liveRow(userId: string, id: string): Row | undefined {
     return this.rows.find(
       (candidate) =>
         candidate.userId === userId && candidate.id === id && candidate.deletedAt === null,
     );
   }
+}
+
+/** Negativo si `a` va antes que `b` en el listado: fecha descendente y, luego, id descendente. */
+function newestFirst(a: PagePosition, b: PagePosition): number {
+  return b.date.compareTo(a.date) || b.id.localeCompare(a.id);
 }
 
 /** Una copia sin `userId` ni `deletedAt`, como la que devuelve el adaptador de Prisma. */

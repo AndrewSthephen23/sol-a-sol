@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
   createTransactionRequestSchema,
+  CURSOR_MAX_LENGTH,
+  listTransactionsQuerySchema,
+  SEARCH_MAX_LENGTH,
+  TRANSACTIONS_DEFAULT_LIMIT,
+  TRANSACTIONS_MAX_LIMIT,
   MERCHANT_MAX_LENGTH,
   TRANSACTION_DESCRIPTION_MAX_LENGTH,
   updateTransactionRequestSchema,
@@ -153,5 +158,89 @@ describe('update transaction request', () => {
     ['deletedAt', { deletedAt: null }],
   ])('rejects a %s in the body', (_field, body) => {
     expect(acceptsChange(body)).toBe(false);
+  });
+});
+
+describe('list transactions query', () => {
+  function parse(query: Record<string, string>) {
+    return listTransactionsQuerySchema.safeParse(query);
+  }
+
+  it('needs nothing, and then pages by the default limit', () => {
+    expect(listTransactionsQuerySchema.parse({})).toEqual({ limit: TRANSACTIONS_DEFAULT_LIMIT });
+  });
+
+  it('accepts every filter together', () => {
+    const query = {
+      from: '2026-09-01',
+      to: '2026-09-30',
+      type: 'VARIABLE_EXPENSE',
+      categoryId: LUNCH.categoryId,
+      paymentMethodId: LUNCH.paymentMethodId,
+      currency: 'PEN',
+      q: 'tambo',
+      cursor: 'opaque',
+      limit: '20',
+    };
+
+    expect(listTransactionsQuerySchema.parse(query)).toEqual({ ...query, limit: 20 });
+  });
+
+  it('accepts a month', () => {
+    expect(parse({ month: '2026-09' }).success).toBe(true);
+  });
+
+  it.each(['2026-9', '2026-13', '2026-00', '09-2026', '2026-09-01'])(
+    'rejects the month %j',
+    (month) => {
+      expect(parse({ month }).success).toBe(false);
+    },
+  );
+
+  it.each<Record<string, string>>([{ from: '2026-09-01' }, { to: '2026-09-30' }])(
+    'rejects a month together with from or to',
+    (range) => {
+      expect(parse({ month: '2026-09', ...range }).success).toBe(false);
+    },
+  );
+
+  it('accepts a single day, and only from or only to', () => {
+    expect(parse({ from: '2026-09-01', to: '2026-09-01' }).success).toBe(true);
+    expect(parse({ from: '2026-09-01' }).success).toBe(true);
+    expect(parse({ to: '2026-09-01' }).success).toBe(true);
+  });
+
+  it('rejects from after to', () => {
+    expect(parse({ from: '2026-09-02', to: '2026-09-01' }).success).toBe(false);
+  });
+
+  // Pedir más no revienta la base: se recorta.
+  it('cuts a limit above the maximum', () => {
+    expect(listTransactionsQuerySchema.parse({ limit: '100000' }).limit).toBe(
+      TRANSACTIONS_MAX_LIMIT,
+    );
+  });
+
+  it.each(['0', '-1', '1.5', 'diez', ''])('rejects the limit %j', (limit) => {
+    expect(parse({ limit }).success).toBe(false);
+  });
+
+  it('trims the search and rejects it blank or too long', () => {
+    expect(listTransactionsQuerySchema.parse({ q: '  tambo ' }).q).toBe('tambo');
+    expect(parse({ q: '   ' }).success).toBe(false);
+    expect(parse({ q: 'x'.repeat(SEARCH_MAX_LENGTH + 1) }).success).toBe(false);
+  });
+
+  it('rejects a cursor too long to be ours', () => {
+    expect(parse({ cursor: 'x'.repeat(CURSOR_MAX_LENGTH + 1) }).success).toBe(false);
+  });
+
+  it.each([
+    ['type', 'EXPENSE'],
+    ['currency', 'EUR'],
+    ['categoryId', '42'],
+    ['paymentMethodId', '42'],
+  ])('rejects the %s %j', (field, value) => {
+    expect(parse({ [field]: value }).success).toBe(false);
   });
 });

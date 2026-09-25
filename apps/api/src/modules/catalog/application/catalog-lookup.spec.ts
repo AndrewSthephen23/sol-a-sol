@@ -65,6 +65,38 @@ describe('catalog lookup', () => {
     });
   });
 
+  describe('the family of a category', () => {
+    it('is the category and its subcategories, archived ones included', async () => {
+      const parent = await food();
+      const delivery = await categories.create({
+        userId: ANA,
+        type: 'VARIABLE_EXPENSE',
+        name: 'Delivery',
+        parentId: parent,
+        color: '#1E88E5',
+        icon: 'bike',
+      });
+      await categories.update(
+        ANA,
+        delivery.id,
+        {},
+        { ids: [delivery.id], archivedAt: ARCHIVED_AT },
+      );
+
+      await expect(lookup.categoryFamily(ANA, parent)).resolves.toEqual([parent, delivery.id]);
+    });
+
+    it('is only the category when it has no subcategories', async () => {
+      const id = await food();
+
+      await expect(lookup.categoryFamily(ANA, id)).resolves.toEqual([id]);
+    });
+
+    it('is not found in another account', async () => {
+      await expect(lookup.categoryFamily(BRUNO, await food())).resolves.toBeNull();
+    });
+  });
+
   describe('a payment method', () => {
     it('tells its currency and that it is active', async () => {
       await expect(lookup.paymentMethod(ANA, await payroll())).resolves.toEqual({

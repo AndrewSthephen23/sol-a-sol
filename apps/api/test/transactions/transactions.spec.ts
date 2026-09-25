@@ -2,6 +2,7 @@ import type { Server } from 'node:http';
 
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { TRANSACTIONS_MAX_LIMIT } from '@sol-a-sol/contracts';
 import { LocalDate, PERU_TIME_ZONE } from '@sol-a-sol/domain';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, inject, it } from 'vitest';
@@ -23,6 +24,12 @@ const BRUNO = { email: 'bruno@example.com', password: 'otra frase bastante larga
 // Valores obviamente falsos, solo para estas pruebas.
 const JWT_SECRET = 'clave-de-prueba-no-real-0123456789';
 const TOTP_KEY = Buffer.alloc(32, 7).toString('base64');
+
+interface ListBody {
+  items: TransactionBody[];
+  nextCursor: string | null;
+  totals: { currency: string; income: string; expense: string; balance: string }[];
+}
 
 interface TransactionBody {
   id: string;
@@ -610,9 +617,318 @@ describe('transactions', () => {
     });
   });
 
+  describe('listing', () => {
+    function list(query: Record<string, string> = {}, session = ana): request.Test {
+      return request(server)
+        .get(TRANSACTIONS)
+        .query(query)
+        .set('Authorization', `Bearer ${session}`);
+    }
+
+    async function listed(query: Record<string, string> = {}, session = ana): Promise<ListBody> {
+      const response = await list(query, session).expect(200);
+
+      return response.body as ListBody;
+    }
+
+    async function idsOf(query: Record<string, string> = {}): Promise<string[]> {
+      return (await listed(query)).items.map((item) => item.id);
+    }
+
+    /** Registra varias en orden: cada una queda "después" de la anterior en el mismo día. */
+    async function registerAll(...changes: Record<string, unknown>[]): Promise<string[]> {
+      const ids: string[] = [];
+      for (const change of changes) ids.push((await register({ ...lunch(), ...change })).id);
+
+      return ids;
+    }
+
+    it('goes from the newest date and, within a day, from the last registered', async () => {
+      const [old, first, second] = await registerAll(
+        { date: '2026-09-01' },
+        { date: '2026-09-10' },
+        { date: '2026-09-10' },
+      );
+
+      await expect(idsOf()).resolves.toEqual([second, first, old]);
+    });
+
+    it('answers the items as they are read one by one', async () => {
+      const created = await register();
+
+      const { items } = await listed();
+
+      expect(items).toEqual([created]);
+    });
+
+    describe('by pages', () => {
+      it('follows the cursor to the end without repeating or skipping', async () => {
+        const [newest, first, second, third, oldest] = await registerAll(
+          { date: '2026-09-05' },
+          { date: '2026-09-04' },
+          { date: '2026-09-04' },
+          { date: '2026-09-04' },
+          { date: '2026-09-02' },
+        );
+        const seen: string[] = [];
+        let cursor: string | null = null;
+
+        do {
+          const page: ListBody = await listed({
+            limit: '2',
+            ...(cursor === null ? {} : { cursor }),
+          });
+          seen.push(...page.items.map((item) => item.id));
+          cursor = page.nextCursor;
+        } while (cursor !== null);
+
+        // Con 2 por página, el cursor cae en medio de las tres del mismo día: el id desempata.
+        expect(seen).toEqual([newest, third, second, first, oldest]);
+      });
+
+      // Con números de página, un alta o un borrado entre dos páginas movería las filas.
+      it('is not moved by what is registered or deleted between two pages', async () => {
+        const [a, b, c, d] = await registerAll(
+          { date: '2026-09-04' },
+          { date: '2026-09-03' },
+          { date: '2026-09-02' },
+          { date: '2026-09-01' },
+        );
+        const first = await listed({ limit: '2' });
+        await register({ ...lunch(), date: '2026-09-05' });
+        await remove(a ?? '').expect(204);
+
+        const second = await listed({ limit: '2', cursor: first.nextCursor ?? '' });
+
+        expect(first.items.map((item) => item.id)).toEqual([a, b]);
+        expect(second.items.map((item) => item.id)).toEqual([c, d]);
+        expect(second.nextCursor).toBeNull();
+      });
+
+      it(`cuts a limit above ${String(TRANSACTIONS_MAX_LIMIT)}`, async () => {
+        const account = await prisma.user.findUniqueOrThrow({ where: { email: ANA.email } });
+        await prisma.transaction.createMany({
+          data: Array.from({ length: TRANSACTIONS_MAX_LIMIT + 5 }, (_, index) => ({
+            userId: account.id,
+            date: new Date(`2026-08-${String((index % 28) + 1).padStart(2, '0')}T00:00:00.000Z`),
+            type: 'VARIABLE_EXPENSE' as const,
+            categoryId: catalog.food,
+            amount: '1.00',
+            currency: 'PEN' as const,
+            description: `Fila ${String(index)}`,
+            source: 'MANUAL' as const,
+          })),
+        });
+
+        const page = await listed({ limit: '100000' });
+
+        expect(page.items).toHaveLength(TRANSACTIONS_MAX_LIMIT);
+        expect(page.nextCursor).not.toBeNull();
+        // Los totales son de todo, no de la página recortada.
+        expect(page.totals[0]?.expense).toBe(`${String(TRANSACTIONS_MAX_LIMIT + 5)}.00`);
+      });
+
+      it.each(['no-es-un-cursor', Buffer.from('["2026-09-01","42"]').toString('base64url')])(
+        'rejects the cursor %j with 422',
+        async (cursor) => {
+          const response = await list({ cursor }).expect(422);
+
+          expect(codeOf(response)).toBe(problemType('INVALID_CURSOR'));
+        },
+      );
+    });
+
+    describe('filters', () => {
+      it('by month, from its first to its last day', async () => {
+        const [, first, last] = await registerAll(
+          { date: '2026-07-31' },
+          { date: '2026-08-01' },
+          { date: '2026-08-31' },
+          { date: '2026-09-01' },
+        );
+
+        await expect(idsOf({ month: '2026-08' })).resolves.toEqual([last, first]);
+      });
+
+      it('by a range, both ends included', async () => {
+        const [, from, to] = await registerAll(
+          { date: '2026-09-01' },
+          { date: '2026-09-02' },
+          { date: '2026-09-03' },
+          { date: '2026-09-04' },
+        );
+
+        await expect(idsOf({ from: '2026-09-02', to: '2026-09-03' })).resolves.toEqual([to, from]);
+      });
+
+      it('by type', async () => {
+        const [, salary] = await registerAll(
+          {},
+          { type: 'INCOME', categoryId: catalog.salary, paymentMethodId: null, currency: 'PEN' },
+        );
+
+        await expect(idsOf({ type: 'INCOME' })).resolves.toEqual([salary]);
+      });
+
+      it('by a category, bringing its subcategories too', async () => {
+        const menu = await categoryOf(ana, { name: 'Menú', parentId: catalog.food });
+        const other = await categoryOf(ana, { name: 'Snacks', type: 'VARIABLE_EXPENSE' });
+        const [parent, child] = await registerAll({}, { categoryId: menu }, { categoryId: other });
+
+        await expect(idsOf({ categoryId: catalog.food })).resolves.toEqual([child, parent]);
+        await expect(idsOf({ categoryId: menu })).resolves.toEqual([child]);
+      });
+
+      it('by payment method and by currency', async () => {
+        const [, cash] = await registerAll(
+          {},
+          { paymentMethodId: null, currency: 'USD', description: 'Taxi' },
+        );
+
+        await expect(idsOf({ currency: 'USD' })).resolves.toEqual([cash]);
+        await expect(idsOf({ paymentMethodId: catalog.payroll })).resolves.not.toContain(cash);
+      });
+
+      describe('by text', () => {
+        it('in the description or the merchant, ignoring case and accents', async () => {
+          const [menu, cafe] = await registerAll(
+            { description: 'Menú del DÍA', merchant: null },
+            { description: 'Desayuno', merchant: 'CAFÉ ÁNGEL' },
+            { description: 'Pasajes', merchant: 'Metropolitano' },
+          );
+
+          await expect(idsOf({ q: 'menu del dia' })).resolves.toEqual([menu]);
+          await expect(idsOf({ q: 'MENÚ' })).resolves.toEqual([menu]);
+          await expect(idsOf({ q: 'cafe angel' })).resolves.toEqual([cafe]);
+        });
+
+        // La ñ no es una tilde: buscar "ano" no trae "año".
+        it('keeps the ñ as its own letter, also in uppercase', async () => {
+          const [year] = await registerAll({ description: 'SEGURO DEL AÑO' });
+
+          await expect(idsOf({ q: 'año' })).resolves.toEqual([year]);
+          await expect(idsOf({ q: 'ano' })).resolves.toEqual([]);
+        });
+
+        it('takes % and _ as plain characters, not as wildcards', async () => {
+          const [discount] = await registerAll(
+            { description: 'Descuento 10%' },
+            { description: 'Galletas' },
+            { description: 'Pan_integral' },
+          );
+
+          await expect(idsOf({ q: '%' })).resolves.toEqual([discount]);
+          await expect(idsOf({ q: 'n_i' })).resolves.toHaveLength(1);
+          await expect(idsOf({ q: 'n_' })).resolves.toHaveLength(1);
+        });
+      });
+
+      it('combined', async () => {
+        const [match] = await registerAll(
+          { date: '2026-09-10', description: 'Menú' },
+          { date: '2026-08-10', description: 'Menú' },
+          { date: '2026-09-10', description: 'Pasajes' },
+          { date: '2026-09-10', description: 'Menú', paymentMethodId: null, currency: 'USD' },
+        );
+
+        await expect(
+          idsOf({ month: '2026-09', q: 'menu', currency: 'PEN', categoryId: catalog.food }),
+        ).resolves.toEqual([match]);
+      });
+
+      it.each([
+        ['month together with from', { month: '2026-09', from: '2026-09-01' }],
+        ['from after to', { from: '2026-09-02', to: '2026-09-01' }],
+        ['an unknown type', { type: 'EXPENSE' }],
+        ['a limit of zero', { limit: '0' }],
+      ])('rejects %s with 422', async (_case, query) => {
+        const response = await list(query).expect(422);
+
+        expect(codeOf(response)).toBe(problemType('VALIDATION_FAILED'));
+      });
+    });
+
+    it('leaves out the deleted ones, but keeps those of an archived category', async () => {
+      const [kept, deleted] = await registerAll({}, {});
+      await remove(deleted ?? '').expect(204);
+      await request(server)
+        .patch(`${CATEGORIES}/${catalog.food}`)
+        .set('Authorization', `Bearer ${ana}`)
+        .send({ archived: true })
+        .expect(200);
+
+      await expect(idsOf()).resolves.toEqual([kept]);
+    });
+
+    it('adds up everything filtered, by currency', async () => {
+      await registerAll(
+        { type: 'INCOME', categoryId: catalog.salary, amount: '1000.00' },
+        { amount: '25.90' },
+        { amount: '0.10' },
+        { amount: '5.00', paymentMethodId: null, currency: 'USD' },
+      );
+
+      const { totals } = await listed({ limit: '1' });
+
+      expect(totals).toEqual([
+        {
+          currency: 'PEN',
+          income: '1000.00',
+          expense: '26.00',
+          saving: '0.00',
+          debt: '0.00',
+          balance: '974.00',
+        },
+        {
+          currency: 'USD',
+          income: '0.00',
+          expense: '5.00',
+          saving: '0.00',
+          debt: '0.00',
+          balance: '-5.00',
+        },
+      ]);
+    });
+
+    describe('never shows what belongs to another account', () => {
+      it('in the plain list', async () => {
+        await registerAll({}, {});
+
+        await expect(listed({}, bruno)).resolves.toEqual({
+          items: [],
+          nextCursor: null,
+          totals: [],
+        });
+      });
+
+      it('not even filtering by its category or payment method', async () => {
+        await registerAll({});
+
+        await expect(listed({ categoryId: catalog.food }, bruno)).resolves.toMatchObject({
+          items: [],
+          totals: [],
+        });
+        await expect(listed({ paymentMethodId: catalog.payroll }, bruno)).resolves.toMatchObject({
+          items: [],
+          totals: [],
+        });
+      });
+
+      it('nor with a cursor taken from its list', async () => {
+        await registerAll({}, {});
+        const { nextCursor } = await listed({ limit: '1' });
+
+        await expect(listed({ cursor: nextCursor ?? '' }, bruno)).resolves.toMatchObject({
+          items: [],
+        });
+      });
+    });
+  });
+
   describe('access', () => {
     const one = `${TRANSACTIONS}/${MISSING_ID}`;
     const routes = [
+      ['GET', TRANSACTIONS],
       ['POST', TRANSACTIONS],
       ['GET', one],
       ['PATCH', one],

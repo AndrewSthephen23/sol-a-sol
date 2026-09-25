@@ -12,6 +12,9 @@ export interface CatalogReader {
     id: string,
   ): Promise<{ type: TransactionType; archived: boolean } | null>;
 
+  /** La categoría y sus subcategorías (archivadas incluidas), o `null`. */
+  categoryFamily(userId: string, id: string): Promise<string[] | null>;
+
   paymentMethod(
     userId: string,
     id: string,

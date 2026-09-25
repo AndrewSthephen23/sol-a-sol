@@ -6,6 +6,13 @@ import { currencySchema } from '../catalog/payment-methods.js';
 /** Topes defensivos, no reglas de negocio. */
 export const TRANSACTION_DESCRIPTION_MAX_LENGTH = 200;
 export const MERCHANT_MAX_LENGTH = 80;
+export const SEARCH_MAX_LENGTH = 100;
+/** Un cursor es opaco, pero no infinito: lo que no quepa aquí no es un cursor nuestro. */
+export const CURSOR_MAX_LENGTH = 200;
+
+/** Filas por página si no se pide otra cantidad, y el máximo: pedir más se recorta. */
+export const TRANSACTIONS_DEFAULT_LIMIT = 50;
+export const TRANSACTIONS_MAX_LIMIT = 100;
 
 /**
  * Hasta 16 cifras enteras: lo que cabe en `NUMERIC(18,2)`. Más sería un 500 de la base, no un
@@ -86,3 +93,45 @@ export const updateTransactionRequestSchema = z
   .refine((body) => Object.keys(body).length > 0, { message: 'Nothing to change.' });
 
 export type UpdateTransactionRequest = z.infer<typeof updateTransactionRequestSchema>;
+
+/**
+ * Filtros del listado. Todos opcionales y combinables; sin fechas, trae todo lo registrado.
+ *
+ * - `month` (`YYYY-MM`) o `from`/`to` (inclusivos), no los dos a la vez.
+ * - `categoryId` trae también las transacciones de sus subcategorías.
+ * - `q` busca en la descripción y el comercio, sin distinguir mayúsculas ni tildes.
+ * - `limit` por defecto 50; más de 100 se recorta a 100.
+ * - `cursor` es el `nextCursor` de la página anterior, tal cual: su contenido no es contrato.
+ */
+export const listTransactionsQuerySchema = z
+  .object({
+    month: z
+      .string()
+      .regex(/^\d{4}-(?:0[1-9]|1[0-2])$/u, { message: 'Expected a month such as "2026-09".' })
+      .optional(),
+    from: z.iso.date().optional(),
+    to: z.iso.date().optional(),
+    type: transactionTypeSchema.optional(),
+    categoryId: z.uuid().optional(),
+    paymentMethodId: z.uuid().optional(),
+    currency: currencySchema.optional(),
+    q: z.string().trim().min(1).max(SEARCH_MAX_LENGTH).optional(),
+    cursor: z.string().min(1).max(CURSOR_MAX_LENGTH).optional(),
+    limit: z
+      .string()
+      .regex(/^\d{1,6}$/u)
+      .transform(Number)
+      .pipe(z.int().min(1))
+      .transform((limit) => Math.min(limit, TRANSACTIONS_MAX_LIMIT))
+      .default(TRANSACTIONS_DEFAULT_LIMIT),
+  })
+  .refine((query) => query.month === undefined || (query.from ?? query.to) === undefined, {
+    message: 'Use either month or from/to, not both.',
+    path: ['month'],
+  })
+  .refine((query) => query.from === undefined || query.to === undefined || query.from <= query.to, {
+    message: 'from cannot be after to.',
+    path: ['from'],
+  });
+
+export type ListTransactionsQuery = z.infer<typeof listTransactionsQuerySchema>;

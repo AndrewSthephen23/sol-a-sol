@@ -94,6 +94,7 @@ describe('buildOpenApiDocument', () => {
         isFeatureEnabled: (module) => module === 'transactions',
       }) as unknown as Document;
 
+      expect(withTransactions.paths).toHaveProperty(['/api/v1/transactions', 'get']);
       expect(withTransactions.paths).toHaveProperty(['/api/v1/transactions', 'post']);
       expect(withTransactions.paths).toHaveProperty(['/api/v1/transactions/{id}', 'get']);
       expect(withTransactions.paths).toHaveProperty(['/api/v1/transactions/{id}', 'patch']);
