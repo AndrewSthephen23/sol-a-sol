@@ -5,6 +5,10 @@ import {
   createPersonalAccessTokenRequestSchema,
   createTransactionRequestSchema,
   currencySchema,
+  CURSOR_MAX_LENGTH,
+  SEARCH_MAX_LENGTH,
+  TRANSACTIONS_DEFAULT_LIMIT,
+  TRANSACTIONS_MAX_LIMIT,
   paymentMethodKindSchema,
   transactionSourceSchema,
   transactionTypeSchema,
@@ -159,25 +163,52 @@ const PAYMENT_METHOD_RULES =
   'efectivo pueden no llevarla. El efectivo no tiene banco. Un número más largo que 4 dígitos ' +
   'se rechaza, nunca se recorta.';
 
-const TRANSACTION_SCHEMA = schemaOf(
+const TRANSACTION = z.object({
+  id: z.uuid(),
+  date: z.iso.date().describe('Día en que pasó, sin hora.'),
+  type: transactionTypeSchema,
+  categoryId: z.uuid(),
+  amount: z
+    .string()
+    .describe(
+      'String decimal con 2 decimales (`"25.90"`). Siempre positivo: el signo lo da `type`.',
+    ),
+  currency: currencySchema,
+  description: z.string(),
+  paymentMethodId: z.uuid().nullable().describe('Nulo si no se dijo con qué se pagó.'),
+  merchant: z.string().nullable(),
+  source: transactionSourceSchema.describe('De dónde llegó. No cambia al editar.'),
+  captureId: z.uuid().nullable().describe('Captura del celular de la que salió (H7).'),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+
+const TRANSACTION_SCHEMA = schemaOf(TRANSACTION);
+
+const decimal = (description: string) => z.string().describe(`String decimal. ${description}`);
+
+const TRANSACTION_LIST_SCHEMA = schemaOf(
   z.object({
-    id: z.uuid(),
-    date: z.iso.date().describe('Día en que pasó, sin hora.'),
-    type: transactionTypeSchema,
-    categoryId: z.uuid(),
-    amount: z
+    items: z.array(TRANSACTION).describe('La página, de la fecha más reciente a la más antigua.'),
+    nextCursor: z
       .string()
+      .nullable()
+      .describe('Se manda tal cual en `?cursor=` para la página siguiente. Nulo si no hay más.'),
+    totals: z
+      .array(
+        z.object({
+          currency: currencySchema,
+          income: decimal('Ingresos.'),
+          expense: decimal('Gasto fijo + variable.'),
+          saving: decimal('Ahorro + inversión.'),
+          debt: decimal('Pagos de deuda.'),
+          balance: decimal('Ingresos menos todo lo demás. Puede ser negativo.'),
+        }),
+      )
       .describe(
-        'String decimal con 2 decimales (`"25.90"`). Siempre positivo: el signo lo da `type`.',
+        'De **todo** lo filtrado, no solo de esta página. Una entrada por moneda con ' +
+          'movimientos, primero soles; nunca se convierte.',
       ),
-    currency: currencySchema,
-    description: z.string(),
-    paymentMethodId: z.uuid().nullable().describe('Nulo si no se dijo con qué se pagó.'),
-    merchant: z.string().nullable(),
-    source: transactionSourceSchema.describe('De dónde llegó. No cambia al editar.'),
-    captureId: z.uuid().nullable().describe('Captura del celular de la que salió (H7).'),
-    createdAt: z.iso.datetime(),
-    updatedAt: z.iso.datetime(),
   }),
 );
 
@@ -187,6 +218,20 @@ const TRANSACTION_ID_PARAMETER = {
   required: true,
   schema: { type: 'string', format: 'uuid' },
 };
+
+function queryParameter(
+  name: string,
+  schema: Record<string, unknown>,
+  description?: string,
+): Record<string, unknown> {
+  return {
+    name,
+    in: 'query',
+    required: false,
+    schema,
+    ...(description === undefined ? {} : { description }),
+  };
+}
 
 function transactionResponse(description: string): Record<string, unknown> {
   return { description, content: { 'application/json': { schema: TRANSACTION_SCHEMA } } };
@@ -644,6 +689,61 @@ function transactionsPaths(): Record<string, unknown> {
 
   return {
     [`/${API_PREFIX}/transactions`]: {
+      get: {
+        tags: ['transactions'],
+        summary: 'Lista las transacciones, con filtros, búsqueda y totales.',
+        description:
+          'De la fecha más reciente a la más antigua y, en el mismo día, de la última ' +
+          'registrada a la primera. Sin fechas trae todo. Las borradas no aparecen; las de ' +
+          'categorías o métodos archivados, sí. Paginación por cursor: lo que se registre o se ' +
+          'borre entre dos páginas no hace repetir ni saltar filas.',
+        security: [{ accessToken: [] }],
+        parameters: [
+          queryParameter(
+            'month',
+            { type: 'string', pattern: '^\\d{4}-(0[1-9]|1[0-2])$' },
+            'Un mes, `YYYY-MM`. No va junto con `from` o `to`.',
+          ),
+          queryParameter('from', { type: 'string', format: 'date' }, 'Desde este día, inclusive.'),
+          queryParameter('to', { type: 'string', format: 'date' }, 'Hasta este día, inclusive.'),
+          queryParameter('type', schemaOf(transactionTypeSchema)),
+          queryParameter(
+            'categoryId',
+            { type: 'string', format: 'uuid' },
+            'Trae también sus subcategorías. Una categoría ajena no trae nada.',
+          ),
+          queryParameter('paymentMethodId', { type: 'string', format: 'uuid' }),
+          queryParameter('currency', schemaOf(currencySchema)),
+          queryParameter(
+            'q',
+            { type: 'string', maxLength: SEARCH_MAX_LENGTH },
+            'Texto a buscar en la descripción o el comercio, sin distinguir mayúsculas ni tildes.',
+          ),
+          queryParameter(
+            'cursor',
+            { type: 'string', maxLength: CURSOR_MAX_LENGTH },
+            'El `nextCursor` de la página anterior, tal cual. Su contenido no es contrato.',
+          ),
+          queryParameter(
+            'limit',
+            { type: 'integer', minimum: 1, default: TRANSACTIONS_DEFAULT_LIMIT },
+            `Filas por página. Más de ${String(TRANSACTIONS_MAX_LIMIT)} se recorta a ${String(TRANSACTIONS_MAX_LIMIT)}.`,
+          ),
+        ],
+        responses: {
+          '200': {
+            description: 'Una página y los totales de lo filtrado.',
+            content: { 'application/json': { schema: TRANSACTION_LIST_SCHEMA } },
+          },
+          '401': unauthorized,
+          '403': forbidden,
+          '422': problem(
+            'Un filtro no tiene un valor válido, se mandaron `month` y `from`/`to` a la vez, ' +
+              '`from` es posterior a `to`, o el cursor no es uno que haya dado la API ' +
+              '(`INVALID_CURSOR`).',
+          ),
+        },
+      },
       post: {
         tags: ['transactions'],
         summary: 'Registra una transacción.',

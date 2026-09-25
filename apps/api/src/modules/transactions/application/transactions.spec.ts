@@ -30,6 +30,8 @@ import {
   CreateTransaction,
   DeleteTransaction,
   GetTransaction,
+  type ListTransactionsInput,
+  ListTransactions,
   RestoreTransaction,
   type TransactionCorrection,
   UpdateTransaction,
@@ -49,6 +51,7 @@ const SUPERMARKET = 'category-supermarket';
 const RENT = 'category-rent';
 const OLD_FOOD = 'category-old-food';
 const USD_ACCOUNT = 'method-usd-account';
+const DELIVERY = 'category-delivery';
 /** Las 21:30 del 24/09/2026 en Lima: en UTC ya es el 25. */
 const NOW = '2026-09-25T02:30:00.000Z';
 
@@ -72,6 +75,7 @@ describe('transactions', () => {
   let update: UpdateTransaction;
   let remove: DeleteTransaction;
   let restore: RestoreTransaction;
+  let list: ListTransactions;
 
   beforeEach(() => {
     transactions = new FakeTransactionRepository();
@@ -81,6 +85,7 @@ describe('transactions', () => {
       .withCategory(ANA, SALARY, { type: 'INCOME' })
       .withCategory(ANA, NETFLIX, { type: 'FIXED_EXPENSE', archived: true })
       .withCategory(ANA, SUPERMARKET, { type: 'VARIABLE_EXPENSE' })
+      .withCategory(ANA, DELIVERY, { type: 'VARIABLE_EXPENSE', parentId: FOOD })
       .withCategory(ANA, RENT, { type: 'FIXED_EXPENSE' })
       .withCategory(ANA, OLD_FOOD, { type: 'VARIABLE_EXPENSE', archived: true })
       .withCategory(BRUNO, BRUNO_FOOD, { type: 'VARIABLE_EXPENSE' })
@@ -95,6 +100,7 @@ describe('transactions', () => {
     update = new UpdateTransaction(transactions, catalog, events, clock);
     remove = new DeleteTransaction(transactions, events, clock);
     restore = new RestoreTransaction(transactions, events);
+    list = new ListTransactions(transactions, catalog);
   });
 
   describe('registering one', () => {
@@ -548,6 +554,237 @@ describe('transactions', () => {
         TransactionNotFoundError,
       );
       await expect(get.execute({ userId: ANA, id })).rejects.toThrow(TransactionNotFoundError);
+    });
+  });
+
+  describe('listing', () => {
+    /** Registra varias, en el orden dado (el id crece con cada una, como un UUIDv7). */
+    async function registerAll(...changes: Partial<CreateTransactionInput>[]): Promise<string[]> {
+      const ids: string[] = [];
+      for (const change of changes) {
+        ids.push((await create.execute({ ...LUNCH, ...change })).id);
+      }
+
+      return ids;
+    }
+
+    function page(input: Partial<ListTransactionsInput> = {}) {
+      return list.execute({ userId: ANA, after: null, limit: 50, ...input });
+    }
+
+    async function idsOf(input: Partial<ListTransactionsInput> = {}): Promise<string[]> {
+      return (await page(input)).items.map((item) => item.id);
+    }
+
+    it('goes from the newest date and, within a day, from the last registered', async () => {
+      const [old, first, second] = await registerAll(
+        { date: '2026-09-01' },
+        { date: '2026-09-10' },
+        { date: '2026-09-10' },
+      );
+
+      await expect(idsOf()).resolves.toEqual([second, first, old]);
+    });
+
+    describe('by pages', () => {
+      it('follows the cursor to the end without repeating or skipping', async () => {
+        const all = await registerAll(
+          { date: '2026-09-05' },
+          { date: '2026-09-04' },
+          { date: '2026-09-04' },
+          { date: '2026-09-03' },
+          { date: '2026-09-02' },
+        );
+        const seen: string[] = [];
+        let after = null;
+
+        for (;;) {
+          const current = await page({ after, limit: 2 });
+          seen.push(...current.items.map((item) => item.id));
+          if (current.next === null) break;
+          after = current.next;
+        }
+
+        expect(seen.toSorted()).toEqual(all.toSorted());
+        expect(new Set(seen).size).toBe(all.length);
+      });
+
+      it('says there is no next page when the last one is exactly full', async () => {
+        await registerAll({}, {});
+
+        await expect(page({ limit: 2 })).resolves.toMatchObject({ next: null });
+      });
+
+      it('points the next page at the last row delivered', async () => {
+        const [older, newer] = await registerAll({ date: '2026-09-01' }, { date: '2026-09-02' });
+
+        const first = await page({ limit: 1 });
+
+        expect(first.items.map((item) => item.id)).toEqual([newer]);
+        expect(first.next?.id).toBe(newer);
+        await expect(idsOf({ after: first.next, limit: 1 })).resolves.toEqual([older]);
+      });
+
+      // Con números de página, un alta entre dos páginas repetiría una fila.
+      it('is not moved by what is registered or deleted between two pages', async () => {
+        const [a, b, c, d] = await registerAll(
+          { date: '2026-09-04' },
+          { date: '2026-09-03' },
+          { date: '2026-09-02' },
+          { date: '2026-09-01' },
+        );
+        const first = await page({ limit: 2 });
+        await registerAll({ date: '2026-09-05' });
+        await remove.execute({ userId: ANA, id: a ?? '' });
+
+        const second = await page({ after: first.next, limit: 2 });
+
+        expect(first.items.map((item) => item.id)).toEqual([a, b]);
+        expect(second.items.map((item) => item.id)).toEqual([c, d]);
+      });
+    });
+
+    describe('filters', () => {
+      it('by month, from its first to its last day', async () => {
+        const [, first, last] = await registerAll(
+          { date: '2026-07-31' },
+          { date: '2026-08-01' },
+          { date: '2026-08-31' },
+          { date: '2026-09-01' },
+        );
+
+        await expect(idsOf({ month: '2026-08' })).resolves.toEqual([last, first]);
+      });
+
+      it('by a range, both ends included', async () => {
+        const [, from, to] = await registerAll(
+          { date: '2026-09-01' },
+          { date: '2026-09-02' },
+          { date: '2026-09-03' },
+          { date: '2026-09-04' },
+        );
+
+        await expect(idsOf({ from: '2026-09-02', to: '2026-09-03' })).resolves.toEqual([to, from]);
+      });
+
+      it('by only one end of the range', async () => {
+        const [older, newer] = await registerAll({ date: '2026-09-01' }, { date: '2026-09-03' });
+
+        await expect(idsOf({ from: '2026-09-02' })).resolves.toEqual([newer]);
+        await expect(idsOf({ to: '2026-09-02' })).resolves.toEqual([older]);
+      });
+
+      it('by type', async () => {
+        const [, salary] = await registerAll({}, { type: 'INCOME', categoryId: SALARY });
+
+        await expect(idsOf({ type: 'INCOME' })).resolves.toEqual([salary]);
+      });
+
+      // Nadie espera que «Comida» deje fuera «Comida > Delivery».
+      it('by a category, bringing its subcategories too', async () => {
+        const [food, delivery] = await registerAll(
+          {},
+          { categoryId: DELIVERY },
+          { categoryId: SUPERMARKET },
+        );
+
+        await expect(idsOf({ categoryId: FOOD })).resolves.toEqual([delivery, food]);
+        await expect(idsOf({ categoryId: DELIVERY })).resolves.toEqual([delivery]);
+      });
+
+      it('by a category of another account, finding nothing and saying nothing', async () => {
+        await registerAll({});
+
+        await expect(page({ categoryId: BRUNO_FOOD })).resolves.toEqual({
+          items: [],
+          next: null,
+          totals: [],
+        });
+      });
+
+      it('by payment method and by currency', async () => {
+        const [, usd] = await registerAll({}, { paymentMethodId: null, currency: 'USD' });
+
+        await expect(idsOf({ paymentMethodId: PAYROLL })).resolves.not.toContain(usd);
+        await expect(idsOf({ currency: 'USD' })).resolves.toEqual([usd]);
+      });
+
+      it('by text, in the description or the merchant, ignoring case and accents', async () => {
+        const [menu, tambo] = await registerAll(
+          { description: 'Menú del día', merchant: null },
+          { description: 'Galletas', merchant: 'TAMBO' },
+          { description: 'Pasajes', merchant: 'Metropolitano' },
+        );
+
+        await expect(idsOf({ q: 'MENU' })).resolves.toEqual([menu]);
+        await expect(idsOf({ q: 'tambó' })).resolves.toEqual([tambo]);
+      });
+
+      it('combined', async () => {
+        const [match] = await registerAll(
+          { date: '2026-09-10', description: 'Menú' },
+          { date: '2026-08-10', description: 'Menú' },
+          { date: '2026-09-10', description: 'Pasajes' },
+        );
+
+        await expect(
+          idsOf({ month: '2026-09', q: 'menu', type: 'VARIABLE_EXPENSE' }),
+        ).resolves.toEqual([match]);
+      });
+    });
+
+    it('leaves out the deleted ones', async () => {
+      const [kept, deleted] = await registerAll({}, {});
+      await remove.execute({ userId: ANA, id: deleted ?? '' });
+
+      await expect(idsOf()).resolves.toEqual([kept]);
+    });
+
+    it('never shows what belongs to another account', async () => {
+      await registerAll({}, {});
+
+      await expect(list.execute({ userId: BRUNO, after: null, limit: 50 })).resolves.toEqual({
+        items: [],
+        next: null,
+        totals: [],
+      });
+    });
+
+    describe('totals', () => {
+      it('add up everything filtered, not only the page', async () => {
+        await registerAll(
+          { type: 'INCOME', categoryId: SALARY, amount: '1000.00' },
+          { amount: '25.90' },
+          { amount: '4.10' },
+        );
+
+        const { items, totals } = await page({ limit: 1 });
+
+        expect(items).toHaveLength(1);
+        expect(totals).toHaveLength(1);
+        expect(totals[0]?.income.toFixed()).toBe('1000.00');
+        expect(totals[0]?.expense.toFixed()).toBe('30.00');
+        expect(totals[0]?.balance.toFixed()).toBe('970.00');
+      });
+
+      it('follow the filter', async () => {
+        await registerAll({ amount: '25.90' }, { amount: '4.10', date: '2026-08-01' });
+
+        const { totals } = await page({ month: '2026-09' });
+
+        expect(totals[0]?.expense.toFixed()).toBe('25.90');
+      });
+
+      it('keep each currency apart', async () => {
+        await registerAll({}, { paymentMethodId: null, currency: 'USD', amount: '10.00' });
+
+        const { totals } = await page();
+
+        expect(totals.map((total) => [total.currency, total.expense.toFixed()])).toEqual([
+          ['PEN', '25.90'],
+          ['USD', '10.00'],
+        ]);
+      });
     });
   });
 });

@@ -8,11 +8,14 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
   type CreateTransactionRequest,
   createTransactionRequestSchema,
+  type ListTransactionsQuery,
+  listTransactionsQuerySchema,
   type UpdateTransactionRequest,
   updateTransactionRequestSchema,
 } from '@sol-a-sol/contracts';
@@ -25,11 +28,13 @@ import {
   CreateTransaction,
   DeleteTransaction,
   GetTransaction,
+  ListTransactions,
   RestoreTransaction,
   UpdateTransaction,
 } from '../application/transactions.js';
 import { TransactionNotFoundError } from '../domain/errors.js';
 import type { Transaction } from '../ports/transaction-repository.js';
+import { decodeCursor, encodeCursor } from './cursor.js';
 
 const transactionIdSchema = z.uuid();
 
@@ -50,6 +55,23 @@ export interface TransactionResponse {
   updatedAt: Date;
 }
 
+/** Totales de lo filtrado en una moneda, como strings decimales. */
+export interface TotalsResponse {
+  currency: string;
+  income: string;
+  expense: string;
+  saving: string;
+  debt: string;
+  balance: string;
+}
+
+export interface TransactionListResponse {
+  items: TransactionResponse[];
+  /** Para pedir la página siguiente con `?cursor=`; `null` si no hay más. */
+  nextCursor: string | null;
+  totals: TotalsResponse[];
+}
+
 /**
  * Transacciones: ingresos, gastos, ahorro, inversión y pagos de deuda.
  *
@@ -63,10 +85,38 @@ export class TransactionsController {
   constructor(
     private readonly createTransaction: CreateTransaction,
     private readonly getTransaction: GetTransaction,
+    private readonly listTransactions: ListTransactions,
     private readonly updateTransaction: UpdateTransaction,
     private readonly deleteTransaction: DeleteTransaction,
     private readonly restoreTransaction: RestoreTransaction,
   ) {}
+
+  /** Filtros, búsqueda y paginación por cursor; los totales son de todo lo filtrado. */
+  @Get()
+  async list(
+    @CurrentUser() userId: string,
+    @Query(new ZodValidationPipe(listTransactionsQuerySchema)) query: ListTransactionsQuery,
+  ): Promise<TransactionListResponse> {
+    const { cursor, ...filters } = query;
+    const page = await this.listTransactions.execute({
+      userId,
+      ...filters,
+      after: cursor === undefined ? null : decodeCursor(cursor),
+    });
+
+    return {
+      items: page.items.map(toResponse),
+      nextCursor: page.next === null ? null : encodeCursor(page.next),
+      totals: page.totals.map((totals) => ({
+        currency: totals.currency,
+        income: totals.income.toFixed(),
+        expense: totals.expense.toFixed(),
+        saving: totals.saving.toFixed(),
+        debt: totals.debt.toFixed(),
+        balance: totals.balance.toFixed(),
+      })),
+    };
+  }
 
   /** Lo que llega desde la web es `MANUAL`: quien llama no elige de dónde vino. */
   @Post()

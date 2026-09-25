@@ -8,6 +8,7 @@ import {
   CreateTransaction,
   DeleteTransaction,
   GetTransaction,
+  ListTransactions,
   RestoreTransaction,
   UpdateTransaction,
 } from './application/transactions.js';
@@ -29,6 +30,7 @@ import { TRANSACTION_REPOSITORY } from './ports/transaction-repository.js';
   providers: [
     CreateTransaction,
     GetTransaction,
+    ListTransactions,
     UpdateTransaction,
     DeleteTransaction,
     RestoreTransaction,

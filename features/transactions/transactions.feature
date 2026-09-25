@@ -172,3 +172,49 @@ Característica: Transacciones
       Cuando intento borrarlo
       Entonces la transacción no se encuentra
       Y Bruno la sigue viendo
+
+  Regla: El listado encuentra lo registrado y suma lo filtrado
+
+    Escenario: Lo más reciente primero
+      Dado que registré un gasto el 01/09/2026 y otro el 10/09/2026
+      Cuando veo mis transacciones
+      Entonces la del 10/09/2026 aparece primero
+
+    Escenario: Filtrar por una categoría trae sus subcategorías
+      Dado que tengo la categoría "Comida" con la subcategoría "Delivery"
+      Y registré un gasto en "Comida" y otro en "Delivery"
+      Cuando filtro por "Comida"
+      Entonces veo los dos gastos
+
+    Escenario: La búsqueda no distingue mayúsculas ni tildes
+      Dado que registré un gasto con la descripción "Menú del DÍA"
+      Cuando busco "menu del dia"
+      Entonces lo encuentro
+
+    Escenario: La ñ no es una tilde
+      Dado que registré un gasto con la descripción "Seguro del año"
+      Cuando busco "ano"
+      Entonces no lo encuentro
+
+    Escenario: Los totales son de todo lo filtrado, por moneda
+      Dado que en septiembre tuve ingresos por "S/ 1,000.00" y gastos por "S/ 26.00"
+      Y un gasto de "US$ 5.00"
+      Cuando veo septiembre de a una transacción por página
+      Entonces el saldo en soles es "S/ 974.00"
+      Y el saldo en dólares es "US$ -5.00"
+
+    Escenario: Pasar de página no repite ni salta filas aunque registre algo entre medio
+      Dado que tengo cuatro gastos y vi la primera página de dos
+      Cuando registro un gasto nuevo y borro uno de la primera página
+      Y pido la página siguiente
+      Entonces veo los dos gastos que faltaban, sin repetir ninguno
+
+    Escenario: Lo borrado no aparece
+      Dado que borré un gasto
+      Cuando veo mis transacciones
+      Entonces no aparece
+
+    Escenario: No veo lo de otra persona ni filtrando por su categoría
+      Dado que Bruno registró gastos en su categoría "Almuerzos"
+      Cuando filtro mis transacciones por la categoría de Bruno
+      Entonces no veo ninguna

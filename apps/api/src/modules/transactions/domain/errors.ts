@@ -32,3 +32,15 @@ export class PaymentMethodNotFoundError extends DomainError {
     super('Payment method not found.');
   }
 }
+
+/**
+ * El cursor no es uno que haya dado la API: está cortado, se armó a mano o es de otra versión.
+ * Se vuelve a pedir la primera página.
+ */
+export class InvalidCursorError extends DomainError {
+  readonly code = 'INVALID_CURSOR';
+
+  constructor() {
+    super('The cursor is not valid: ask for the first page again.');
+  }
+}

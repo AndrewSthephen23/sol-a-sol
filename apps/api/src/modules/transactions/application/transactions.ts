@@ -9,8 +9,11 @@ import {
   LocalDate,
   Money,
   resolveTransactionCurrency,
+  searchKey,
   today,
+  totalsByCurrency,
   type TransactionSource,
+  type TransactionTotals,
   type TransactionType,
 } from '@sol-a-sol/domain';
 
@@ -33,8 +36,9 @@ import {
 } from '../domain/events.js';
 import { CATALOG_READER, type CatalogReader } from '../ports/catalog-reader.js';
 import {
+  type PagePosition,
   type Transaction,
-  type TransactionChanges,
+  type TransactionFilter,
   TRANSACTION_REPOSITORY,
   type TransactionRepository,
 } from '../ports/transaction-repository.js';
@@ -254,8 +258,10 @@ function amountOf(current: Transaction, changes: TransactionCorrection): Money |
 }
 
 /** Quita las claves sin valor: `undefined` es "no se tocó", `null` es "se quitó". */
-function definedOnly(changes: TransactionChanges): TransactionChanges {
-  return Object.fromEntries(Object.entries(changes).filter(([, value]) => value !== undefined));
+function definedOnly<T extends object>(values: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(values).filter(([, value]) => value !== undefined),
+  ) as Partial<T>;
 }
 
 /** Borrado lógico: la fila queda para la auditoría y se puede restaurar. */
@@ -303,4 +309,97 @@ export class RestoreTransaction {
 
     return transaction;
   }
+}
+
+export interface ListTransactionsInput {
+  userId: string;
+  /** `YYYY-MM`. No va junto con `from` o `to`. */
+  month?: string;
+  /** `YYYY-MM-DD`, inclusivo. */
+  from?: string;
+  /** `YYYY-MM-DD`, inclusivo. */
+  to?: string;
+  type?: TransactionType;
+  categoryId?: string;
+  paymentMethodId?: string;
+  currency?: Currency;
+  /** Texto a buscar en la descripción o el comercio. */
+  q?: string;
+  after: PagePosition | null;
+  limit: number;
+}
+
+export interface TransactionPage {
+  items: Transaction[];
+  /** Dónde sigue la próxima página, o `null` si esta es la última. */
+  next: PagePosition | null;
+  /** De **todo** lo filtrado, no solo de esta página, por moneda. */
+  totals: TransactionTotals[];
+}
+
+const EMPTY_PAGE: TransactionPage = { items: [], next: null, totals: [] };
+
+/**
+ * El listado de la cuenta, con filtros y paginación por cursor. Las borradas no aparecen (no hay
+ * papelera). Las que están en una categoría o un método archivados, sí: siguen siendo historia.
+ */
+@Injectable()
+export class ListTransactions {
+  constructor(
+    @Inject(TRANSACTION_REPOSITORY) private readonly transactions: TransactionRepository,
+    @Inject(CATALOG_READER) private readonly catalog: CatalogReader,
+  ) {}
+
+  async execute(input: ListTransactionsInput): Promise<TransactionPage> {
+    const { userId, limit } = input;
+    const categoryIds = await this.categoryIds(input);
+    // Una categoría que no existe o es ajena no tiene transacciones de esta cuenta: lista vacía,
+    // sin decir si existe.
+    if (categoryIds === null) return EMPTY_PAGE;
+
+    const filter: TransactionFilter = {
+      ...dateRange(input),
+      ...definedOnly({
+        type: input.type,
+        paymentMethodId: input.paymentMethodId,
+        currency: input.currency,
+        categoryIds,
+        search: input.q === undefined ? undefined : searchKey(input.q),
+      }),
+    };
+    // Una fila de más dice si hay otra página sin contar todas.
+    const rows = await this.transactions.list(userId, filter, {
+      after: input.after,
+      limit: limit + 1,
+    });
+    const items = rows.slice(0, limit);
+    const last = items.at(-1);
+
+    return {
+      items,
+      next: rows.length > limit && last !== undefined ? { date: last.date, id: last.id } : null,
+      totals: totalsByCurrency(await this.transactions.totals(userId, filter)),
+    };
+  }
+
+  /** `undefined` si no se filtra por categoría; `null` si no existe o es ajena. */
+  private async categoryIds(input: ListTransactionsInput): Promise<string[] | null | undefined> {
+    if (input.categoryId === undefined) return undefined;
+
+    return this.catalog.categoryFamily(input.userId, input.categoryId);
+  }
+}
+
+/** Un mes va del día 1 a su último día; si no, `from` y `to` tal como llegan. */
+function dateRange(input: ListTransactionsInput): Pick<TransactionFilter, 'from' | 'to'> {
+  if (input.month !== undefined) {
+    const first = LocalDate.parse(`${input.month}-01`);
+
+    return { from: first, to: first.lastDayOfMonth() };
+  }
+
+  return definedOnly({
+    from: input.from === undefined ? undefined : LocalDate.parse(input.from),
+    to: input.to === undefined ? undefined : LocalDate.parse(input.to),
+  });
 }

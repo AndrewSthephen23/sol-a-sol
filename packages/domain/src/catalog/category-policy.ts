@@ -1,16 +1,6 @@
 import { DomainError } from '../errors/domain-error.js';
+import { searchKey } from '../text/search-key.js';
 import type { TransactionType } from '../transactions/transaction-policy.js';
-
-/**
- * Acentos que se ignoran al comparar nombres, con su letra sin acento. **La ñ no está**: no es
- * una tilde sino otra letra, y "Año" y "Ano" son palabras distintas.
- *
- * La migración `catalog_category_names_ignore_accents` repite esta misma tabla en el índice
- * único de la base; una prueba de integración comprueba que las dos coincidan.
- */
-const ACCENTED = 'áéíóúàèìòùäëïöü';
-const PLAIN = 'aeiouaeiouaeiou';
-const ACCENT_PATTERN = new RegExp(`[${ACCENTED}]`, 'gu');
 
 /** `#RRGGBB`, el formato que entienden los gráficos y la web. */
 const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;
@@ -57,13 +47,13 @@ export class InvalidCategoryColorError extends DomainError {
 
 /**
  * La forma de un nombre con la que se comparan dos categorías: sin espacios en los bordes, en
- * minúsculas y sin acentos. "Café", "CAFE" y " cafe " son la misma categoría.
+ * minúsculas y sin acentos (`searchKey`). "Café", "CAFE" y " cafe " son la misma categoría.
+ *
+ * La migración `catalog_category_names_ignore_accents` repite la tabla de acentos en el índice
+ * único de la base; una prueba de integración comprueba que coincidan.
  */
 export function categoryNameKey(name: string): string {
-  return name
-    .trim()
-    .toLowerCase()
-    .replaceAll(ACCENT_PATTERN, (letter) => PLAIN.charAt(ACCENTED.indexOf(letter)));
+  return searchKey(name);
 }
 
 /**

@@ -137,3 +137,9 @@ export {
   resolveCategoryType,
   SubcategoryTypeMismatchError,
 } from './catalog/category-policy.js';
+export { ACCENT_FOLD_FROM, ACCENT_FOLD_TO, searchKey } from './text/search-key.js';
+export {
+  totalsByCurrency,
+  type TransactionTotals,
+  type TypedAmount,
+} from './transactions/transaction-totals.js';
