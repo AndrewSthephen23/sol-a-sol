@@ -59,4 +59,6 @@ export {
   MERCHANT_MAX_LENGTH,
   TRANSACTION_DESCRIPTION_MAX_LENGTH,
   transactionSourceSchema,
+  type UpdateTransactionRequest,
+  updateTransactionRequestSchema,
 } from './transactions/transactions.js';

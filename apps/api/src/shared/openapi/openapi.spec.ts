@@ -96,6 +96,9 @@ describe('buildOpenApiDocument', () => {
 
       expect(withTransactions.paths).toHaveProperty(['/api/v1/transactions', 'post']);
       expect(withTransactions.paths).toHaveProperty(['/api/v1/transactions/{id}', 'get']);
+      expect(withTransactions.paths).toHaveProperty(['/api/v1/transactions/{id}', 'patch']);
+      expect(withTransactions.paths).toHaveProperty(['/api/v1/transactions/{id}', 'delete']);
+      expect(withTransactions.paths).toHaveProperty(['/api/v1/transactions/{id}/restore', 'post']);
       expect(JSON.stringify(documentWith(true))).not.toMatch(/transaction/i);
     });
   });

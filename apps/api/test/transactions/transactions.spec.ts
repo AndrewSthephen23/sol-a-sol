@@ -41,6 +41,7 @@ interface TransactionBody {
 /** Lo que Ana tiene en su catálogo para registrar. */
 interface Catalog {
   food: string;
+  rent: string;
   salary: string;
   payroll: string;
   visa: string;
@@ -81,6 +82,7 @@ describe('transactions', () => {
     bruno = await sessionOf(BRUNO);
     catalog = {
       food: await categoryOf(ana, { name: 'Almuerzos', type: 'VARIABLE_EXPENSE' }),
+      rent: await categoryOf(ana, { name: 'Alquiler', type: 'FIXED_EXPENSE' }),
       salary: await categoryOf(ana, { name: 'Planilla', type: 'INCOME' }),
       payroll: await methodOf(ana, {
         kind: 'ACCOUNT',
@@ -161,6 +163,25 @@ describe('transactions', () => {
 
   function get(id: string, session = ana): request.Test {
     return request(server).get(`${TRANSACTIONS}/${id}`).set('Authorization', `Bearer ${session}`);
+  }
+
+  function patch(id: string, body: object, session = ana): request.Test {
+    return request(server)
+      .patch(`${TRANSACTIONS}/${id}`)
+      .set('Authorization', `Bearer ${session}`)
+      .send(body);
+  }
+
+  function remove(id: string, session = ana): request.Test {
+    return request(server)
+      .delete(`${TRANSACTIONS}/${id}`)
+      .set('Authorization', `Bearer ${session}`);
+  }
+
+  function restore(id: string, session = ana): request.Test {
+    return request(server)
+      .post(`${TRANSACTIONS}/${id}/restore`)
+      .set('Authorization', `Bearer ${session}`);
   }
 
   function codeOf(response: request.Response): string {
@@ -377,16 +398,239 @@ describe('transactions', () => {
     });
   });
 
+  describe('correcting one', () => {
+    it('changes only what was sent', async () => {
+      const created = await register();
+
+      const response = await patch(created.id, { description: 'Menú', merchant: null }).expect(200);
+
+      expect(response.body).toMatchObject({
+        ...created,
+        description: 'Menú',
+        merchant: null,
+        updatedAt: expect.any(String) as string,
+      });
+    });
+
+    it('keeps the new amount exact down to the column', async () => {
+      const created = await register();
+
+      await patch(created.id, { amount: '1234567890123.47' }).expect(200);
+
+      await expect(storedAmount(created.id)).resolves.toBe('1234567890123.47');
+    });
+
+    it('changes the currency only when it is sent', async () => {
+      const created = await register();
+      const cash = await methodOf(ana, { kind: 'CASH', alias: 'Efectivo' });
+
+      const kept = await patch(created.id, { paymentMethodId: cash }).expect(200);
+      const changed = await patch(created.id, { currency: 'USD' }).expect(200);
+
+      expect(kept.body).toMatchObject({ paymentMethodId: cash, currency: 'PEN' });
+      expect(changed.body).toMatchObject({ amount: '25.90', currency: 'USD' });
+    });
+
+    it('moves it to a day of a past month', async () => {
+      const created = await register();
+
+      await expect(patch(created.id, { date: '2025-12-31' }).expect(200)).resolves.toMatchObject({
+        body: { date: '2025-12-31' },
+      });
+    });
+
+    it('changes the type together with a category of that type', async () => {
+      const created = await register();
+
+      const response = await patch(created.id, {
+        type: 'FIXED_EXPENSE',
+        categoryId: catalog.rent,
+      }).expect(200);
+
+      expect(response.body).toMatchObject({ type: 'FIXED_EXPENSE', categoryId: catalog.rent });
+    });
+
+    // Una importada sigue diciendo que vino de un CSV aunque se corrija a mano.
+    it('keeps where it came from', async () => {
+      const created = await register();
+      await prisma.transaction.update({ where: { id: created.id }, data: { source: 'IMPORT' } });
+
+      const response = await patch(created.id, { amount: '30.00' }).expect(200);
+
+      expect(response.body).toMatchObject({ source: 'IMPORT', amount: '30.00' });
+    });
+
+    // Una categoría archivada sigue en las transacciones viejas, y corregirlas no obliga a sacarlas.
+    it('keeps working on a transaction whose category was archived later', async () => {
+      const created = await register();
+      await request(server)
+        .patch(`${CATEGORIES}/${catalog.food}`)
+        .set('Authorization', `Bearer ${ana}`)
+        .send({ archived: true })
+        .expect(200);
+
+      await patch(created.id, { amount: '26.00' }).expect(200);
+    });
+
+    describe('is rejected with 422', () => {
+      it.each([
+        ['changing the type alone', { type: 'FIXED_EXPENSE' }, 'CATEGORY_TYPE_MISMATCH'],
+        ['a third decimal', { amount: '25.905' }, 'INVALID_AMOUNT'],
+        ['a zero amount', { amount: '0' }, 'TRANSACTION_AMOUNT_NOT_POSITIVE'],
+        ['a source in the body', { source: 'MANUAL' }, 'VALIDATION_FAILED'],
+        ['an empty change', {}, 'VALIDATION_FAILED'],
+      ])('for %s', async (_case, body, code) => {
+        const created = await register();
+
+        const response = await patch(created.id, body).expect(422);
+
+        expect(codeOf(response)).toBe(problemType(code));
+        await expect(get(created.id).expect(200)).resolves.toMatchObject({ body: created });
+      });
+
+      it('for a new date in the future', async () => {
+        const created = await register();
+        const later = LocalDate.fromInstant(new Date(), PERU_TIME_ZONE).plusDays(2).toString();
+
+        const response = await patch(created.id, { date: later }).expect(422);
+
+        expect(codeOf(response)).toBe(problemType('TRANSACTION_DATE_IN_FUTURE'));
+      });
+    });
+
+    describe('answers 404', () => {
+      it('for the transaction of another account, and leaves it as it was', async () => {
+        const created = await register();
+
+        const response = await patch(created.id, { amount: '1.00' }, bruno).expect(404);
+
+        expect(codeOf(response)).toBe(problemType('TRANSACTION_NOT_FOUND'));
+        await expect(storedAmount(created.id)).resolves.toBe('25.90');
+      });
+
+      it('for a deleted transaction', async () => {
+        const created = await register();
+        await remove(created.id).expect(204);
+
+        await patch(created.id, { amount: '1.00' }).expect(404);
+      });
+
+      it('for a category of another account', async () => {
+        const created = await register();
+        const hers = await categoryOf(bruno, { name: 'Almuerzos', type: 'VARIABLE_EXPENSE' });
+
+        const response = await patch(created.id, { categoryId: hers }).expect(404);
+
+        expect(codeOf(response)).toBe(problemType('CATEGORY_NOT_FOUND'));
+      });
+
+      it('for a payment method of another account', async () => {
+        const created = await register();
+        const hers = await methodOf(bruno, { kind: 'CASH', alias: 'Efectivo' });
+
+        const response = await patch(created.id, { paymentMethodId: hers }).expect(404);
+
+        expect(codeOf(response)).toBe(problemType('PAYMENT_METHOD_NOT_FOUND'));
+      });
+    });
+  });
+
+  describe('deleting one', () => {
+    it('stops showing it, but keeps the row for the audit', async () => {
+      const created = await register();
+
+      await remove(created.id).expect(204);
+
+      await get(created.id).expect(404);
+      const row = await prisma.transaction.findUnique({ where: { id: created.id } });
+      expect(row?.deletedAt).toBeInstanceOf(Date);
+    });
+
+    it('answers 404 the second time', async () => {
+      const created = await register();
+      await remove(created.id).expect(204);
+
+      const response = await remove(created.id).expect(404);
+
+      expect(codeOf(response)).toBe(problemType('TRANSACTION_NOT_FOUND'));
+    });
+
+    it('does not delete the transaction of another account', async () => {
+      const created = await register();
+
+      await remove(created.id, bruno).expect(404);
+
+      await get(created.id).expect(200);
+    });
+  });
+
+  describe('restoring one', () => {
+    it('brings it back as it was', async () => {
+      const created = await register();
+      await remove(created.id).expect(204);
+
+      const response = await restore(created.id).expect(200);
+
+      expect(response.body).toMatchObject({ ...created, updatedAt: expect.any(String) as string });
+      await get(created.id).expect(200);
+    });
+
+    // Sin plazo: el aviso de unos segundos es cosa de la interfaz.
+    it('works long after the deletion', async () => {
+      const created = await register();
+      await prisma.transaction.update({
+        where: { id: created.id },
+        data: { deletedAt: new Date('2026-01-01T00:00:00.000Z') },
+      });
+
+      await restore(created.id).expect(200);
+    });
+
+    // Un doble clic en «Deshacer» no es un error.
+    it('returns a transaction that is not deleted as it is', async () => {
+      const created = await register();
+
+      const response = await restore(created.id).expect(200);
+
+      expect(response.body).toEqual(created);
+    });
+
+    it('does not restore the transaction of another account', async () => {
+      const created = await register();
+      await remove(created.id).expect(204);
+
+      const response = await restore(created.id, bruno).expect(404);
+
+      expect(codeOf(response)).toBe(problemType('TRANSACTION_NOT_FOUND'));
+      await get(created.id).expect(404);
+    });
+
+    it.each([MISSING_ID, '42'])('answers 404 for the id %s', async (id) => {
+      await restore(id).expect(404);
+    });
+  });
+
   describe('access', () => {
+    const one = `${TRANSACTIONS}/${MISSING_ID}`;
     const routes = [
       ['POST', TRANSACTIONS],
-      ['GET', `${TRANSACTIONS}/${MISSING_ID}`],
+      ['GET', one],
+      ['PATCH', one],
+      ['DELETE', one],
+      ['POST', `${one}/restore`],
     ] as const;
 
     function send(method: string, path: string): request.Test {
-      return method === 'GET'
-        ? request(server).get(path)
-        : request(server).post(path).send(lunch());
+      switch (method) {
+        case 'GET':
+          return request(server).get(path);
+        case 'PATCH':
+          return request(server).patch(path).send({ description: 'Menú' });
+        case 'DELETE':
+          return request(server).delete(path);
+        default:
+          return request(server).post(path).send(lunch());
+      }
     }
 
     it.each(routes)('%s %s requires a session', async (method, path) => {

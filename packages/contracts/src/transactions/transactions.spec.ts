@@ -4,6 +4,7 @@ import {
   createTransactionRequestSchema,
   MERCHANT_MAX_LENGTH,
   TRANSACTION_DESCRIPTION_MAX_LENGTH,
+  updateTransactionRequestSchema,
 } from './transactions.js';
 
 const LUNCH = {
@@ -109,5 +110,48 @@ describe('create transaction request', () => {
     ['source', { source: 'IMPORT' }],
   ])('rejects a %s in the body', (_field, extra) => {
     expect(accepts({ ...LUNCH, ...extra })).toBe(false);
+  });
+});
+
+describe('update transaction request', () => {
+  function acceptsChange(body: object): boolean {
+    return updateTransactionRequestSchema.safeParse(body).success;
+  }
+
+  it('accepts any single field', () => {
+    for (const [field, value] of Object.entries(LUNCH)) {
+      expect(acceptsChange({ [field]: value }), field).toBe(true);
+    }
+  });
+
+  it('accepts a whole correction at once', () => {
+    expect(updateTransactionRequestSchema.parse(LUNCH)).toEqual(LUNCH);
+  });
+
+  it('accepts taking out the payment method and the merchant', () => {
+    expect(acceptsChange({ paymentMethodId: null, merchant: null })).toBe(true);
+  });
+
+  it('rejects an empty change', () => {
+    expect(acceptsChange({})).toBe(false);
+  });
+
+  it.each([
+    ['an amount sent as a number', { amount: 25.9 }],
+    ['a blank description', { description: ' ' }],
+    ['a null description', { description: null }],
+    ['a null currency', { currency: null }],
+    ['a null category', { categoryId: null }],
+  ])('rejects %s', (_case, body) => {
+    expect(acceptsChange(body)).toBe(false);
+  });
+
+  // El origen no se corrige: una importada sigue diciendo que vino de un CSV.
+  it.each([
+    ['source', { source: 'MANUAL' }],
+    ['userId', { userId: '01999999-9999-7999-8999-000000000003' }],
+    ['deletedAt', { deletedAt: null }],
+  ])('rejects a %s in the body', (_field, body) => {
+    expect(acceptsChange(body)).toBe(false);
   });
 });
