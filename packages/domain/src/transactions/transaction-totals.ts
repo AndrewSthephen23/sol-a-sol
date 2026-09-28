@@ -18,12 +18,16 @@ export interface TransactionTotals {
   debt: Money;
   /** Lo que queda: el ingreso suma y todo lo demás resta. Puede ser negativo. */
   balance: Money;
+  /** Cuántas transacciones suman estos totales. */
+  count: number;
 }
 
 /** Un monto de un tipo: una transacción, o la suma de varias del mismo tipo y moneda. */
 export interface TypedAmount {
   type: TransactionType;
   amount: Money;
+  /** Cuántas transacciones suma `amount`: 1 si es una sola. */
+  count: number;
 }
 
 /**
@@ -52,6 +56,7 @@ export function totalsByCurrency(entries: readonly TypedAmount[]): TransactionTo
           (total, entry) => total.add(signedAmount(entry.type, entry.amount)),
           Money.zero(currency),
         ),
+        count: inCurrency.reduce((total, entry) => total + entry.count, 0),
       },
     ];
   });

@@ -205,14 +205,33 @@ export class PrismaTransactionRepository implements TransactionRepository {
 
   async totals(userId: string, filter: TransactionFilter): Promise<TypedAmount[]> {
     const rows = await this.prisma.$queryRaw<
-      { type: Transaction['type']; currency: Currency; amount: string }[]
+      { type: Transaction['type']; currency: Currency; amount: string; count: number }[]
     >`
-      SELECT type::text AS type, currency::text AS currency, sum(amount)::text AS amount
+      SELECT type::text AS type,
+             currency::text AS currency,
+             sum(amount)::text AS amount,
+             count(*)::int AS count
         FROM transactions
        WHERE ${Prisma.join(filterConditions(userId, filter), ' AND ')}
        GROUP BY type, currency`;
 
-    return rows.map((row) => ({ type: row.type, amount: Money.of(row.amount, row.currency) }));
+    return rows.map((row) => ({
+      type: row.type,
+      amount: Money.of(row.amount, row.currency),
+      count: row.count,
+    }));
+  }
+
+  async reassignCategory(userId: string, fromId: string, intoId: string): Promise<number> {
+    // Todas, borradas incluidas: una restaurada después no debe volver a la categoría fusionada.
+    // `userId` en el propio UPDATE, y la clave foránea compuesta exige que la destino sea de la
+    // misma cuenta y del mismo tipo.
+    const { count } = await this.prisma.transaction.updateMany({
+      where: { userId, categoryId: fromId },
+      data: { categoryId: intoId },
+    });
+
+    return count;
   }
 
   async restore(userId: string, id: string): Promise<boolean> {

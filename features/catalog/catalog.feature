@@ -183,3 +183,23 @@ Característica: Catálogo
       Dado que "Vivienda" es de gasto fijo
       Cuando intento mover "Comida > Taxi" a "Vivienda"
       Entonces se rechaza porque la madre es de otro tipo
+
+  Regla: Fusionar una categoría mueve sus transacciones y no se deshace
+
+    Escenario: Fusiono "Gaseosa" en "Bebidas"
+      Dado que tengo 2 gastos en "Comida > Gaseosa"
+      Cuando veo cuántos gastos tiene "Gaseosa"
+      Entonces son 2
+      Cuando fusiono "Gaseosa" en "Bebidas"
+      Entonces esos 2 gastos quedan en "Bebidas"
+      Y "Gaseosa" queda archivada
+
+    Escenario: Las hijas se mudan con su madre
+      Dado que tengo "Compras > Poncho" y "Compras > Camisas", y "Ropa > Camisas"
+      Cuando fusiono "Compras" en "Ropa"
+      Entonces "Poncho" queda bajo "Ropa" con sus gastos
+      Y los gastos de "Compras > Camisas" quedan en "Ropa > Camisas"
+
+    Escenario: No se fusionan categorías de tipos distintos
+      Cuando intento fusionar un gasto variable en uno fijo
+      Entonces se rechaza

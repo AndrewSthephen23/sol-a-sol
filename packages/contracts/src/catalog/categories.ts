@@ -60,6 +60,16 @@ export const updateCategoryRequestSchema = z
 
 export type UpdateCategoryRequest = z.infer<typeof updateCategoryRequestSchema>;
 
+/**
+ * Fusiona la categoría en `intoCategoryId`: sus transacciones pasan a esa, sus hijas se mudan con
+ * ella y ella se archiva. No se deshace. Qué fusiones valen lo decide el dominio.
+ */
+export const mergeCategoryRequestSchema = z.strictObject({
+  intoCategoryId: z.uuid(),
+});
+
+export type MergeCategoryRequest = z.infer<typeof mergeCategoryRequestSchema>;
+
 /** `?type=` filtra por tipo; `?includeArchived=true` suma las archivadas. */
 export const listCategoriesQuerySchema = z.object({
   type: transactionTypeSchema.optional(),

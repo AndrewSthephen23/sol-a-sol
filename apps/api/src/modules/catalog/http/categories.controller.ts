@@ -1,9 +1,22 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import {
   type CreateCategoryRequest,
   createCategoryRequestSchema,
   type ListCategoriesQuery,
   listCategoriesQuerySchema,
+  type MergeCategoryRequest,
+  mergeCategoryRequestSchema,
   type UpdateCategoryRequest,
   updateCategoryRequestSchema,
 } from '@sol-a-sol/contracts';
@@ -18,6 +31,7 @@ import {
   ListCategories,
   UpdateCategory,
 } from '../application/categories.js';
+import { MergeCategory } from '../application/merge-category.js';
 import { CategoryNotFoundError } from '../domain/errors.js';
 import type { Category } from '../ports/category-repository.js';
 
@@ -37,6 +51,7 @@ export class CategoriesController {
     private readonly createCategory: CreateCategory,
     private readonly listCategories: ListCategories,
     private readonly updateCategory: UpdateCategory,
+    private readonly mergeCategory: MergeCategory,
   ) {}
 
   @Get()
@@ -62,9 +77,29 @@ export class CategoriesController {
     @Param('id') id: string,
     @Body(new ZodValidationPipe(updateCategoryRequestSchema)) body: UpdateCategoryRequest,
   ): Promise<Category> {
-    // Un id que ni siquiera es un UUID tampoco existe: 404, y la base no llega a verlo.
-    if (!categoryIdSchema.safeParse(id).success) throw new CategoryNotFoundError();
+    assertCategoryId(id);
 
     return this.updateCategory.execute({ userId, id, changes: body });
   }
+
+  /**
+   * Fusiona la categoría en otra y devuelve la destino. Sus transacciones las mueve
+   * `transactions` al escuchar la fusión (ADR-0005). 404 si alguna no existe o es ajena.
+   */
+  @Post(':id/merge')
+  @HttpCode(HttpStatus.OK)
+  async merge(
+    @CurrentUser() userId: string,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(mergeCategoryRequestSchema)) body: MergeCategoryRequest,
+  ): Promise<Category> {
+    assertCategoryId(id);
+
+    return this.mergeCategory.execute({ userId, id, intoId: body.intoCategoryId });
+  }
+}
+
+/** Un id que ni siquiera es un UUID tampoco existe: 404, y la base no llega a verlo. */
+function assertCategoryId(id: string): void {
+  if (!categoryIdSchema.safeParse(id).success) throw new CategoryNotFoundError();
 }

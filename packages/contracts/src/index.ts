@@ -47,6 +47,8 @@ export {
   createCategoryRequestSchema,
   type ListCategoriesQuery,
   listCategoriesQuerySchema,
+  type MergeCategoryRequest,
+  mergeCategoryRequestSchema,
   transactionTypeSchema,
   type UpdateCategoryRequest,
   updateCategoryRequestSchema,

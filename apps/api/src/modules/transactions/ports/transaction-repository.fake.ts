@@ -110,8 +110,19 @@ export class FakeTransactionRepository implements TransactionRepository {
 
   totals(userId: string, filter: TransactionFilter): Promise<TypedAmount[]> {
     return Promise.resolve(
-      this.matching(userId, filter).map((row) => ({ type: row.type, amount: row.amount })),
+      this.matching(userId, filter).map((row) => ({
+        type: row.type,
+        amount: row.amount,
+        count: 1,
+      })),
     );
+  }
+
+  reassignCategory(userId: string, fromId: string, intoId: string): Promise<number> {
+    const moved = this.rows.filter((row) => row.userId === userId && row.categoryId === fromId);
+    for (const row of moved) row.categoryId = intoId;
+
+    return Promise.resolve(moved.length);
   }
 
   private matching(userId: string, filter: TransactionFilter): FakeTransactionRow[] {

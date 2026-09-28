@@ -5,6 +5,7 @@ import type {
   Category,
   CategoryArchiving,
   CategoryChanges,
+  CategoryMergeChanges,
   CategoryRepository,
   CategorySeed,
   NewCategory,
@@ -90,6 +91,19 @@ export class FakeCategoryRepository implements CategoryRepository {
     }
 
     return Promise.resolve(publicOf(row));
+  }
+
+  applyMerge(userId: string, changes: CategoryMergeChanges): Promise<void> {
+    for (const { id, parentId } of changes.moves) {
+      const row = this.rowOf(userId, id);
+      if (row !== undefined) row.parentId = parentId;
+    }
+    for (const id of changes.archivedIds) {
+      const row = this.rowOf(userId, id);
+      if (row !== undefined) row.archivedAt ??= changes.archivedAt;
+    }
+
+    return Promise.resolve();
   }
 
   private rowOf(userId: string, id: string): Row | undefined {

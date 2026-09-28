@@ -7,6 +7,7 @@ import type {
   Category,
   CategoryArchiving,
   CategoryChanges,
+  CategoryMergeChanges,
   CategoryRepository,
   CategorySeed,
   NewCategory,
@@ -102,6 +103,24 @@ export class PrismaCategoryRepository implements CategoryRepository {
         }
 
         return tx.category.findFirst({ where: { id, userId }, select: PUBLIC_FIELDS });
+      }),
+    );
+  }
+
+  async applyMerge(userId: string, changes: CategoryMergeChanges): Promise<void> {
+    // Una sola transacción, con `userId` en cada UPDATE. Mudar una hija a una madre que ya tiene
+    // otra con su nombre no pasa: el plan las fusiona en vez de mudarlas; si igual chocara, el
+    // índice único lo detiene y no se cambia nada.
+    await nameMustBeFree(() =>
+      this.prisma.$transaction(async (tx) => {
+        for (const { id, parentId } of changes.moves) {
+          await tx.category.updateMany({ where: { id, userId }, data: { parentId } });
+        }
+        // Las ya archivadas conservan su fecha: sigue diciendo cuándo pasó de verdad.
+        await tx.category.updateMany({
+          where: { userId, id: { in: [...changes.archivedIds] }, archivedAt: null },
+          data: { archivedAt: changes.archivedAt },
+        });
       }),
     );
   }

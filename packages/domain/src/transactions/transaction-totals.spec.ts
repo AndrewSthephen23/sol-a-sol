@@ -4,8 +4,8 @@ import { Money } from '../money/money.js';
 import type { TransactionType } from './transaction-policy.js';
 import { totalsByCurrency } from './transaction-totals.js';
 
-function entry(type: TransactionType, amount: string, currency: 'PEN' | 'USD' = 'PEN') {
-  return { type, amount: Money.of(amount, currency) };
+function entry(type: TransactionType, amount: string, currency: 'PEN' | 'USD' = 'PEN', count = 1) {
+  return { type, amount: Money.of(amount, currency), count };
 }
 
 function plain(totals: ReturnType<typeof totalsByCurrency>) {
@@ -22,6 +22,20 @@ function plain(totals: ReturnType<typeof totalsByCurrency>) {
 describe('totalsByCurrency', () => {
   it('is empty without transactions', () => {
     expect(totalsByCurrency([])).toEqual([]);
+  });
+
+  // La vista previa de una fusión dice cuántas transacciones se moverán.
+  it('counts the transactions of each currency', () => {
+    const totals = totalsByCurrency([
+      entry('INCOME', '100.00', 'PEN', 1),
+      entry('VARIABLE_EXPENSE', '30.00', 'PEN', 3),
+      entry('VARIABLE_EXPENSE', '5.00', 'USD', 2),
+    ]);
+
+    expect(totals.map((total) => [total.currency, total.count])).toEqual([
+      ['PEN', 4],
+      ['USD', 2],
+    ]);
   });
 
   it('adds up each group following the rules of what is expense and saving', () => {
