@@ -210,6 +210,23 @@ describe('list transactions query', () => {
     expect(parse({ to: '2026-09-01' }).success).toBe(true);
   });
 
+  it.each(['transaction', 'transfer'])('accepts the kind %j', (kind) => {
+    expect(parse({ kind }).success).toBe(true);
+  });
+
+  it('rejects an unknown kind', () => {
+    expect(parse({ kind: 'income' }).success).toBe(false);
+  });
+
+  // Una transferencia no tiene tipo ni categoría: pedir las dos cosas es una contradicción.
+  it.each<Record<string, string>>([{ type: 'INCOME' }, { categoryId: LUNCH.categoryId }])(
+    'rejects only transfers together with %j',
+    (filter) => {
+      expect(parse({ kind: 'transfer', ...filter }).success).toBe(false);
+      expect(parse({ kind: 'transaction', ...filter }).success).toBe(true);
+    },
+  );
+
   it('rejects from after to', () => {
     expect(parse({ from: '2026-09-02', to: '2026-09-01' }).success).toBe(false);
   });

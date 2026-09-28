@@ -60,6 +60,7 @@ export {
   type ListTransactionsQuery,
   listTransactionsQuerySchema,
   MERCHANT_MAX_LENGTH,
+  movementKindSchema,
   SEARCH_MAX_LENGTH,
   TRANSACTION_DESCRIPTION_MAX_LENGTH,
   TRANSACTIONS_DEFAULT_LIMIT,

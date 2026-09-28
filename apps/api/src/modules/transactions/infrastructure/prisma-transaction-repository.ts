@@ -1,16 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import {
-  ACCENT_FOLD_FROM,
-  ACCENT_FOLD_TO,
-  type Currency,
-  LocalDate,
-  Money,
-  type TypedAmount,
-} from '@sol-a-sol/domain';
+import { type Currency, LocalDate, Money, type TypedAmount } from '@sol-a-sol/domain';
 
 import { Prisma } from '../../../generated/prisma/client.js';
 import { PrismaService } from '../../../shared/prisma/prisma.service.js';
 import { fromDatabaseDate, toDatabaseDate } from './database-date.js';
+import { afterPosition, containsText } from './sql-conditions.js';
 import type {
   NewTransaction,
   PagePosition,
@@ -125,12 +119,7 @@ export class PrismaTransactionRepository implements TransactionRepository {
     page: { after: PagePosition | null; limit: number },
   ): Promise<Transaction[]> {
     const conditions = filterConditions(userId, filter);
-    if (page.after !== null) {
-      // Comparar la fila entera respeta el orden (fecha, id) sin casos aparte para el empate.
-      conditions.push(
-        Prisma.sql`(date, id) < (${page.after.date.toString()}::date, ${page.after.id}::uuid)`,
-      );
-    }
+    if (page.after !== null) conditions.push(afterPosition(page.after));
 
     const rows = await this.prisma.$queryRaw<RawRow[]>`
       SELECT id::text AS id,
@@ -203,22 +192,13 @@ function filterConditions(userId: string, filter: TransactionFilter): Prisma.Sql
   if (filter.currency !== undefined) {
     conditions.push(Prisma.sql`currency::text = ${filter.currency}`);
   }
-  if (filter.search !== undefined) conditions.push(searchCondition(filter.search));
+  if (filter.search !== undefined) {
+    conditions.push(
+      containsText([Prisma.sql`description`, Prisma.sql`coalesce(merchant, '')`], filter.search),
+    );
+  }
 
   return conditions;
-}
-
-/**
- * La descripción o el comercio contienen el texto, sin distinguir mayúsculas ni tildes. La tabla
- * de acentos es la de `searchKey` (dominio), que ya normalizó lo buscado: la misma para los dos.
- */
-function searchCondition(search: string): Prisma.Sql {
-  // `%` y `_` son comodines de LIKE: buscados, valen como letras.
-  const pattern = `%${search.replaceAll(/[\\%_]/gu, (char) => `\\${char}`)}%`;
-  const folded = (column: Prisma.Sql): Prisma.Sql =>
-    Prisma.sql`lower(translate(${column}, ${ACCENT_FOLD_FROM}, ${ACCENT_FOLD_TO})) LIKE ${pattern}`;
-
-  return Prisma.sql`(${folded(Prisma.sql`description`)} OR ${folded(Prisma.sql`coalesce(merchant, '')`)})`;
 }
 
 function fromRawRow({ date, amount, currency, ...fields }: RawRow): Transaction {

@@ -1,14 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { type Currency, Money } from '@sol-a-sol/domain';
+import { type Currency, LocalDate, Money } from '@sol-a-sol/domain';
 
+import { Prisma } from '../../../generated/prisma/client.js';
 import { PrismaService } from '../../../shared/prisma/prisma.service.js';
+import type { PagePosition } from '../ports/transaction-repository.js';
 import type {
   NewTransfer,
   Transfer,
   TransferChanges,
+  TransferFilter,
   TransferRepository,
 } from '../ports/transfer-repository.js';
 import { fromDatabaseDate, toDatabaseDate } from './database-date.js';
+import { afterPosition, containsText } from './sql-conditions.js';
 
 /** `select` explícito: ni `userId` ni `deletedAt` salen de aquí. */
 const PUBLIC_FIELDS = {
@@ -72,6 +76,36 @@ export class PrismaTransferRepository implements TransferRepository {
     return row === null ? null : toTransfer(row);
   }
 
+  /** En SQL parametrizado, como el de transacciones: la búsqueda sin tildes lo necesita. */
+  async list(
+    userId: string,
+    filter: TransferFilter,
+    page: { after: PagePosition | null; limit: number },
+  ): Promise<Transfer[]> {
+    const conditions = filterConditions(userId, filter);
+    if (page.after !== null) conditions.push(afterPosition(page.after));
+
+    const rows = await this.prisma.$queryRaw<RawRow[]>`
+      SELECT id::text AS id,
+             date::text AS date,
+             from_payment_method_id::text AS "fromPaymentMethodId",
+             to_payment_method_id::text AS "toPaymentMethodId",
+             amount::text AS amount,
+             currency::text AS currency,
+             received_amount::text AS "receivedAmount",
+             received_currency::text AS "receivedCurrency",
+             description,
+             source::text AS source,
+             created_at AS "createdAt",
+             updated_at AS "updatedAt"
+        FROM transfers
+       WHERE ${Prisma.join(conditions, ' AND ')}
+       ORDER BY date DESC, id DESC
+       LIMIT ${page.limit}`;
+
+    return rows.map(fromRawRow);
+  }
+
   async update(userId: string, id: string, changes: TransferChanges): Promise<Transfer | null> {
     const { amount, receivedAmount, date, ...fields } = changes;
     // `userId` y `deletedAt` van en el propio UPDATE. Las claves foráneas compuestas impiden
@@ -112,6 +146,53 @@ export class PrismaTransferRepository implements TransferRepository {
 
     return count > 0;
   }
+}
+
+/** Una fila de `list`, con todo convertido a texto en la consulta misma. */
+interface RawRow extends Omit<Row, 'date' | 'amount' | 'receivedAmount'> {
+  date: string;
+  amount: string;
+  receivedAmount: string;
+}
+
+/** `user_id` y `deleted_at` van siempre: no hay forma de listar sin decir de quién. */
+function filterConditions(userId: string, filter: TransferFilter): Prisma.Sql[] {
+  const conditions = [Prisma.sql`user_id = ${userId}::uuid`, Prisma.sql`deleted_at IS NULL`];
+  if (filter.from !== undefined) {
+    conditions.push(Prisma.sql`date >= ${filter.from.toString()}::date`);
+  }
+  if (filter.to !== undefined) conditions.push(Prisma.sql`date <= ${filter.to.toString()}::date`);
+  if (filter.paymentMethodId !== undefined) {
+    const id = Prisma.sql`${filter.paymentMethodId}::uuid`;
+    conditions.push(Prisma.sql`(from_payment_method_id = ${id} OR to_payment_method_id = ${id})`);
+  }
+  if (filter.currency !== undefined) {
+    const currency = filter.currency;
+    conditions.push(
+      Prisma.sql`(currency::text = ${currency} OR received_currency::text = ${currency})`,
+    );
+  }
+  if (filter.search !== undefined) {
+    conditions.push(containsText([Prisma.sql`description`], filter.search));
+  }
+
+  return conditions;
+}
+
+function fromRawRow({
+  date,
+  amount,
+  currency,
+  receivedAmount,
+  receivedCurrency,
+  ...fields
+}: RawRow): Transfer {
+  return {
+    ...fields,
+    date: LocalDate.parse(date),
+    amount: Money.of(amount, currency),
+    receivedAmount: Money.of(receivedAmount, receivedCurrency),
+  };
 }
 
 function toTransfer({

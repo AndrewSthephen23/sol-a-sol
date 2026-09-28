@@ -653,12 +653,12 @@ describe('transactions', () => {
       await expect(idsOf()).resolves.toEqual([second, first, old]);
     });
 
-    it('answers the items as they are read one by one', async () => {
+    it('answers the items as they are read one by one, marked as transactions', async () => {
       const created = await register();
 
       const { items } = await listed();
 
-      expect(items).toEqual([created]);
+      expect(items).toEqual([{ kind: 'transaction', ...created }]);
     });
 
     describe('by pages', () => {

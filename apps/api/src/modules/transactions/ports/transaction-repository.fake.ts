@@ -1,12 +1,13 @@
 import { searchKey, type TypedAmount } from '@sol-a-sol/domain';
 
-import type {
-  NewTransaction,
-  PagePosition,
-  Transaction,
-  TransactionChanges,
-  TransactionFilter,
-  TransactionRepository,
+import {
+  type NewTransaction,
+  newestFirst,
+  type PagePosition,
+  type Transaction,
+  type TransactionChanges,
+  type TransactionFilter,
+  type TransactionRepository,
 } from './transaction-repository.js';
 
 interface Row extends Transaction {
@@ -115,11 +116,6 @@ export class FakeTransactionRepository implements TransactionRepository {
         candidate.userId === userId && candidate.id === id && candidate.deletedAt === null,
     );
   }
-}
-
-/** Negativo si `a` va antes que `b` en el listado: fecha descendente y, luego, id descendente. */
-function newestFirst(a: PagePosition, b: PagePosition): number {
-  return b.date.compareTo(a.date) || b.id.localeCompare(a.id);
 }
 
 /** Una copia sin `userId` ni `deletedAt`, como la que devuelve el adaptador de Prisma. */
