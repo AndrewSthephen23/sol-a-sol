@@ -13,6 +13,7 @@ La interfaz y la documentación van en español; el código, en inglés. Esta ta
 | Borrado lógico                                                           | `deletedAt`                                                 |
 | Ingreso / Gasto fijo / Gasto variable                                    | `INCOME` / `FIXED_EXPENSE` / `VARIABLE_EXPENSE`             |
 | Ahorro / Inversión / Deuda                                               | `SAVING` / `INVESTMENT` / `DEBT`                            |
+| Etiqueta                                                                 | `Tag`                                                       |
 | Transferencia (entre cuentas propias)                                    | `Transfer`                                                  |
 | Cuenta de origen / Cuenta de destino                                     | `fromPaymentMethodId` / `toPaymentMethodId`                 |
 | Monto enviado / Monto recibido                                           | `amount` / `receivedAmount`                                 |

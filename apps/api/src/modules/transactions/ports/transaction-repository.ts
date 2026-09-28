@@ -2,6 +2,7 @@ import type {
   Currency,
   LocalDate,
   Money,
+  NormalizedTag,
   TransactionSource,
   TransactionType,
   TypedAmount,
@@ -21,6 +22,8 @@ export interface Transaction {
   source: TransactionSource;
   /** Captura del celular de la que salió (H7). */
   captureId: string | null;
+  /** Nombres de sus etiquetas, en orden alfabético (`orderTags`). */
+  tags: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,6 +38,8 @@ export interface NewTransaction {
   paymentMethodId: string | null;
   merchant: string | null;
   source: TransactionSource;
+  /** Las que no existen en la cuenta se crean; las que existen se reutilizan por su clave. */
+  tags: readonly NormalizedTag[];
 }
 
 /** Lo que se puede corregir. El origen (`source`) no está: no cambia al editar. */
@@ -47,6 +52,8 @@ export interface TransactionChanges {
   description?: string;
   paymentMethodId?: string | null;
   merchant?: string | null;
+  /** **Reemplaza** las etiquetas; `[]` las quita todas. */
+  tags?: readonly NormalizedTag[];
 }
 
 /** Qué transacciones listar. Todo opcional; sin nada, todas las vigentes de la cuenta. */
@@ -62,6 +69,8 @@ export interface TransactionFilter {
   currency?: Currency;
   /** Ya normalizado con `searchKey`: se busca dentro de la descripción o el comercio. */
   search?: string;
+  /** Clave (`searchKey`) de una etiqueta: solo las transacciones que la tienen. */
+  tagKey?: string;
 }
 
 /**
@@ -77,6 +86,14 @@ export interface PagePosition {
  * El orden del listado, igual para transacciones y transferencias: negativo si `a` va antes que
  * `b`. Por eso dos páginas de tablas distintas se pueden mezclar en una sola.
  */
+/**
+ * El orden en que se devuelven las etiquetas de una transacción: alfabético en español, igual en
+ * cualquier adaptador.
+ */
+export function orderTags(names: readonly string[]): string[] {
+  return names.toSorted((a, b) => a.localeCompare(b, 'es'));
+}
+
 export function newestFirst(a: PagePosition, b: PagePosition): number {
   return b.date.compareTo(a.date) || b.id.localeCompare(a.id);
 }

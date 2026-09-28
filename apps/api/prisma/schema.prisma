@@ -36,6 +36,7 @@ model User {
   paymentMethods       PaymentMethod[]
   transactions         Transaction[]
   transfers            Transfer[]
+  tags                 Tag[]
 
   @@map("users")
 }
@@ -329,12 +330,16 @@ model Transaction {
   user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   category        Category          @relation(fields: [categoryId, userId, type], references: [id, userId, type], onDelete: NoAction, onUpdate: NoAction)
   paymentMethod   PaymentMethod?    @relation(fields: [paymentMethodId, userId], references: [id, userId], onDelete: NoAction, onUpdate: NoAction)
+  tags            TransactionTag[]
 
   /// Por donde se lista y se filtra siempre: las transacciones de un usuario en un rango de fechas.
   @@index([userId, date])
   /// Para que comprobar "¿esta categoría o este método tienen transacciones?" no recorra la tabla.
   @@index([categoryId])
   @@index([paymentMethodId])
+  /// Destino de la clave foránea compuesta de `TransactionTag`: `id` ya es único; esto solo le da
+  /// a PostgreSQL el índice que exige para referenciar las dos columnas juntas.
+  @@unique([id, userId])
   @@map("transactions")
 }
 
@@ -369,4 +374,41 @@ model Transfer {
   @@index([fromPaymentMethodId])
   @@index([toPaymentMethodId])
   @@map("transfers")
+}
+
+/// Una marca para mirar las transacciones desde otro ángulo que la categoría (`almuerzo`,
+/// `viaje-cusco`). Solo nombre; se crea al escribirla (decidido el 2026-09-28).
+model Tag {
+  id           String           @id @default(uuid(7)) @db.Uuid
+  userId       String           @map("user_id") @db.Uuid
+  /// Como la escribió el usuario la primera vez.
+  name         String
+  /// `searchKey(name)`: minúsculas y sin tildes. "Almuerzo" y "almuerzó" son la misma etiqueta.
+  nameKey      String           @map("name_key")
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions TransactionTag[]
+
+  /// Una sola etiqueta por nombre y cuenta; la base decide si dos peticiones chocan.
+  @@unique([userId, nameKey])
+  /// Destino de la clave foránea compuesta de `TransactionTag`.
+  @@unique([id, userId])
+  @@map("tags")
+}
+
+/// Qué etiquetas tiene cada transacción. `userId` va en las dos claves foráneas: una transacción
+/// no puede llevar la etiqueta de otra cuenta, aunque alguien adivine su id.
+model TransactionTag {
+  transactionId String      @map("transaction_id") @db.Uuid
+  tagId         String      @map("tag_id") @db.Uuid
+  userId        String      @map("user_id") @db.Uuid
+  transaction   Transaction @relation(fields: [transactionId, userId], references: [id, userId], onDelete: Cascade, onUpdate: NoAction)
+  /// Borrar una etiqueta la quita de todas las transacciones (decidido el 2026-09-28).
+  tag           Tag         @relation(fields: [tagId, userId], references: [id, userId], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([transactionId, tagId])
+  /// Para filtrar "las transacciones con esta etiqueta" sin recorrer la tabla.
+  @@index([tagId])
+  @@map("transaction_tags")
 }

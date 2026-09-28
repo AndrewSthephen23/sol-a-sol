@@ -7,6 +7,12 @@ import { currencySchema } from '../catalog/payment-methods.js';
 export const TRANSACTION_DESCRIPTION_MAX_LENGTH = 200;
 export const MERCHANT_MAX_LENGTH = 80;
 export const SEARCH_MAX_LENGTH = 100;
+export const TAG_NAME_MAX_LENGTH = 40;
+/**
+ * Tope defensivo de la lista: más alto **a propósito** que el de la regla (10 distintas), para que
+ * `TOO_MANY_TAGS` diga qué se rompió y una lista con repetidas no se rechace por su forma.
+ */
+export const TAGS_INPUT_MAX_ITEMS = 50;
 /** Un cursor es opaco, pero no infinito: lo que no quepa aquí no es un cursor nuestro. */
 export const CURSOR_MAX_LENGTH = 200;
 
@@ -47,6 +53,12 @@ const description = z.string().trim().min(1).max(TRANSACTION_DESCRIPTION_MAX_LEN
 const merchant = z.string().trim().min(1).max(MERCHANT_MAX_LENGTH).nullable();
 
 /**
+ * Etiquetas de una transacción, por nombre. Las que no existen se crean. Que no estén vacías, no
+ * lleven `|` y no pasen de 10 distintas lo decide el dominio (`TAG_NAME_INVALID`, `TOO_MANY_TAGS`).
+ */
+const tags = z.array(z.string().max(TAG_NAME_MAX_LENGTH)).max(TAGS_INPUT_MAX_ITEMS);
+
+/**
  * Registra una transacción desde la web (`source: MANUAL`, que no se manda).
  *
  * Solo la forma. Que el monto sea positivo, la fecha no sea futura, la categoría sea del tipo y
@@ -66,6 +78,7 @@ export const createTransactionRequestSchema = z.strictObject({
   description,
   paymentMethodId: z.uuid().nullable().optional(),
   merchant: merchant.optional(),
+  tags: tags.optional(),
 });
 
 export type CreateTransactionRequest = z.infer<typeof createTransactionRequestSchema>;
@@ -78,6 +91,8 @@ export type CreateTransactionRequest = z.infer<typeof createTransactionRequestSc
  * `type` viaja junto con un `categoryId` nuevo. Eso lo decide el dominio.
  *
  * Sin `currency`, la moneda **no cambia**, aunque cambie el método de pago: nunca se supone.
+ *
+ * `tags` **reemplaza** las etiquetas: se manda la lista completa, y `[]` las quita todas.
  */
 export const updateTransactionRequestSchema = z
   .strictObject({
@@ -89,6 +104,7 @@ export const updateTransactionRequestSchema = z
     description: description.optional(),
     paymentMethodId: z.uuid().nullable().optional(),
     merchant: merchant.optional(),
+    tags: tags.optional(),
   })
   .refine((body) => Object.keys(body).length > 0, { message: 'Nothing to change.' });
 
@@ -103,7 +119,8 @@ export const movementKindSchema = z.enum(['transaction', 'transfer']);
  * - `month` (`YYYY-MM`) o `from`/`to` (inclusivos), no los dos a la vez.
  * - `categoryId` trae también las transacciones de sus subcategorías.
  * - `kind` deja solo transacciones o solo transferencias. Sin él vienen las dos, salvo que se
- *   filtre por `type` o `categoryId`, que una transferencia no tiene.
+ *   filtre por `type`, `categoryId` o `tag`, que una transferencia no tiene.
+ * - `tag` trae las transacciones con esa etiqueta, sin distinguir mayúsculas ni tildes.
  * - `q` busca en la descripción y el comercio, sin distinguir mayúsculas ni tildes.
  * - `limit` por defecto 50; más de 100 se recorta a 100.
  * - `cursor` es el `nextCursor` de la página anterior, tal cual: su contenido no es contrato.
@@ -121,6 +138,7 @@ export const listTransactionsQuerySchema = z
     paymentMethodId: z.uuid().optional(),
     currency: currencySchema.optional(),
     kind: movementKindSchema.optional(),
+    tag: z.string().trim().min(1).max(TAG_NAME_MAX_LENGTH).optional(),
     q: z.string().trim().min(1).max(SEARCH_MAX_LENGTH).optional(),
     cursor: z.string().min(1).max(CURSOR_MAX_LENGTH).optional(),
     limit: z
@@ -137,8 +155,9 @@ export const listTransactionsQuerySchema = z
   })
   .refine(
     (query) =>
-      query.kind !== 'transfer' || (query.type === undefined && query.categoryId === undefined),
-    { message: 'A transfer has no type nor category.', path: ['kind'] },
+      query.kind !== 'transfer' ||
+      (query.type === undefined && query.categoryId === undefined && query.tag === undefined),
+    { message: 'A transfer has no type, category nor tags.', path: ['kind'] },
   )
   .refine((query) => query.from === undefined || query.to === undefined || query.from <= query.to, {
     message: 'from cannot be after to.',

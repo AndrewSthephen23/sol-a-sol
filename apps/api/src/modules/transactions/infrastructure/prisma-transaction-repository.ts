@@ -1,18 +1,25 @@
 import { Injectable } from '@nestjs/common';
-import { type Currency, LocalDate, Money, type TypedAmount } from '@sol-a-sol/domain';
+import {
+  type Currency,
+  LocalDate,
+  Money,
+  type NormalizedTag,
+  type TypedAmount,
+} from '@sol-a-sol/domain';
 
 import { Prisma } from '../../../generated/prisma/client.js';
 import { PrismaService } from '../../../shared/prisma/prisma.service.js';
+import {
+  type NewTransaction,
+  orderTags,
+  type PagePosition,
+  type Transaction,
+  type TransactionChanges,
+  type TransactionFilter,
+  type TransactionRepository,
+} from '../ports/transaction-repository.js';
 import { fromDatabaseDate, toDatabaseDate } from './database-date.js';
 import { afterPosition, containsText } from './sql-conditions.js';
-import type {
-  NewTransaction,
-  PagePosition,
-  Transaction,
-  TransactionChanges,
-  TransactionFilter,
-  TransactionRepository,
-} from '../ports/transaction-repository.js';
 
 /** `select` explícito: ni `userId` ni `deletedAt` salen de aquí. */
 const PUBLIC_FIELDS = {
@@ -29,9 +36,49 @@ const PUBLIC_FIELDS = {
   captureId: true,
   createdAt: true,
   updatedAt: true,
+  tags: { select: { tag: { select: { name: true } } } },
 } as const;
 
 /** La fila tal como la devuelve Prisma con `PUBLIC_FIELDS`. */
+/** Lo que usan estas funciones del cliente: el de Prisma o el de una transacción de la base. */
+type Client = Pick<PrismaService, 'transaction' | 'tag' | 'transactionTag'>;
+
+/** `userId` y `deletedAt` van en el mismo WHERE: una ajena o una borrada simplemente no existen. */
+async function findIn(client: Client, userId: string, id: string): Promise<Transaction | null> {
+  const row = await client.transaction.findFirst({
+    where: { id, userId, deletedAt: null },
+    select: PUBLIC_FIELDS,
+  });
+
+  return row === null ? null : toTransaction(row);
+}
+
+/**
+ * Crea las etiquetas que la cuenta no tiene y las liga a la transacción. `skipDuplicates` deja
+ * que el índice único `(user_id, name_key)` decida: dos peticiones que crean la misma etiqueta a
+ * la vez no chocan, y la que ya existía conserva su primera escritura.
+ */
+async function linkTags(
+  client: Client,
+  userId: string,
+  transactionId: string,
+  tags: readonly NormalizedTag[],
+): Promise<void> {
+  if (tags.length === 0) return;
+
+  await client.tag.createMany({
+    data: tags.map((tag) => ({ userId, name: tag.name, nameKey: tag.key })),
+    skipDuplicates: true,
+  });
+  const ids = await client.tag.findMany({
+    where: { userId, nameKey: { in: tags.map((tag) => tag.key) } },
+    select: { id: true },
+  });
+  await client.transactionTag.createMany({
+    data: ids.map(({ id }) => ({ transactionId, tagId: id, userId })),
+  });
+}
+
 interface Row {
   id: string;
   date: Date;
@@ -44,6 +91,7 @@ interface Row {
   merchant: string | null;
   source: Transaction['source'];
   captureId: string | null;
+  tags: { tag: { name: string } }[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -52,52 +100,57 @@ interface Row {
 export class PrismaTransactionRepository implements TransactionRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(transaction: NewTransaction): Promise<Transaction> {
-    const { amount, date, ...fields } = transaction;
-    const row = await this.prisma.transaction.create({
-      data: {
-        ...fields,
-        date: toDatabaseDate(date),
-        // Como texto: pasar por `number` perdería céntimos antes de llegar a NUMERIC(18,2).
-        amount: amount.toFixed(),
-        currency: amount.currency,
-      },
-      select: PUBLIC_FIELDS,
-    });
+  /** La fila y sus etiquetas en una sola transacción de la base: o queda todo, o nada. */
+  async create({ tags, amount, date, ...fields }: NewTransaction): Promise<Transaction> {
+    return this.prisma.$transaction(async (client) => {
+      const { id } = await client.transaction.create({
+        data: {
+          ...fields,
+          date: toDatabaseDate(date),
+          // Como texto: pasar por `number` perdería céntimos antes de llegar a NUMERIC(18,2).
+          amount: amount.toFixed(),
+          currency: amount.currency,
+        },
+        select: { id: true },
+      });
+      await linkTags(client, fields.userId, id, tags);
+      const created = await findIn(client, fields.userId, id);
+      if (created === null) throw new Error(`Transaction ${id} vanished inside its own write.`);
 
-    return toTransaction(row);
+      return created;
+    });
   }
 
   async find(userId: string, id: string): Promise<Transaction | null> {
-    // `userId` y `deletedAt` van en el mismo WHERE: una ajena o una borrada simplemente no existen.
-    const row = await this.prisma.transaction.findFirst({
-      where: { id, userId, deletedAt: null },
-      select: PUBLIC_FIELDS,
-    });
-
-    return row === null ? null : toTransaction(row);
+    return findIn(this.prisma, userId, id);
   }
 
   async update(
     userId: string,
     id: string,
-    changes: TransactionChanges,
+    { tags, amount, date, ...fields }: TransactionChanges,
   ): Promise<Transaction | null> {
-    const { amount, date, ...fields } = changes;
-    // `userId` y `deletedAt` van en el propio UPDATE: una ajena o una borrada no se tocan aunque
-    // alguien adivine su id. La clave foránea compuesta, además, impide que tipo y categoría
-    // queden distintos si la categoría cambió entre la comprobación y la escritura.
-    const { count } = await this.prisma.transaction.updateMany({
-      where: { id, userId, deletedAt: null },
-      data: {
-        ...fields,
-        ...(date === undefined ? {} : { date: toDatabaseDate(date) }),
-        ...(amount === undefined ? {} : { amount: amount.toFixed(), currency: amount.currency }),
-      },
-    });
-    if (count === 0) return null;
+    return this.prisma.$transaction(async (client) => {
+      // `userId` y `deletedAt` van en el propio UPDATE: una ajena o una borrada no se tocan aunque
+      // alguien adivine su id. La clave foránea compuesta, además, impide que tipo y categoría
+      // queden distintos si la categoría cambió entre la comprobación y la escritura.
+      const { count } = await client.transaction.updateMany({
+        where: { id, userId, deletedAt: null },
+        data: {
+          ...fields,
+          ...(date === undefined ? {} : { date: toDatabaseDate(date) }),
+          ...(amount === undefined ? {} : { amount: amount.toFixed(), currency: amount.currency }),
+        },
+      });
+      if (count === 0) return null;
+      if (tags !== undefined) {
+        // Las etiquetas se reemplazan: se quitan todas y se ponen las nuevas.
+        await client.transactionTag.deleteMany({ where: { transactionId: id, userId } });
+        await linkTags(client, userId, id, tags);
+      }
 
-    return this.find(userId, id);
+      return findIn(client, userId, id);
+    });
   }
 
   async softDelete(userId: string, id: string, deletedAt: Date): Promise<boolean> {
@@ -133,6 +186,13 @@ export class PrismaTransactionRepository implements TransactionRepository {
              merchant,
              source::text AS source,
              capture_id::text AS "captureId",
+             coalesce(
+               (SELECT array_agg(g.name)
+                  FROM transaction_tags tt
+                  JOIN tags g ON g.id = tt.tag_id
+                 WHERE tt.transaction_id = transactions.id),
+               '{}'
+             ) AS tags,
              created_at AS "createdAt",
              updated_at AS "updatedAt"
         FROM transactions
@@ -166,9 +226,10 @@ export class PrismaTransactionRepository implements TransactionRepository {
 }
 
 /** Una fila de `list`, con todo convertido a texto en la consulta misma. */
-interface RawRow extends Omit<Row, 'date' | 'amount'> {
+interface RawRow extends Omit<Row, 'date' | 'amount' | 'tags'> {
   date: string;
   amount: string;
+  tags: string[];
 }
 
 /**
@@ -197,21 +258,28 @@ function filterConditions(userId: string, filter: TransactionFilter): Prisma.Sql
       containsText([Prisma.sql`description`, Prisma.sql`coalesce(merchant, '')`], filter.search),
     );
   }
+  if (filter.tagKey !== undefined) {
+    conditions.push(Prisma.sql`EXISTS (
+      SELECT 1 FROM transaction_tags tt JOIN tags g ON g.id = tt.tag_id
+       WHERE tt.transaction_id = transactions.id AND g.name_key = ${filter.tagKey})`);
+  }
 
   return conditions;
 }
 
-function fromRawRow({ date, amount, currency, ...fields }: RawRow): Transaction {
+function fromRawRow({ date, amount, currency, tags, ...fields }: RawRow): Transaction {
   return {
     ...fields,
     date: LocalDate.parse(date),
     amount: Money.of(amount, currency),
+    tags: orderTags(tags),
   };
 }
 
-function toTransaction({ amount, currency, date, ...fields }: Row): Transaction {
+function toTransaction({ amount, currency, date, tags, ...fields }: Row): Transaction {
   return {
     ...fields,
+    tags: orderTags(tags.map(({ tag }) => tag.name)),
     date: fromDatabaseDate(date),
     // NUMERIC(18,2) ya trae dos decimales: el texto entra a `Money` sin redondear nada.
     amount: Money.of(amount.toFixed(2), currency),

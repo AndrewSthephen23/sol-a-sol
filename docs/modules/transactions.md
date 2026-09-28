@@ -73,6 +73,23 @@ Plata que **cambia de lugar** sin ser ingreso ni gasto: del banco a Yape, de sol
 
 **Después de H3:** el saldo por cuenta (saldo inicial + transacciones + transferencias), para auditar contra la app del banco.
 
+## Etiquetas
+
+Una segunda forma de mirar las transacciones, además de la categoría: por momento del día (`almuerzo`), por viaje (`viaje-cusco`), por con quién. La **categoría** dice qué es (una sola, y es lo que se presupuesta); las **etiquetas**, desde qué ángulo mirarla. Decidido con el autor el 2026-09-28; las reglas viven en `packages/domain/src/transactions/tag-policy.ts`.
+
+| Regla        | Decisión                                                                                                                                         |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Crear        | **Al escribirlas:** `tags: [...]` al registrar o corregir. La que no existe en la cuenta se crea                                                 |
+| Mismo nombre | Sin distinguir mayúsculas ni tildes (`searchKey`): "Almuerzo" y "almuerzó" son la misma, y se queda la **primera escritura**. La ñ es otra letra |
+| Datos        | **Solo el nombre** (hasta 40 caracteres), sin color ni ícono                                                                                     |
+| Límites      | Hasta **10 distintas** por transacción (`TOO_MANY_TAGS`). Sin nombre vacío ni `\|`, que separa las etiquetas en el CSV (`TAG_NAME_INVALID`)      |
+| Corregir     | `tags` **reemplaza** la lista completa; `[]` las quita todas. Sin `tags`, no cambian                                                             |
+| Listado      | `?tag=` trae las transacciones con esa etiqueta y **los totales siguen al filtro** ("cuánto gasté en almuerzos"). Deja fuera las transferencias  |
+| Quién        | **Solo las transacciones**; las transferencias no llevan etiquetas                                                                               |
+| Borrar una   | La quita de todas las transacciones, que quedan intactas; sin archivar (la gestión llega en el siguiente PR)                                     |
+
+**Tablas:** `tags(id, user_id, name, name_key, …)` con índice único `(user_id, name_key)`, y `transaction_tags(transaction_id, tag_id, user_id)`, con **claves foráneas compuestas** `(transaction_id, user_id)` y `(tag_id, user_id)`: una transacción no puede llevar la etiqueta de otra cuenta. Borrar una etiqueta borra sus vínculos (`CASCADE`). `name_key` la calcula la aplicación con `searchKey`, así que la tabla de acentos sigue siendo una sola. La transacción, sus etiquetas nuevas y sus vínculos se guardan en **una sola transacción de la base**, y las etiquetas se crean con `createMany … skipDuplicates`: dos altas a la vez con la misma etiqueta nueva crean una sola.
+
 ## Eventos de dominio
 
 Se publican **después de guardar**, esperando a los oyentes, y llevan solo ids (ADR-0004). Nadie los escucha todavía: existen para que el presupuesto (H4), las tarjetas (H5) y los resúmenes (H6) no tengan que tocar este módulo.
@@ -131,6 +148,8 @@ El monto viaja como **string decimal** (`"25.90"`) y la fecha como `YYYY-MM-DD`.
 | `PAYMENT_METHOD_NOT_FOUND`          | 404    | El método de pago no existe o es de otra cuenta                     |
 | `TRANSACTION_NOT_FOUND`             | 404    | La transacción no existe, es de otra cuenta o está borrada          |
 | `INVALID_CURSOR`                    | 422    | El cursor no es uno que haya dado la API: se pide la primera página |
+| `TAG_NAME_INVALID`                  | 422    | Una etiqueta vacía o con `\|`                                       |
+| `TOO_MANY_TAGS`                     | 422    | Más de 10 etiquetas distintas en una transacción                    |
 | `TRANSFER_SAME_ACCOUNT`             | 422    | Origen y destino son la misma cuenta                                |
 | `TRANSFER_CURRENCY_MISMATCH`        | 422    | Una moneda que la cuenta no maneja                                  |
 | `TRANSFER_RECEIVED_AMOUNT_REQUIRED` | 422    | Cambio de moneda sin el monto recibido                              |

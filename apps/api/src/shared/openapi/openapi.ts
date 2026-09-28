@@ -8,6 +8,7 @@ import {
   currencySchema,
   CURSOR_MAX_LENGTH,
   movementKindSchema,
+  TAG_NAME_MAX_LENGTH,
   SEARCH_MAX_LENGTH,
   TRANSACTIONS_DEFAULT_LIMIT,
   TRANSACTIONS_MAX_LIMIT,
@@ -182,6 +183,7 @@ const TRANSACTION = z.object({
   merchant: z.string().nullable(),
   source: transactionSourceSchema.describe('De dónde llegó. No cambia al editar.'),
   captureId: z.uuid().nullable().describe('Captura del celular de la que salió (H7).'),
+  tags: z.array(z.string()).describe('Nombres de sus etiquetas, en orden alfabético.'),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });
@@ -277,7 +279,8 @@ const TRANSACTION_RULES =
   'categoría es del mismo tipo que la transacción y no está archivada; puede ser una categoría ' +
   'de primer nivel o una subcategoría. El método de pago es opcional; si se indica, no puede ' +
   'estar archivado. Sin `currency` se usa la del método de pago; si este acepta las dos ' +
-  'monedas, o no hay método, se exige. Nunca se convierte.';
+  'monedas, o no hay método, se exige. Nunca se convierte. `tags` son nombres de etiquetas: las ' +
+  'que no existen se crean, y "Almuerzo" y "almuerzó" son la misma. Hasta 10 distintas, sin `|`.';
 
 const ALWAYS_ON_PATHS: Record<string, unknown> = {
   [`/${API_PREFIX}/openapi.json`]: {
@@ -752,6 +755,12 @@ function transactionsPaths(): Record<string, unknown> {
           queryParameter('paymentMethodId', { type: 'string', format: 'uuid' }),
           queryParameter('currency', schemaOf(currencySchema)),
           queryParameter(
+            'tag',
+            { type: 'string', maxLength: TAG_NAME_MAX_LENGTH },
+            'Solo las transacciones con esta etiqueta, sin distinguir mayúsculas ni tildes. Deja ' +
+              'fuera las transferencias; los totales siguen al filtro.',
+          ),
+          queryParameter(
             'kind',
             schemaOf(movementKindSchema),
             'Solo transacciones o solo transferencias. Sin él, las dos.',
@@ -782,7 +791,7 @@ function transactionsPaths(): Record<string, unknown> {
           '422': problem(
             'Un filtro no tiene un valor válido, se mandaron `month` y `from`/`to` a la vez, ' +
               '`from` es posterior a `to`, o el cursor no es uno que haya dado la API ' +
-              '(`INVALID_CURSOR`), o se pidió `kind=transfer` junto con `type` o `categoryId`.',
+              '(`INVALID_CURSOR`), o se pidió `kind=transfer` junto con `type`, `categoryId` o `tag`.',
           ),
         },
       },
@@ -825,7 +834,8 @@ function transactionsPaths(): Record<string, unknown> {
           'Se manda solo lo que cambia. El origen (`source`) no se corrige. El tipo se cambia ' +
           'junto con una categoría de ese tipo. Sin `currency` la moneda no cambia, aunque cambie ' +
           'el método de pago. Una categoría o un método archivados que la transacción ya tenía ' +
-          'siguen valiendo; elegirlos ahora, no. Una fecha nueva no puede ser futura.',
+          'siguen valiendo; elegirlos ahora, no. Una fecha nueva no puede ser futura. `tags` ' +
+          '**reemplaza** las etiquetas: se manda la lista completa, y `[]` las quita todas.',
         security: [{ accessToken: [] }],
         parameters: [TRANSACTION_ID_PARAMETER],
         requestBody: jsonBody(updateTransactionRequestSchema),
