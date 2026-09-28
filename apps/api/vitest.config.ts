@@ -24,6 +24,7 @@ export default defineConfig({
         'src/**/*.fake.ts',
         'src/main.ts',
         'src/seed.ts',
+        'src/openapi-export.ts',
         'src/generated/**',
       ],
     },

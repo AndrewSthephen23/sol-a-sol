@@ -1,1 +1,3 @@
 pnpm-lock.yaml
+# Generado por `pnpm api:client`: se regenera, no se edita.
+apps/web/src/shared/api/schema.gen.ts

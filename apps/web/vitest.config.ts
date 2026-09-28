@@ -21,7 +21,7 @@ export default defineConfig({
         ['lcov', { projectRoot: fileURLToPath(new URL('../..', import.meta.url)) }],
       ],
       include: ['src/**/*.{ts,tsx}'],
-      exclude: ['src/**/*.spec.{ts,tsx}'],
+      exclude: ['src/**/*.spec.{ts,tsx}', 'src/shared/api/schema.gen.ts'],
     },
   },
 });

@@ -29,6 +29,14 @@
       "cache": false,
       "passThroughEnv": ["DATABASE_URL"]
     },
+    "openapi:export": {
+      "dependsOn": ["build"],
+      "cache": false
+    },
+    "api:client": {
+      "dependsOn": ["@sol-a-sol/api#openapi:export"],
+      "cache": false
+    },
     "test:integration": {
       "dependsOn": ["^build", "db:generate"],
       "cache": false

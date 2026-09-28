@@ -96,6 +96,27 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+  api-client:
+    name: Cliente de API al día
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Regenerar los tipos desde el OpenAPI de la API
+        run: pnpm api:client
+      # Si difieren, la web y la API se separaron en silencio: hay que correr `pnpm api:client`
+      # y versionar el resultado. `status` (no `diff`) detecta también un archivo que no existía.
+      - name: El cliente versionado coincide con el generado
+        run: |
+          if [ -n "$(git status --porcelain -- apps/web/src/shared/api)" ]; then
+            git --no-pager diff -- apps/web/src/shared/api
+            echo "::error title=Cliente de API desactualizado::Corre \`pnpm api:client\` y versiona el resultado."
+            exit 1
+          fi
+
   integration:
     name: Pruebas de integración
     runs-on: ubuntu-24.04
@@ -221,7 +242,8 @@ jobs:
     name: CI OK
     # Check único para la protección de rama: falla si algún job falló o se canceló.
     if: always()
-    needs: [commitlint, changeset, quality, unit, integration, build, docker, sonarcloud]
+    needs:
+      [commitlint, changeset, quality, unit, api-client, integration, build, docker, sonarcloud]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:

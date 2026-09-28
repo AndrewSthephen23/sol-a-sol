@@ -17,7 +17,8 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
-    "db:seed": "nest build && node --env-file-if-exists=.env dist/seed.js"
+    "db:seed": "nest build && node --env-file-if-exists=.env dist/seed.js",
+    "openapi:export": "node dist/openapi-export.js"
   },
   "dependencies": {
     "@nestjs/common": "12.0.2",
