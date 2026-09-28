@@ -35,6 +35,7 @@ model User {
   categories           Category[]
   paymentMethods       PaymentMethod[]
   transactions         Transaction[]
+  transfers            Transfer[]
 
   @@map("users")
 }
@@ -265,6 +266,8 @@ model PaymentMethod {
   updatedAt    DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
   user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions Transaction[]
+  transfersOut Transfer[]        @relation("TransferFrom")
+  transfersIn  Transfer[]        @relation("TransferTo")
 
   /// Destino de la clave foránea compuesta de `Transaction.paymentMethod`: `id` ya es único; esto
   /// solo le da a PostgreSQL el índice que exige para referenciar las dos columnas juntas.
@@ -333,4 +336,37 @@ model Transaction {
   @@index([categoryId])
   @@index([paymentMethodId])
   @@map("transactions")
+}
+
+/// Plata que pasa de una cuenta propia a otra: no es ingreso ni gasto (decidido el 2026-09-27).
+/// Con monedas distintas guarda los dos montos, copiados del voucher: nunca se convierte.
+model Transfer {
+  id                  String            @id @default(uuid(7)) @db.Uuid
+  userId              String            @map("user_id") @db.Uuid
+  /// Día en que pasó, sin hora.
+  date                DateTime          @db.Date
+  fromPaymentMethodId String            @map("from_payment_method_id") @db.Uuid
+  toPaymentMethodId   String            @map("to_payment_method_id") @db.Uuid
+  /// Lo que salió de la cuenta de origen. Siempre positivo.
+  amount              Decimal           @db.Decimal(18, 2)
+  currency            Currency
+  /// Lo que llegó a la cuenta de destino. Igual a `amount` si la moneda no cambia.
+  receivedAmount      Decimal           @map("received_amount") @db.Decimal(18, 2)
+  receivedCurrency    Currency          @map("received_currency")
+  description         String
+  source              TransactionSource
+  createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  /// Borrado lógico. Nulo = vigente.
+  deletedAt           DateTime?         @map("deleted_at") @db.Timestamptz(3)
+  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  from                PaymentMethod     @relation("TransferFrom", fields: [fromPaymentMethodId, userId], references: [id, userId], onDelete: NoAction, onUpdate: NoAction)
+  to                  PaymentMethod     @relation("TransferTo", fields: [toPaymentMethodId, userId], references: [id, userId], onDelete: NoAction, onUpdate: NoAction)
+
+  /// Por donde se lista, igual que las transacciones.
+  @@index([userId, date])
+  /// Para que comprobar "¿este método tiene movimientos?" no recorra la tabla.
+  @@index([fromPaymentMethodId])
+  @@index([toPaymentMethodId])
+  @@map("transfers")
 }

@@ -29,3 +29,11 @@ export const TRANSACTION_RESTORED = 'transactions.transaction.restored';
 export type TransactionUpdated = TransactionCreated;
 export type TransactionDeleted = TransactionCreated;
 export type TransactionRestored = TransactionCreated;
+
+/** Se registró una transferencia entre dos cuentas propias. */
+export const TRANSFER_CREATED = 'transactions.transfer.created';
+
+export interface TransferCreated {
+  userId: string;
+  transferId: string;
+}

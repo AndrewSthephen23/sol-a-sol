@@ -4,6 +4,7 @@ import {
   createPaymentMethodRequestSchema,
   createPersonalAccessTokenRequestSchema,
   createTransactionRequestSchema,
+  createTransferRequestSchema,
   currencySchema,
   CURSOR_MAX_LENGTH,
   SEARCH_MAX_LENGTH,
@@ -209,6 +210,23 @@ const TRANSACTION_LIST_SCHEMA = schemaOf(
         'De **todo** lo filtrado, no solo de esta página. Una entrada por moneda con ' +
           'movimientos, primero soles; nunca se convierte.',
       ),
+  }),
+);
+
+const TRANSFER_SCHEMA = schemaOf(
+  z.object({
+    id: z.uuid(),
+    date: z.iso.date().describe('Día en que pasó, sin hora.'),
+    fromPaymentMethodId: z.uuid().describe('Cuenta de la que salió la plata.'),
+    toPaymentMethodId: z.uuid().describe('Cuenta a la que llegó.'),
+    amount: decimal('Lo que salió, en la moneda de la cuenta de origen.'),
+    currency: currencySchema,
+    receivedAmount: decimal('Lo que llegó. Igual a `amount` si la moneda no cambia.'),
+    receivedCurrency: currencySchema,
+    description: z.string(),
+    source: transactionSourceSchema,
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
   }),
 );
 
@@ -830,6 +848,50 @@ function transactionsPaths(): Record<string, unknown> {
           '401': unauthorized,
           '403': forbidden,
           '404': problem('No existe o es de otra cuenta.'),
+        },
+      },
+    },
+    [`/${API_PREFIX}/transfers`]: {
+      post: {
+        tags: ['transactions'],
+        summary: 'Registra una transferencia entre dos cuentas propias.',
+        description:
+          'Plata que cambia de lugar sin ser ingreso ni gasto: no entra en los totales. Las dos ' +
+          'cuentas son propias, distintas y activas. Cada cuenta pone su moneda; en la misma ' +
+          'moneda llega lo mismo que salió. Si la moneda cambia, `receivedAmount` es obligatorio ' +
+          'y se copia del voucher: nunca se convierte. Queda con `source: MANUAL`.',
+        security: [{ accessToken: [] }],
+        requestBody: jsonBody(createTransferRequestSchema),
+        responses: {
+          '201': {
+            description: 'Transferencia registrada.',
+            content: { 'application/json': { schema: TRANSFER_SCHEMA } },
+          },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem('Una de las cuentas no existe o es de otra cuenta.'),
+          '422': problem(
+            'El cuerpo no tiene la forma esperada, o rompe una regla: la misma cuenta de los dos ' +
+              'lados, una cuenta archivada, una moneda que la cuenta no maneja, falta el monto ' +
+              'recibido de un cambio de moneda, montos no positivos o fecha futura.',
+          ),
+        },
+      },
+    },
+    [`/${API_PREFIX}/transfers/{id}`]: {
+      get: {
+        tags: ['transactions'],
+        summary: 'Devuelve una transferencia.',
+        security: [{ accessToken: [] }],
+        parameters: [TRANSACTION_ID_PARAMETER],
+        responses: {
+          '200': {
+            description: 'La transferencia.',
+            content: { 'application/json': { schema: TRANSFER_SCHEMA } },
+          },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': notFound,
         },
       },
     },

@@ -27,7 +27,11 @@ export type TransactionSource = (typeof TRANSACTION_SOURCES)[number];
 
 /**
  * Qué cuenta como **gasto** en el presupuesto y los resúmenes: solo el fijo y el variable. La
- * deuda (pagar un préstamo o la tarjeta) se muestra aparte. Decidido con el autor el 2026-09-24.
+ * deuda (pagar un préstamo, intereses y comisiones) se muestra aparte. Decidido con el autor el
+ * 2026-09-24.
+ *
+ * Pagar la tarjeta de crédito **no** es deuda: es una transferencia de la cuenta a la tarjeta,
+ * porque el gasto ya se contó al comprar (decidido el 2026-09-27).
  */
 const EXPENSE_TYPES: readonly TransactionType[] = ['FIXED_EXPENSE', 'VARIABLE_EXPENSE'];
 
