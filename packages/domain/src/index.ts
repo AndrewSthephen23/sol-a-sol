@@ -127,6 +127,7 @@ export {
 export {
   ArchivedParentCategoryError,
   assertCanBeParent,
+  assertCanMoveTo,
   assertCanRestore,
   assertCategoryColor,
   CategoryTooDeepError,
@@ -134,6 +135,7 @@ export {
   categoryNameKey,
   childrenArchivedWith,
   InvalidCategoryColorError,
+  OnlySubcategoriesMoveError,
   resolveCategoryType,
   SubcategoryTypeMismatchError,
 } from './catalog/category-policy.js';

@@ -80,7 +80,9 @@ export class FakeCategoryRepository implements CategoryRepository {
   ): Promise<Category | null> {
     const row = this.rowOf(userId, id);
     if (row === undefined) return Promise.resolve(null);
-    if (changes.name !== undefined) this.assertNameFree({ ...row, name: changes.name }, id);
+    if (changes.name !== undefined || changes.parentId !== undefined) {
+      this.assertNameFree({ ...row, ...changes }, id);
+    }
     Object.assign(row, changes, { updatedAt: this.now });
     for (const archivedId of archiving?.ids ?? []) {
       const target = this.rowOf(userId, archivedId);

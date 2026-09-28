@@ -292,7 +292,6 @@ describe('categories', () => {
 
     it.each([
       ['the type', { type: 'INCOME' }],
-      ['the parent', { parentId: MISSING_ID }],
       ['nothing', {}],
     ])('refuses a change of %s with 422', async (_case, body) => {
       const food = await create(FOOD);
@@ -371,6 +370,62 @@ describe('categories', () => {
         include: { category: true },
       }),
     ).resolves.toMatchObject({ categoryId: food.id, category: { name: 'Comida' } });
+  });
+
+  describe('moving a subcategory', () => {
+    async function family(): Promise<{ transport: CategoryBody; taxi: CategoryBody }> {
+      const food = await create({ name: 'Comida', type: 'VARIABLE_EXPENSE' });
+      const transport = await create({ name: 'Transportes', type: 'VARIABLE_EXPENSE' });
+      const taxi = await create({ name: 'Taxi', parentId: food.id });
+
+      return { transport, taxi };
+    }
+
+    it('moves it under another parent of the same type', async () => {
+      const { transport, taxi } = await family();
+
+      const response = await patch(taxi.id, { parentId: transport.id }).expect(200);
+
+      expect(response.body).toMatchObject({ id: taxi.id, parentId: transport.id });
+      const moved = (await tree()).find((category) => category.id === transport.id);
+      expect(moved?.children?.map((child) => child.id)).toEqual([taxi.id]);
+    });
+
+    it.each([
+      ['a top-level category', 'top-level', 'ONLY_SUBCATEGORIES_MOVE'],
+      ['under a parent of another type', 'other-type', 'SUBCATEGORY_TYPE_MISMATCH'],
+    ])('rejects moving %s with 422', async (_case, kind, code) => {
+      const { transport, taxi } = await family();
+      const rent = await create({ name: 'Vivienda', type: 'FIXED_EXPENSE' });
+      const [id, parentId] = kind === 'top-level' ? [transport.id, rent.id] : [taxi.id, rent.id];
+
+      const response = await patch(id, { parentId }).expect(422);
+
+      expect(typeOf(response)).toBe(problemType(code));
+    });
+
+    it('answers 409 when the new parent already has a child with that name', async () => {
+      const { transport, taxi } = await family();
+      await create({ name: 'taxi', parentId: transport.id });
+
+      const response = await patch(taxi.id, { parentId: transport.id }).expect(409);
+
+      expect(typeOf(response)).toBe(problemType('CATEGORY_NAME_TAKEN'));
+    });
+
+    it.each([
+      ['of another account', 'hers'],
+      ['that does not exist', 'missing'],
+    ])('does not find a parent %s', async (_case, which) => {
+      const { taxi } = await family();
+      const hers = await create({ name: 'Transportes', type: 'VARIABLE_EXPENSE' }, bruno);
+
+      const response = await patch(taxi.id, {
+        parentId: which === 'hers' ? hers.id : MISSING_ID,
+      }).expect(404);
+
+      expect(typeOf(response)).toBe(problemType('CATEGORY_NOT_FOUND'));
+    });
   });
 
   describe('user isolation (anti-IDOR)', () => {

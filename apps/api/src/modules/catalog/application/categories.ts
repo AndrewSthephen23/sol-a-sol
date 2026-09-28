@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   assertCanBeParent,
+  assertCanMoveTo,
   assertCanRestore,
   assertCategoryColor,
   ArchivedParentCategoryError,
@@ -123,6 +124,7 @@ export class UpdateCategory {
 
     const { archived, ...fields } = changes;
     if (fields.color !== undefined) assertCategoryColor(fields.color);
+    await this.assertParent(userId, current, fields.parentId);
     const archiving = await this.archivingFor(userId, current, archived);
 
     const updated = await this.categories.update(userId, id, fields, archiving);
@@ -130,6 +132,22 @@ export class UpdateCategory {
     if (updated === null) throw new CategoryNotFoundError();
 
     return updated;
+  }
+
+  /**
+   * Mudar una subcategoría: la madre nueva es propia (si no, 404, sin confirmar que existe), de
+   * primer nivel, del mismo tipo y activa. Quedarse con la misma madre no cambia nada.
+   */
+  private async assertParent(
+    userId: string,
+    current: Category,
+    parentId: string | undefined,
+  ): Promise<void> {
+    if (parentId === undefined || parentId === current.parentId) return;
+
+    const parent = await this.categories.find(userId, parentId);
+    if (parent === null) throw new CategoryNotFoundError();
+    assertCanMoveTo(current, parent);
   }
 
   /**

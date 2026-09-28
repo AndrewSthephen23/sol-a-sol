@@ -79,11 +79,20 @@ describe('update category request', () => {
   });
 
   // Las transacciones quedarían con otro tipo que su categoría.
-  it.each([
-    ['the type', { type: 'INCOME' }],
-    ['the parent', { parentId: PARENT_ID }],
-  ])('rejects a change of %s', (_case, body) => {
-    expect(updateCategoryRequestSchema.safeParse(body).success).toBe(false);
+  it('rejects a change of the type', () => {
+    expect(updateCategoryRequestSchema.safeParse({ type: 'INCOME' }).success).toBe(false);
+  });
+
+  // Decidido con el autor el 2026-09-28: una subcategoría se muda a otra madre. Qué madres valen
+  // lo decide el dominio.
+  it('accepts a new parent', () => {
+    expect(updateCategoryRequestSchema.parse({ parentId: PARENT_ID })).toEqual({
+      parentId: PARENT_ID,
+    });
+  });
+
+  it.each(['comida', null])('rejects the parent %j', (parentId) => {
+    expect(updateCategoryRequestSchema.safeParse({ parentId }).success).toBe(false);
   });
 });
 

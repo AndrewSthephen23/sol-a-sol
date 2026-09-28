@@ -779,6 +779,22 @@ describe('transactions', () => {
         await expect(idsOf({ categoryId: menu })).resolves.toEqual([child]);
       });
 
+      // Decidido con el autor el 2026-09-28: la subcategoría se muda con sus transacciones.
+      it('by the new parent of a subcategory that was moved', async () => {
+        const taxi = await categoryOf(ana, { name: 'Taxi', parentId: catalog.food });
+        const transport = await categoryOf(ana, { name: 'Transportes', type: 'VARIABLE_EXPENSE' });
+        const [ride] = await registerAll({ categoryId: taxi });
+
+        await request(server)
+          .patch(`${CATEGORIES}/${taxi}`)
+          .set('Authorization', `Bearer ${ana}`)
+          .send({ parentId: transport })
+          .expect(200);
+
+        await expect(idsOf({ categoryId: transport })).resolves.toEqual([ride]);
+        await expect(idsOf({ categoryId: catalog.food })).resolves.toEqual([]);
+      });
+
       it('by payment method and by currency', async () => {
         const [, cash] = await registerAll(
           {},
