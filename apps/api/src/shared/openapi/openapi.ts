@@ -8,6 +8,7 @@ import {
   currencySchema,
   CURSOR_MAX_LENGTH,
   movementKindSchema,
+  renameTagRequestSchema,
   TAG_NAME_MAX_LENGTH,
   SEARCH_MAX_LENGTH,
   TRANSACTIONS_DEFAULT_LIMIT,
@@ -243,6 +244,15 @@ const TRANSACTION_LIST_SCHEMA = schemaOf(
       ),
   }),
 );
+
+const TAG = z.object({
+  id: z.uuid(),
+  name: z.string(),
+  transactionCount: z.int().describe('Transacciones vigentes que la llevan.'),
+});
+
+const TAG_SCHEMA = schemaOf(TAG);
+const TAG_LIST_SCHEMA = schemaOf(z.array(TAG));
 
 const TRANSACTION_ID_PARAMETER = {
   name: 'id',
@@ -975,6 +985,64 @@ function transactionsPaths(): Record<string, unknown> {
         parameters: [TRANSACTION_ID_PARAMETER],
         responses: {
           '200': transferResponse('La transferencia, otra vez vigente.'),
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem('No existe o es de otra cuenta.'),
+        },
+      },
+    },
+    [`/${API_PREFIX}/tags`]: {
+      get: {
+        tags: ['transactions'],
+        summary: 'Lista las etiquetas de la cuenta, por nombre.',
+        description:
+          'Las etiquetas se crean al usarlas en una transacción (`tags`). Cada una dice cuántas ' +
+          'transacciones vigentes la llevan.',
+        security: [{ accessToken: [] }],
+        responses: {
+          '200': {
+            description: 'Etiquetas de la cuenta.',
+            content: { 'application/json': { schema: TAG_LIST_SCHEMA } },
+          },
+          '401': unauthorized,
+          '403': forbidden,
+        },
+      },
+    },
+    [`/${API_PREFIX}/tags/{id}`]: {
+      patch: {
+        tags: ['transactions'],
+        summary: 'Renombra una etiqueta o la fusiona con otra.',
+        description:
+          'Si el nombre nuevo es el de **otra** etiqueta de la cuenta (sin distinguir mayúsculas ' +
+          'ni tildes), las fusiona: sus transacciones quedan con la otra, que toma la escritura ' +
+          'mandada, y esta desaparece. Devuelve la etiqueta que queda.',
+        security: [{ accessToken: [] }],
+        parameters: [TRANSACTION_ID_PARAMETER],
+        requestBody: jsonBody(renameTagRequestSchema),
+        responses: {
+          '200': {
+            description: 'La etiqueta como quedó (la de destino, si se fusionaron).',
+            content: { 'application/json': { schema: TAG_SCHEMA } },
+          },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem('No existe o es de otra cuenta.'),
+          '409': problem(
+            'Otra petición creó al mismo tiempo una etiqueta con ese nombre: volver a intentarlo ' +
+              'las fusiona.',
+          ),
+          '422': problem('El nombre está vacío, es muy largo o lleva `|`.'),
+        },
+      },
+      delete: {
+        tags: ['transactions'],
+        summary: 'Borra una etiqueta.',
+        description: 'La quita de todas las transacciones, que quedan intactas. Sin archivar.',
+        security: [{ accessToken: [] }],
+        parameters: [TRANSACTION_ID_PARAMETER],
+        responses: {
+          '204': { description: 'Borrada.' },
           '401': unauthorized,
           '403': forbidden,
           '404': problem('No existe o es de otra cuenta.'),

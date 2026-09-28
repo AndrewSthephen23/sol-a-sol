@@ -11,11 +11,19 @@ import {
   type TransactionRepository,
 } from './transaction-repository.js';
 
-interface Row extends Omit<Transaction, 'tags'> {
+export interface FakeTransactionRow extends Omit<Transaction, 'tags'> {
   userId: string;
   deletedAt: Date | null;
-  /** Claves de sus etiquetas: el nombre se lee de la etiqueta, como en la base. */
-  tagKeys: string[];
+  /** Ids de sus etiquetas: el nombre se lee de la etiqueta, como en la base. */
+  tagIds: string[];
+}
+
+/** Una etiqueta guardada, como la fila de `tags`. */
+export interface FakeTag {
+  id: string;
+  userId: string;
+  name: string;
+  key: string;
 }
 
 /**
@@ -23,18 +31,18 @@ interface Row extends Omit<Transaction, 'tags'> {
  * base: una por clave y cuenta, que se crea la primera vez y conserva su primera escritura.
  */
 export class FakeTransactionRepository implements TransactionRepository {
-  readonly rows: Row[] = [];
-  /** Nombre de cada etiqueta, por cuenta y clave. */
-  readonly tagNames = new Map<string, string>();
+  readonly rows: FakeTransactionRow[] = [];
+  /** Las etiquetas de todas las cuentas; `FakeTagRepository` trabaja sobre las mismas. */
+  readonly tags: FakeTag[] = [];
   private sequence = 0;
 
   constructor(private readonly now = new Date('2026-09-24T15:00:00.000Z')) {}
 
   create({ tags, ...transaction }: NewTransaction): Promise<Transaction> {
     this.sequence += 1;
-    const row: Row = {
+    const row: FakeTransactionRow = {
       ...transaction,
-      tagKeys: this.tagKeysOf(transaction.userId, tags),
+      tagIds: this.tagIdsOf(transaction.userId, tags),
       id: `01999999-9999-7999-8999-${String(this.sequence).padStart(12, '0')}`,
       captureId: null,
       createdAt: this.now,
@@ -60,7 +68,7 @@ export class FakeTransactionRepository implements TransactionRepository {
     const row = this.liveRow(userId, id);
     if (row === undefined) return Promise.resolve(null);
     Object.assign(row, changes, { updatedAt: this.now });
-    if (tags !== undefined) row.tagKeys = this.tagKeysOf(userId, tags);
+    if (tags !== undefined) row.tagIds = this.tagIdsOf(userId, tags);
 
     return Promise.resolve(this.publicOf(row));
   }
@@ -106,7 +114,7 @@ export class FakeTransactionRepository implements TransactionRepository {
     );
   }
 
-  private matching(userId: string, filter: TransactionFilter): Row[] {
+  private matching(userId: string, filter: TransactionFilter): FakeTransactionRow[] {
     return this.rows.filter(
       (row) =>
         row.userId === userId &&
@@ -121,22 +129,25 @@ export class FakeTransactionRepository implements TransactionRepository {
           [row.description, row.merchant ?? ''].some((text) =>
             searchKey(text).includes(filter.search ?? ''),
           )) &&
-        (filter.tagKey === undefined || row.tagKeys.includes(filter.tagKey)),
+        (filter.tagKey === undefined ||
+          this.tags.some((tag) => row.tagIds.includes(tag.id) && tag.key === filter.tagKey)),
     );
   }
 
-  /** Crea las etiquetas que la cuenta no tiene y devuelve las claves de todas. */
-  private tagKeysOf(userId: string, tags: readonly NormalizedTag[]): string[] {
-    for (const tag of tags) {
-      const id = `${userId}/${tag.key}`;
-      if (!this.tagNames.has(id)) this.tagNames.set(id, tag.name);
-    }
+  /** Crea las etiquetas que la cuenta no tiene y devuelve los ids de todas. */
+  private tagIdsOf(userId: string, tags: readonly NormalizedTag[]): string[] {
+    return tags.map(({ name, key }) => {
+      const existing = this.tags.find((tag) => tag.userId === userId && tag.key === key);
+      if (existing !== undefined) return existing.id;
+      const created = { id: `tag-${String(this.tags.length + 1)}`, userId, name, key };
+      this.tags.push(created);
 
-    return tags.map((tag) => tag.key);
+      return created.id;
+    });
   }
 
   /** Una copia sin `userId` ni `deletedAt`, como la que devuelve el adaptador de Prisma. */
-  private publicOf(row: Row): Transaction {
+  private publicOf(row: FakeTransactionRow): Transaction {
     return {
       id: row.id,
       date: row.date,
@@ -148,13 +159,15 @@ export class FakeTransactionRepository implements TransactionRepository {
       merchant: row.merchant,
       source: row.source,
       captureId: row.captureId,
-      tags: orderTags(row.tagKeys.map((key) => this.tagNames.get(`${row.userId}/${key}`) ?? key)),
+      tags: orderTags(
+        this.tags.filter((tag) => row.tagIds.includes(tag.id)).map((tag) => tag.name),
+      ),
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     };
   }
 
-  private liveRow(userId: string, id: string): Row | undefined {
+  private liveRow(userId: string, id: string): FakeTransactionRow | undefined {
     return this.rows.find(
       (candidate) =>
         candidate.userId === userId && candidate.id === id && candidate.deletedAt === null,

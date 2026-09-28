@@ -159,6 +159,7 @@ export {
   InvalidTagNameError,
   MAX_TAGS_PER_TRANSACTION,
   type NormalizedTag,
+  normalizeTagName,
   normalizeTags,
   TooManyTagsError,
 } from './transactions/tag-policy.js';

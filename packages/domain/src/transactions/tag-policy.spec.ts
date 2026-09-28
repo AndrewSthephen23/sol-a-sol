@@ -3,9 +3,20 @@ import { describe, expect, it } from 'vitest';
 import {
   InvalidTagNameError,
   MAX_TAGS_PER_TRANSACTION,
+  normalizeTagName,
   normalizeTags,
   TooManyTagsError,
 } from './tag-policy.js';
+
+describe('normalizeTagName', () => {
+  it('trims the name and gives the key it is compared by', () => {
+    expect(normalizeTagName('  Almuerzó ')).toEqual({ name: 'Almuerzó', key: 'almuerzo' });
+  });
+
+  it.each(['', '   ', 'almuerzo|cena'])('rejects the name %j', (name) => {
+    expect(() => normalizeTagName(name)).toThrow(InvalidTagNameError);
+  });
+});
 
 describe('normalizeTags', () => {
   it('keeps each tag with the key it is compared by', () => {

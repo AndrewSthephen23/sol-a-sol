@@ -53,3 +53,24 @@ export class InvalidCursorError extends DomainError {
     super('The cursor is not valid: ask for the first page again.');
   }
 }
+
+/** No existe **o es de otra cuenta**: desde fuera no se distinguen. */
+export class TagNotFoundError extends DomainError {
+  readonly code = 'TAG_NOT_FOUND';
+
+  constructor() {
+    super('Tag not found.');
+  }
+}
+
+/**
+ * Otra petición creó al mismo tiempo una etiqueta con ese nombre. Casi nunca pasa: volver a
+ * intentarlo la fusiona con esa.
+ */
+export class TagNameTakenError extends DomainError {
+  readonly code = 'TAG_NAME_TAKEN';
+
+  constructor() {
+    super('Another tag with that name was just created. Try again to merge them.');
+  }
+}

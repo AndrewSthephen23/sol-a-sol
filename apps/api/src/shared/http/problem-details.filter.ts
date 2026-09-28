@@ -46,6 +46,9 @@ const STATUS_BY_DOMAIN_CODE = new Map<string, number>([
   ['CATEGORY_NAME_TAKEN', HttpStatus.CONFLICT],
   ['TRANSACTION_NOT_FOUND', HttpStatus.NOT_FOUND],
   ['TRANSFER_NOT_FOUND', HttpStatus.NOT_FOUND],
+  ['TAG_NOT_FOUND', HttpStatus.NOT_FOUND],
+  // Otra petición creó al mismo tiempo una etiqueta con ese nombre: volver a intentar la fusiona.
+  ['TAG_NAME_TAKEN', HttpStatus.CONFLICT],
 ]);
 
 /** Una regla de negocio rechazó una petición bien formada: contenido no procesable. */
