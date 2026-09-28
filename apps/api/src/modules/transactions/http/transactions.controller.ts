@@ -16,6 +16,8 @@ import {
   createTransactionRequestSchema,
   type ImportPreviewRequest,
   importPreviewRequestSchema,
+  type ImportRequest,
+  importRequestSchema,
   type ListTransactionsQuery,
   listTransactionsQuerySchema,
   type UpdateTransactionRequest,
@@ -38,6 +40,7 @@ import {
 import { TransactionNotFoundError } from '../domain/errors.js';
 import type { Transaction } from '../ports/transaction-repository.js';
 import { decodeCursor, encodeCursor } from './cursor.js';
+import { ConfirmImport, type ImportResult } from '../application/import-confirm.js';
 import { type ImportPreview, PreviewImport } from '../application/import-preview.js';
 
 const transactionIdSchema = z.uuid();
@@ -115,6 +118,7 @@ export class TransactionsController {
     private readonly getTransaction: GetTransaction,
     private readonly listTransactions: ListTransactions,
     private readonly previewImport: PreviewImport,
+    private readonly confirmImport: ConfirmImport,
     private readonly updateTransaction: UpdateTransaction,
     private readonly deleteTransaction: DeleteTransaction,
     private readonly restoreTransaction: RestoreTransaction,
@@ -159,6 +163,18 @@ export class TransactionsController {
     @Body(new ZodValidationPipe(importPreviewRequestSchema)) body: ImportPreviewRequest,
   ): Promise<ImportPreview> {
     return this.previewImport.execute({ userId, csv: body.csv });
+  }
+
+  /**
+   * Importa un CSV: el mismo archivo de la vista previa y las decisiones sobre lo que falta.
+   * **Todo o nada.** Lo importado queda con `source: IMPORT` y la huella de su fila.
+   */
+  @Post('import')
+  async import(
+    @CurrentUser() userId: string,
+    @Body(new ZodValidationPipe(importRequestSchema)) body: ImportRequest,
+  ): Promise<ImportResult> {
+    return this.confirmImport.execute({ userId, ...body });
   }
 
   /** Lo que llega desde la web es `MANUAL`: quien llama no elige de dónde vino. */

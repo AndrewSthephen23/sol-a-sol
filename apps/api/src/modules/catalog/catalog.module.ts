@@ -52,6 +52,15 @@ import { PAYMENT_METHOD_REPOSITORY } from './ports/payment-method-repository.js'
     CatalogLookup,
   ],
   // `SeedAccountsWithoutCategories` es para `pnpm db:seed` (src/seed.ts).
-  exports: [SeedAccountsWithoutCategories, CatalogLookup],
+  // Crear y restaurar también se ofrecen a `transactions`, para la importación: pasan por las
+  // mismas reglas que a mano.
+  exports: [
+    SeedAccountsWithoutCategories,
+    CatalogLookup,
+    CreateCategory,
+    UpdateCategory,
+    CreatePaymentMethod,
+    UpdatePaymentMethod,
+  ],
 })
 export class CatalogModule {}

@@ -9,6 +9,7 @@ import {
   CURSOR_MAX_LENGTH,
   IMPORT_MAX_ROWS,
   importPreviewRequestSchema,
+  importRequestSchema,
   movementKindSchema,
   renameTagRequestSchema,
   TAG_NAME_MAX_LENGTH,
@@ -297,6 +298,17 @@ const IMPORT_PREVIEW_SCHEMA = schemaOf(
       .array(z.object({ alias: z.string(), status: UNRESOLVED, lines: LINES }))
       .describe('Métodos (o cuentas de destino) por resolver: usar uno existente o crearlo.'),
     newTags: z.array(z.string()).describe('Etiquetas que se crearían.'),
+  }),
+);
+
+const IMPORT_RESULT_SCHEMA = schemaOf(
+  z.object({
+    transactions: z.int().describe('Transacciones importadas.'),
+    transfers: z.int().describe('Transferencias importadas.'),
+    alreadyImported: LINES.describe('Líneas ya importadas antes: se omitieron.'),
+    createdCategories: z.int(),
+    createdPaymentMethods: z.int(),
+    restored: z.int().describe('Categorías y métodos que se restauraron.'),
   }),
 );
 
@@ -925,6 +937,38 @@ function transactionsPaths(): Record<string, unknown> {
             'El cuerpo no tiene la forma esperada, o rompe una regla: monto no positivo o con ' +
               'más de 2 decimales, fecha futura, categoría de otro tipo o archivada, método ' +
               'archivado, o falta la moneda.',
+          ),
+        },
+      },
+    },
+    [`/${API_PREFIX}/transactions/import`]: {
+      post: {
+        tags: ['transactions'],
+        summary: 'Importa un CSV, todo o nada.',
+        description:
+          'El mismo archivo de la vista previa y una decisión por cada categoría o método de pago ' +
+          'que falta o está archivado: `create`, `use` (con su id) o `restore`. Primero se valida ' +
+          'todo sin escribir: si una fila tiene problemas, falta una decisión o una no sirve, ' +
+          'responde 422 y no cambia nada. Después aplica el catálogo y guarda todas las filas en ' +
+          'una sola transacción, con `source: IMPORT` y la huella de su fila; las ya importadas ' +
+          'se omiten.',
+        security: [{ accessToken: [] }],
+        requestBody: jsonBody(importRequestSchema),
+        responses: {
+          '201': {
+            description: 'Lo que se importó.',
+            content: { 'application/json': { schema: IMPORT_RESULT_SCHEMA } },
+          },
+          '401': unauthorized,
+          '403': forbidden,
+          '409': problem(
+            'Otra importación del mismo archivo se cruzó: no se guardó nada (`IMPORT_CONFLICT`).',
+          ),
+          '413': problem('El archivo pesa más de 1 MB o tiene demasiadas filas.'),
+          '422': problem(
+            'El CSV está mal formado o le faltan columnas, alguna fila tiene problemas ' +
+              '(`IMPORT_HAS_PROBLEMS`), falta una decisión (`IMPORT_UNRESOLVED`), una decisión no ' +
+              'sirve (`IMPORT_DECISION_INVALID`) o un método nuevo rompe las reglas de su tipo.',
           ),
         },
       },

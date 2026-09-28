@@ -101,6 +101,7 @@ describe('buildOpenApiDocument', () => {
         '/api/v1/transactions/import/preview',
         'post',
       ]);
+      expect(withTransactions.paths).toHaveProperty(['/api/v1/transactions/import', 'post']);
       expect(withTransactions.paths).toHaveProperty(['/api/v1/transfers', 'post']);
       expect(withTransactions.paths).toHaveProperty(['/api/v1/tags', 'get']);
       expect(withTransactions.paths).toHaveProperty(['/api/v1/tags/{id}', 'patch']);

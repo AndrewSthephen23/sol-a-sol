@@ -115,6 +115,8 @@ fecha,tipo,categoria,subcategoria,monto,moneda,descripcion,metodo_pago,comercio,
    - cada **categoría o subcategoría** del archivo que no existe: para cada una eliges **crearla** o **usar una que ya tienes** en su lugar ("Servicios > Bitel" puede ir a "Vivienda > Comunicaciones");
    - cada **método de pago** (o destino) cuyo alias no existe: eliges **uno que ya tienes** ("Transferencia" → "BCP Digital Soles") o **creas uno nuevo** en ese momento, con su tipo, banco, moneda y últimos 4 si es tarjeta, con las mismas reglas que al crearlo a mano.
 
+   - cada categoría o método de pago **archivado**: eliges **restaurarlo** o **usar otro**.
+
    Así un error de tipeo ("Comdia") se ve antes de crear nada.
 
 3. **Confirmar.** Entra **todo o nada**: si alguna fila tiene un problema, se corrige el archivo y se vuelve a mandar.
@@ -133,7 +135,6 @@ Si el archivo trae dos filas idénticas (dos pasajes iguales el mismo día), ent
 - Una fecha que no existe, que no está en formato `AAAA-MM-DD` o que es futura.
 - Un tipo que no es uno de los de la tabla.
 - Una categoría que existe pero es de otro tipo, o una subcategoría que existe bajo otra categoría.
-- Un método de pago o un destino archivado.
 - Una transferencia con los dos lados iguales, o con categoría, comercio o etiquetas; una transacción con `destino` o `monto_destino`.
 - Un monto cero, negativo, con más de 2 decimales, en formato ambiguo, o con un símbolo que no coincide con la moneda.
 - Una moneda que no es `PEN` ni `USD`.

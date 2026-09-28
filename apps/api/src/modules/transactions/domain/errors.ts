@@ -92,3 +92,44 @@ export class ImportTooManyRowsError extends DomainError {
     super('The file has more than 5000 rows: split it and import it in parts.');
   }
 }
+
+/**
+ * Otra importación del mismo archivo se cruzó con esta: alguna fila ya se importó mientras tanto.
+ * No se guardó nada; volver a previsualizar muestra lo que falta.
+ */
+export class ImportConflictError extends DomainError {
+  readonly code = 'IMPORT_CONFLICT';
+
+  constructor() {
+    super('Some rows were imported meanwhile: nothing was saved. Preview the file again.');
+  }
+}
+
+/** El archivo tiene filas con problemas: con todo o nada, no entra ninguna. */
+export class ImportHasProblemsError extends DomainError {
+  readonly code = 'IMPORT_HAS_PROBLEMS';
+
+  constructor(rows: number) {
+    super(
+      `${String(rows)} row(s) have problems: nothing was imported. Preview the file to see them.`,
+    );
+  }
+}
+
+/** Falta decidir qué hacer con algo del archivo que no existe o está archivado. */
+export class ImportUnresolvedError extends DomainError {
+  readonly code = 'IMPORT_UNRESOLVED';
+
+  constructor(what: string) {
+    super(`Missing a decision for ${what}: nothing was imported.`);
+  }
+}
+
+/** Una decisión no sirve para lo que decide: crear lo archivado, restaurar lo que falta, etc. */
+export class ImportDecisionInvalidError extends DomainError {
+  readonly code = 'IMPORT_DECISION_INVALID';
+
+  constructor(what: string, reason: string) {
+    super(`The decision for ${what} is not valid: ${reason}. Nothing was imported.`);
+  }
+}

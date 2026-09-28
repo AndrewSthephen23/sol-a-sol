@@ -101,7 +101,23 @@ El formato oficial está en [`transactions-import-format.md`](transactions-impor
 - las **categorías** y los **métodos de pago** (o cuentas de destino) que no existen o están archivados, con las líneas que los usan, para resolverlos al confirmar;
 - las columnas ignoradas y las etiquetas nuevas.
 
-Lo que depende de la cuenta se juzga aquí: las monedas y montos de una transferencia cuyas dos cuentas existen, y los largos máximos. El **cuerpo JSON** de toda la API admite hasta **2 MB** (`JSON_BODY_LIMIT`), para que quepa un CSV de 1 MB escapado en JSON. La confirmación llega en el siguiente PR de la tarea 07b.
+Lo que depende de la cuenta se juzga aquí: las monedas y montos de una transferencia cuyas dos cuentas existen, y los largos máximos. El **cuerpo JSON** de toda la API admite hasta **2 MB** (`JSON_BODY_LIMIT`), para que quepa un CSV de 1 MB escapado en JSON.
+
+**Confirmación** (`POST /api/v1/transactions/import`, `ConfirmImport`): el mismo CSV, más una **decisión** por cada categoría y método de pago que la vista previa marcó como faltante o archivado. Entra **todo o nada**:
+
+1. Vuelve a leer el archivo con los mismos límites. Si alguna fila tiene un problema del dominio, responde `IMPORT_HAS_PROBLEMS` sin tocar nada.
+2. Omite las filas ya importadas (por su `import_key`) y las devuelve en `alreadyImported`.
+3. **Valida todas las decisiones antes de escribir**:
+   - Categoría: `create` (solo si no existe; crea la categoría padre una sola vez aunque varias subcategorías la necesiten), `use` con un `categoryId` propio, vigente y del mismo tipo, o `restore` (solo si está archivada; restaura también el padre archivado).
+   - Método de pago: `create` con las mismas reglas que al crearlo a mano (`kind`, `institution`, `last4`, `currency`), `use` con un `paymentMethodId` propio y vigente, o `restore`.
+   - Una categoría o método faltante sin decisión responde `IMPORT_UNRESOLVED`; una decisión que no corresponde (crear algo que existe, usar algo ajeno o archivado), `IMPORT_DECISION_INVALID`. Un id de otra cuenta se trata igual que uno que no existe.
+   - Las transferencias se juzgan con las cuentas **finales**: si dos alias terminan en la misma cuenta, `TRANSFER_SAME_ACCOUNT`; las monedas se comprueban con las de los métodos que se van a crear.
+4. Aplica las decisiones y guarda las filas en **una sola transacción de base de datos** (`PrismaImportWriter`, en lotes de 500), con `source: IMPORT` e `import_key`. Si otra importación guardó la misma fila a la vez, el índice único lo detecta y responde **409** `IMPORT_CONFLICT` sin guardar nada: volver a mandarlo omite lo que ya entró.
+5. Publica `transaction.created` y `transfer.created` por cada fila, después de guardar.
+
+Responde **201** con `{ transactions, transfers, alreadyImported, createdCategories, createdPaymentMethods, restored }`.
+
+> Las categorías y métodos se crean con los casos de uso de `catalog` (su API pública), fuera de la transacción de base de datos: si la escritura de las filas falla, lo creado queda y una nueva vista previa ya lo muestra como existente.
 
 ## Eventos de dominio
 
@@ -134,6 +150,7 @@ Exigen una sesión (`Authorization: Bearer <token de acceso>`): un token persona
 | -------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET`    | `/api/v1/transactions`                | Lista transacciones y transferencias con filtros, búsqueda, cursor y totales por moneda: `{ items, nextCursor, totals }`, cada fila con `kind` |
 | `POST`   | `/api/v1/transactions/import/preview` | Qué pasaría al importar un CSV, sin guardar nada. **200**                                                                                      |
+| `POST`   | `/api/v1/transactions/import`         | Importa el CSV con las decisiones sobre lo que falta, todo o nada. **201** con lo que entró                                                    |
 | `POST`   | `/api/v1/transactions`                | Registra una transacción con `source: MANUAL`. **201** con la transacción                                                                      |
 | `GET`    | `/api/v1/transactions/{id}`           | Devuelve una. **404** si no existe, es de otra cuenta o está borrada                                                                           |
 | `PATCH`  | `/api/v1/transactions/{id}`           | Corrige lo que se mande, menos el origen. **404** si no existe, es ajena o está borrada                                                        |
@@ -152,33 +169,37 @@ El monto viaja como **string decimal** (`"25.90"`) y la fecha como `YYYY-MM-DD`.
 
 ### Errores
 
-| `code`                              | Estado | Cuándo                                                                                       |
-| ----------------------------------- | ------ | -------------------------------------------------------------------------------------------- |
-| `INVALID_AMOUNT`                    | 422    | El monto tiene más de 2 decimales: se rechaza, no se redondea                                |
-| `TRANSACTION_AMOUNT_NOT_POSITIVE`   | 422    | Monto cero o negativo                                                                        |
-| `TRANSACTION_DATE_IN_FUTURE`        | 422    | Fecha posterior a hoy en la hora de Lima                                                     |
-| `TRANSACTION_CURRENCY_REQUIRED`     | 422    | Sin moneda, y el método no tiene una sola (o no hay método)                                  |
-| `CATEGORY_TYPE_MISMATCH`            | 422    | La categoría es de otro tipo                                                                 |
-| `CATEGORY_ARCHIVED`                 | 422    | La categoría está archivada                                                                  |
-| `PAYMENT_METHOD_ARCHIVED`           | 422    | El método de pago está archivado                                                             |
-| `CATEGORY_NOT_FOUND`                | 404    | La categoría no existe o es de otra cuenta                                                   |
-| `PAYMENT_METHOD_NOT_FOUND`          | 404    | El método de pago no existe o es de otra cuenta                                              |
-| `TRANSACTION_NOT_FOUND`             | 404    | La transacción no existe, es de otra cuenta o está borrada                                   |
-| `INVALID_CURSOR`                    | 422    | El cursor no es uno que haya dado la API: se pide la primera página                          |
-| `IMPORT_FILE_TOO_LARGE`             | 413    | El CSV pesa más de 1 MB                                                                      |
-| `IMPORT_TOO_MANY_ROWS`              | 413    | El CSV tiene más de 5 000 filas                                                              |
-| `MALFORMED_CSV`                     | 422    | El CSV no está bien formado (una comilla sin cerrar)                                         |
-| `IMPORT_COLUMNS_MISSING`            | 422    | Al CSV le faltan columnas obligatorias                                                       |
-| `TAG_NAME_INVALID`                  | 422    | Una etiqueta vacía o con `\|`                                                                |
-| `TOO_MANY_TAGS`                     | 422    | Más de 10 etiquetas distintas en una transacción                                             |
-| `TAG_NOT_FOUND`                     | 404    | La etiqueta no existe o es de otra cuenta                                                    |
-| `TAG_NAME_TAKEN`                    | 409    | Otra petición creó al mismo tiempo una etiqueta con ese nombre; volver a intentar la fusiona |
-| `TRANSFER_SAME_ACCOUNT`             | 422    | Origen y destino son la misma cuenta                                                         |
-| `TRANSFER_CURRENCY_MISMATCH`        | 422    | Una moneda que la cuenta no maneja                                                           |
-| `TRANSFER_RECEIVED_AMOUNT_REQUIRED` | 422    | Cambio de moneda sin el monto recibido                                                       |
-| `TRANSFER_RECEIVED_AMOUNT_MISMATCH` | 422    | En la misma moneda, un monto recibido distinto del enviado                                   |
-| `TRANSFER_AMOUNT_NOT_POSITIVE`      | 422    | Un monto de transferencia cero o negativo                                                    |
-| `TRANSFER_NOT_FOUND`                | 404    | La transferencia no existe, es de otra cuenta o está borrada                                 |
+| `code`                              | Estado | Cuándo                                                                                         |
+| ----------------------------------- | ------ | ---------------------------------------------------------------------------------------------- |
+| `INVALID_AMOUNT`                    | 422    | El monto tiene más de 2 decimales: se rechaza, no se redondea                                  |
+| `TRANSACTION_AMOUNT_NOT_POSITIVE`   | 422    | Monto cero o negativo                                                                          |
+| `TRANSACTION_DATE_IN_FUTURE`        | 422    | Fecha posterior a hoy en la hora de Lima                                                       |
+| `TRANSACTION_CURRENCY_REQUIRED`     | 422    | Sin moneda, y el método no tiene una sola (o no hay método)                                    |
+| `CATEGORY_TYPE_MISMATCH`            | 422    | La categoría es de otro tipo                                                                   |
+| `CATEGORY_ARCHIVED`                 | 422    | La categoría está archivada                                                                    |
+| `PAYMENT_METHOD_ARCHIVED`           | 422    | El método de pago está archivado                                                               |
+| `CATEGORY_NOT_FOUND`                | 404    | La categoría no existe o es de otra cuenta                                                     |
+| `PAYMENT_METHOD_NOT_FOUND`          | 404    | El método de pago no existe o es de otra cuenta                                                |
+| `TRANSACTION_NOT_FOUND`             | 404    | La transacción no existe, es de otra cuenta o está borrada                                     |
+| `INVALID_CURSOR`                    | 422    | El cursor no es uno que haya dado la API: se pide la primera página                            |
+| `IMPORT_FILE_TOO_LARGE`             | 413    | El CSV pesa más de 1 MB                                                                        |
+| `IMPORT_TOO_MANY_ROWS`              | 413    | El CSV tiene más de 5 000 filas                                                                |
+| `MALFORMED_CSV`                     | 422    | El CSV no está bien formado (una comilla sin cerrar)                                           |
+| `IMPORT_COLUMNS_MISSING`            | 422    | Al CSV le faltan columnas obligatorias                                                         |
+| `IMPORT_HAS_PROBLEMS`               | 422    | Al confirmar, alguna fila tiene un problema: no se guarda nada                                 |
+| `IMPORT_UNRESOLVED`                 | 422    | Al confirmar, falta la decisión sobre una categoría o método de pago                           |
+| `IMPORT_DECISION_INVALID`           | 422    | Una decisión no corresponde: crear algo que existe, usar algo ajeno, archivado o de otro tipo  |
+| `IMPORT_CONFLICT`                   | 409    | Otra importación guardó a la vez alguna de las filas; volver a mandarlo omite las ya guardadas |
+| `TAG_NAME_INVALID`                  | 422    | Una etiqueta vacía o con `\|`                                                                  |
+| `TOO_MANY_TAGS`                     | 422    | Más de 10 etiquetas distintas en una transacción                                               |
+| `TAG_NOT_FOUND`                     | 404    | La etiqueta no existe o es de otra cuenta                                                      |
+| `TAG_NAME_TAKEN`                    | 409    | Otra petición creó al mismo tiempo una etiqueta con ese nombre; volver a intentar la fusiona   |
+| `TRANSFER_SAME_ACCOUNT`             | 422    | Origen y destino son la misma cuenta                                                           |
+| `TRANSFER_CURRENCY_MISMATCH`        | 422    | Una moneda que la cuenta no maneja                                                             |
+| `TRANSFER_RECEIVED_AMOUNT_REQUIRED` | 422    | Cambio de moneda sin el monto recibido                                                         |
+| `TRANSFER_RECEIVED_AMOUNT_MISMATCH` | 422    | En la misma moneda, un monto recibido distinto del enviado                                     |
+| `TRANSFER_AMOUNT_NOT_POSITIVE`      | 422    | Un monto de transferencia cero o negativo                                                      |
+| `TRANSFER_NOT_FOUND`                | 404    | La transferencia no existe, es de otra cuenta o está borrada                                   |
 
 ## Estado
 
