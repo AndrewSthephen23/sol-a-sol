@@ -46,3 +46,21 @@ Característica: Etiquetas
       Dado que Bruno tiene gastos con la etiqueta "almuerzo"
       Cuando filtro mis transacciones por "almuerzo"
       Entonces no veo los gastos de Bruno
+
+  Regla: Mis etiquetas se ordenan después de usarlas
+
+    Escenario: Renombro una etiqueta
+      Dado que tengo gastos con la etiqueta "comida-rapida"
+      Cuando la renombro a "Delivery"
+      Entonces esos gastos quedan con la etiqueta "Delivery"
+
+    Escenario: Renombrar al nombre de otra etiqueta las fusiona
+      Dado que tengo gastos con "comida-rapida" y otros con "delivery"
+      Cuando renombro "comida-rapida" a "Delivery"
+      Entonces todos esos gastos quedan con la etiqueta "Delivery"
+      Y ya no tengo la etiqueta "comida-rapida"
+
+    Escenario: Borro una etiqueta
+      Dado que tengo un gasto con las etiquetas "almuerzo" y "oficina"
+      Cuando borro la etiqueta "almuerzo"
+      Entonces el gasto sigue ahí, solo con la etiqueta "oficina"

@@ -12,6 +12,7 @@ import {
   RestoreTransaction,
   UpdateTransaction,
 } from './application/transactions.js';
+import { DeleteTag, ListTags, RenameTag } from './application/tags.js';
 import {
   CreateTransfer,
   DeleteTransfer,
@@ -19,11 +20,14 @@ import {
   RestoreTransfer,
   UpdateTransfer,
 } from './application/transfers.js';
+import { TagsController } from './http/tags.controller.js';
 import { TransactionsController } from './http/transactions.controller.js';
 import { TransfersController } from './http/transfers.controller.js';
+import { PrismaTagRepository } from './infrastructure/prisma-tag-repository.js';
 import { PrismaTransactionRepository } from './infrastructure/prisma-transaction-repository.js';
 import { PrismaTransferRepository } from './infrastructure/prisma-transfer-repository.js';
 import { CATALOG_READER } from './ports/catalog-reader.js';
+import { TAG_REPOSITORY } from './ports/tag-repository.js';
 import { TRANSACTION_REPOSITORY } from './ports/transaction-repository.js';
 import { TRANSFER_REPOSITORY } from './ports/transfer-repository.js';
 
@@ -36,7 +40,7 @@ import { TRANSFER_REPOSITORY } from './ports/transfer-repository.js';
  */
 @Module({
   imports: [PrismaModule, TimeModule, IdentityModule, CatalogModule],
-  controllers: [TransactionsController, TransfersController],
+  controllers: [TransactionsController, TransfersController, TagsController],
   providers: [
     CreateTransaction,
     GetTransaction,
@@ -51,6 +55,10 @@ import { TRANSFER_REPOSITORY } from './ports/transfer-repository.js';
     DeleteTransfer,
     RestoreTransfer,
     { provide: TRANSFER_REPOSITORY, useClass: PrismaTransferRepository },
+    ListTags,
+    RenameTag,
+    DeleteTag,
+    { provide: TAG_REPOSITORY, useClass: PrismaTagRepository },
     { provide: CATALOG_READER, useExisting: CatalogLookup },
   ],
   exports: [],

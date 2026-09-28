@@ -77,3 +77,4 @@ export {
   type UpdateTransferRequest,
   updateTransferRequestSchema,
 } from './transactions/transfers.js';
+export { type RenameTagRequest, renameTagRequestSchema } from './transactions/tags.js';

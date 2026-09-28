@@ -96,6 +96,9 @@ describe('buildOpenApiDocument', () => {
 
       expect(withTransactions.paths).toHaveProperty(['/api/v1/transactions', 'get']);
       expect(withTransactions.paths).toHaveProperty(['/api/v1/transfers', 'post']);
+      expect(withTransactions.paths).toHaveProperty(['/api/v1/tags', 'get']);
+      expect(withTransactions.paths).toHaveProperty(['/api/v1/tags/{id}', 'patch']);
+      expect(withTransactions.paths).toHaveProperty(['/api/v1/tags/{id}', 'delete']);
       expect(withTransactions.paths).toHaveProperty(['/api/v1/transfers/{id}', 'get']);
       expect(withTransactions.paths).toHaveProperty(['/api/v1/transfers/{id}', 'patch']);
       expect(withTransactions.paths).toHaveProperty(['/api/v1/transfers/{id}', 'delete']);
@@ -105,7 +108,7 @@ describe('buildOpenApiDocument', () => {
       expect(withTransactions.paths).toHaveProperty(['/api/v1/transactions/{id}', 'patch']);
       expect(withTransactions.paths).toHaveProperty(['/api/v1/transactions/{id}', 'delete']);
       expect(withTransactions.paths).toHaveProperty(['/api/v1/transactions/{id}/restore', 'post']);
-      expect(JSON.stringify(documentWith(true))).not.toMatch(/transaction|transfer/i);
+      expect(JSON.stringify(documentWith(true))).not.toMatch(/transaction|transfer|\/tags/i);
     });
   });
 

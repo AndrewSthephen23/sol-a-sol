@@ -77,16 +77,18 @@ Plata que **cambia de lugar** sin ser ingreso ni gasto: del banco a Yape, de sol
 
 Una segunda forma de mirar las transacciones, además de la categoría: por momento del día (`almuerzo`), por viaje (`viaje-cusco`), por con quién. La **categoría** dice qué es (una sola, y es lo que se presupuesta); las **etiquetas**, desde qué ángulo mirarla. Decidido con el autor el 2026-09-28; las reglas viven en `packages/domain/src/transactions/tag-policy.ts`.
 
-| Regla        | Decisión                                                                                                                                         |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Crear        | **Al escribirlas:** `tags: [...]` al registrar o corregir. La que no existe en la cuenta se crea                                                 |
-| Mismo nombre | Sin distinguir mayúsculas ni tildes (`searchKey`): "Almuerzo" y "almuerzó" son la misma, y se queda la **primera escritura**. La ñ es otra letra |
-| Datos        | **Solo el nombre** (hasta 40 caracteres), sin color ni ícono                                                                                     |
-| Límites      | Hasta **10 distintas** por transacción (`TOO_MANY_TAGS`). Sin nombre vacío ni `\|`, que separa las etiquetas en el CSV (`TAG_NAME_INVALID`)      |
-| Corregir     | `tags` **reemplaza** la lista completa; `[]` las quita todas. Sin `tags`, no cambian                                                             |
-| Listado      | `?tag=` trae las transacciones con esa etiqueta y **los totales siguen al filtro** ("cuánto gasté en almuerzos"). Deja fuera las transferencias  |
-| Quién        | **Solo las transacciones**; las transferencias no llevan etiquetas                                                                               |
-| Borrar una   | La quita de todas las transacciones, que quedan intactas; sin archivar (la gestión llega en el siguiente PR)                                     |
+| Regla        | Decisión                                                                                                                                                                                                                                                                         |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Crear        | **Al escribirlas:** `tags: [...]` al registrar o corregir. La que no existe en la cuenta se crea                                                                                                                                                                                 |
+| Mismo nombre | Sin distinguir mayúsculas ni tildes (`searchKey`): "Almuerzo" y "almuerzó" son la misma, y se queda la **primera escritura**. La ñ es otra letra                                                                                                                                 |
+| Datos        | **Solo el nombre** (hasta 40 caracteres), sin color ni ícono                                                                                                                                                                                                                     |
+| Límites      | Hasta **10 distintas** por transacción (`TOO_MANY_TAGS`). Sin nombre vacío ni `\|`, que separa las etiquetas en el CSV (`TAG_NAME_INVALID`)                                                                                                                                      |
+| Corregir     | `tags` **reemplaza** la lista completa; `[]` las quita todas. Sin `tags`, no cambian                                                                                                                                                                                             |
+| Listado      | `?tag=` trae las transacciones con esa etiqueta y **los totales siguen al filtro** ("cuánto gasté en almuerzos"). Deja fuera las transferencias                                                                                                                                  |
+| Quién        | **Solo las transacciones**; las transferencias no llevan etiquetas                                                                                                                                                                                                               |
+| Borrar una   | `DELETE /tags/{id}` la quita de todas las transacciones, que quedan intactas; sin archivar                                                                                                                                                                                       |
+| Renombrar    | `PATCH /tags/{id}`. Si el nombre nuevo es el de **otra** etiqueta de la cuenta (sin mayúsculas ni tildes), **las fusiona**: sus transacciones quedan con la otra, que toma la escritura mandada, y esta desaparece. Una transacción que tenía las dos queda con una (2026-09-28) |
+| Listar       | `GET /tags`, por nombre, cada una con cuántas transacciones **vigentes** la llevan                                                                                                                                                                                               |
 
 **Tablas:** `tags(id, user_id, name, name_key, …)` con índice único `(user_id, name_key)`, y `transaction_tags(transaction_id, tag_id, user_id)`, con **claves foráneas compuestas** `(transaction_id, user_id)` y `(tag_id, user_id)`: una transacción no puede llevar la etiqueta de otra cuenta. Borrar una etiqueta borra sus vínculos (`CASCADE`). `name_key` la calcula la aplicación con `searchKey`, así que la tabla de acentos sigue siendo una sola. La transacción, sus etiquetas nuevas y sus vínculos se guardan en **una sola transacción de la base**, y las etiquetas se crean con `createMany … skipDuplicates`: dos altas a la vez con la misma etiqueta nueva crean una sola.
 
@@ -130,32 +132,37 @@ Exigen una sesión (`Authorization: Bearer <token de acceso>`): un token persona
 | `PATCH`  | `/api/v1/transfers/{id}`            | Corrige lo que se mande, menos el origen. **404** si no existe, es ajena o está borrada                                                        |
 | `DELETE` | `/api/v1/transfers/{id}`            | Borrado lógico. **204**; **404** si no existe, es ajena o ya estaba borrada                                                                    |
 | `POST`   | `/api/v1/transfers/{id}/restore`    | Deshace el borrado, sin plazo. **200** con la transferencia                                                                                    |
+| `GET`    | `/api/v1/tags`                      | Etiquetas de la cuenta por nombre, con cuántas transacciones vigentes las llevan                                                               |
+| `PATCH`  | `/api/v1/tags/{id}`                 | Renombra; con el nombre de otra etiqueta, las fusiona. **200** con la que queda                                                                |
+| `DELETE` | `/api/v1/tags/{id}`                 | La quita de todas las transacciones. **204**                                                                                                   |
 
 El monto viaja como **string decimal** (`"25.90"`) y la fecha como `YYYY-MM-DD`. Un monto como número JSON se rechaza con `VALIDATION_FAILED`: ya perdió precisión antes de llegar.
 
 ### Errores
 
-| `code`                              | Estado | Cuándo                                                              |
-| ----------------------------------- | ------ | ------------------------------------------------------------------- |
-| `INVALID_AMOUNT`                    | 422    | El monto tiene más de 2 decimales: se rechaza, no se redondea       |
-| `TRANSACTION_AMOUNT_NOT_POSITIVE`   | 422    | Monto cero o negativo                                               |
-| `TRANSACTION_DATE_IN_FUTURE`        | 422    | Fecha posterior a hoy en la hora de Lima                            |
-| `TRANSACTION_CURRENCY_REQUIRED`     | 422    | Sin moneda, y el método no tiene una sola (o no hay método)         |
-| `CATEGORY_TYPE_MISMATCH`            | 422    | La categoría es de otro tipo                                        |
-| `CATEGORY_ARCHIVED`                 | 422    | La categoría está archivada                                         |
-| `PAYMENT_METHOD_ARCHIVED`           | 422    | El método de pago está archivado                                    |
-| `CATEGORY_NOT_FOUND`                | 404    | La categoría no existe o es de otra cuenta                          |
-| `PAYMENT_METHOD_NOT_FOUND`          | 404    | El método de pago no existe o es de otra cuenta                     |
-| `TRANSACTION_NOT_FOUND`             | 404    | La transacción no existe, es de otra cuenta o está borrada          |
-| `INVALID_CURSOR`                    | 422    | El cursor no es uno que haya dado la API: se pide la primera página |
-| `TAG_NAME_INVALID`                  | 422    | Una etiqueta vacía o con `\|`                                       |
-| `TOO_MANY_TAGS`                     | 422    | Más de 10 etiquetas distintas en una transacción                    |
-| `TRANSFER_SAME_ACCOUNT`             | 422    | Origen y destino son la misma cuenta                                |
-| `TRANSFER_CURRENCY_MISMATCH`        | 422    | Una moneda que la cuenta no maneja                                  |
-| `TRANSFER_RECEIVED_AMOUNT_REQUIRED` | 422    | Cambio de moneda sin el monto recibido                              |
-| `TRANSFER_RECEIVED_AMOUNT_MISMATCH` | 422    | En la misma moneda, un monto recibido distinto del enviado          |
-| `TRANSFER_AMOUNT_NOT_POSITIVE`      | 422    | Un monto de transferencia cero o negativo                           |
-| `TRANSFER_NOT_FOUND`                | 404    | La transferencia no existe, es de otra cuenta o está borrada        |
+| `code`                              | Estado | Cuándo                                                                                       |
+| ----------------------------------- | ------ | -------------------------------------------------------------------------------------------- |
+| `INVALID_AMOUNT`                    | 422    | El monto tiene más de 2 decimales: se rechaza, no se redondea                                |
+| `TRANSACTION_AMOUNT_NOT_POSITIVE`   | 422    | Monto cero o negativo                                                                        |
+| `TRANSACTION_DATE_IN_FUTURE`        | 422    | Fecha posterior a hoy en la hora de Lima                                                     |
+| `TRANSACTION_CURRENCY_REQUIRED`     | 422    | Sin moneda, y el método no tiene una sola (o no hay método)                                  |
+| `CATEGORY_TYPE_MISMATCH`            | 422    | La categoría es de otro tipo                                                                 |
+| `CATEGORY_ARCHIVED`                 | 422    | La categoría está archivada                                                                  |
+| `PAYMENT_METHOD_ARCHIVED`           | 422    | El método de pago está archivado                                                             |
+| `CATEGORY_NOT_FOUND`                | 404    | La categoría no existe o es de otra cuenta                                                   |
+| `PAYMENT_METHOD_NOT_FOUND`          | 404    | El método de pago no existe o es de otra cuenta                                              |
+| `TRANSACTION_NOT_FOUND`             | 404    | La transacción no existe, es de otra cuenta o está borrada                                   |
+| `INVALID_CURSOR`                    | 422    | El cursor no es uno que haya dado la API: se pide la primera página                          |
+| `TAG_NAME_INVALID`                  | 422    | Una etiqueta vacía o con `\|`                                                                |
+| `TOO_MANY_TAGS`                     | 422    | Más de 10 etiquetas distintas en una transacción                                             |
+| `TAG_NOT_FOUND`                     | 404    | La etiqueta no existe o es de otra cuenta                                                    |
+| `TAG_NAME_TAKEN`                    | 409    | Otra petición creó al mismo tiempo una etiqueta con ese nombre; volver a intentar la fusiona |
+| `TRANSFER_SAME_ACCOUNT`             | 422    | Origen y destino son la misma cuenta                                                         |
+| `TRANSFER_CURRENCY_MISMATCH`        | 422    | Una moneda que la cuenta no maneja                                                           |
+| `TRANSFER_RECEIVED_AMOUNT_REQUIRED` | 422    | Cambio de moneda sin el monto recibido                                                       |
+| `TRANSFER_RECEIVED_AMOUNT_MISMATCH` | 422    | En la misma moneda, un monto recibido distinto del enviado                                   |
+| `TRANSFER_AMOUNT_NOT_POSITIVE`      | 422    | Un monto de transferencia cero o negativo                                                    |
+| `TRANSFER_NOT_FOUND`                | 404    | La transferencia no existe, es de otra cuenta o está borrada                                 |
 
 ## Estado
 

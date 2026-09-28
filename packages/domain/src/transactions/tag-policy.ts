@@ -36,6 +36,14 @@ export interface NormalizedTag {
   key: string;
 }
 
+/** Un nombre de etiqueta, sin espacios en los bordes, con su clave. Sin nombre ni con `|`, no. */
+export function normalizeTagName(raw: string): NormalizedTag {
+  const name = raw.trim();
+  if (name === '' || name.includes(TAG_SEPARATOR)) throw new InvalidTagNameError();
+
+  return { name, key: searchKey(name) };
+}
+
 /**
  * Las etiquetas de una transacción, listas para guardar. "Almuerzo", "ALMUERZO" y "almuerzó" son
  * la misma (`searchKey`): se queda la primera escritura. La ñ sigue siendo otra letra.
@@ -43,10 +51,8 @@ export interface NormalizedTag {
 export function normalizeTags(names: readonly string[]): NormalizedTag[] {
   const tags = new Map<string, NormalizedTag>();
   for (const raw of names) {
-    const name = raw.trim();
-    if (name === '' || name.includes(TAG_SEPARATOR)) throw new InvalidTagNameError();
-    const key = searchKey(name);
-    if (!tags.has(key)) tags.set(key, { name, key });
+    const tag = normalizeTagName(raw);
+    if (!tags.has(tag.key)) tags.set(tag.key, tag);
   }
   if (tags.size > MAX_TAGS_PER_TRANSACTION) throw new TooManyTagsError();
 

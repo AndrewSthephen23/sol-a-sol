@@ -16,6 +16,9 @@ const CATEGORIES = `/${API_PREFIX}/categories`;
 const METHODS = `/${API_PREFIX}/payment-methods`;
 const TRANSACTIONS = `/${API_PREFIX}/transactions`;
 const TRANSFERS = `/${API_PREFIX}/transfers`;
+const TAGS = `/${API_PREFIX}/tags`;
+const TOKENS = `/${API_PREFIX}/tokens`;
+const MISSING_ID = '01999999-9999-7999-8999-999999999999';
 const ANA = { email: 'ana@example.com', password: 'caballo grapa batería' };
 const BRUNO = { email: 'bruno@example.com', password: 'otra frase bastante larga' };
 // Valores obviamente falsos, solo para estas pruebas.
@@ -58,6 +61,7 @@ describe('tags', () => {
   });
 
   beforeEach(async () => {
+    process.env.FEATURE_TRANSACTIONS = 'true';
     await prisma.user.deleteMany();
     await prisma.loginThrottle.deleteMany();
     await prisma.auditLog.deleteMany();
@@ -140,18 +144,57 @@ describe('tags', () => {
     return response.body as ListBody;
   }
 
+  interface TagBody {
+    id: string;
+    name: string;
+    transactionCount: number;
+  }
+
+  async function tagList(session = ana): Promise<TagBody[]> {
+    const response = await request(server)
+      .get(TAGS)
+      .set('Authorization', `Bearer ${session}`)
+      .expect(200);
+
+    return response.body as TagBody[];
+  }
+
+  async function tagId(name: string, session = ana): Promise<string> {
+    const found = (await tagList(session)).find((tag) => tag.name === name);
+    if (found === undefined) throw new Error(`No tag ${name}`);
+
+    return found.id;
+  }
+
+  function renameTag(id: string, name: string, session = ana): request.Test {
+    return request(server)
+      .patch(`${TAGS}/${id}`)
+      .set('Authorization', `Bearer ${session}`)
+      .send({ name });
+  }
+
+  function deleteTag(id: string, session = ana): request.Test {
+    return request(server).delete(`${TAGS}/${id}`).set('Authorization', `Bearer ${session}`);
+  }
+
+  async function tagsOfTransaction(id: string): Promise<string[]> {
+    const response = await request(server)
+      .get(`${TRANSACTIONS}/${id}`)
+      .set('Authorization', `Bearer ${ana}`)
+      .expect(200);
+
+    return (response.body as TransactionBody).tags;
+  }
+
   function codeOf(response: request.Response): string {
     return (response.body as ProblemDetails).type;
   }
 
   async function tagsOf(email: string): Promise<string[]> {
-    const rows = await prisma.tag.findMany({
-      where: { user: { email } },
-      select: { name: true },
-      orderBy: { name: 'asc' },
-    });
+    const rows = await prisma.tag.findMany({ where: { user: { email } }, select: { name: true } });
 
-    return rows.map((row) => row.name);
+    // En español, como las ordena la API (la base pondría las mayúsculas primero).
+    return rows.map((row) => row.name).toSorted((a, b) => a.localeCompare(b, 'es'));
   }
 
   describe('registering with tags', () => {
@@ -339,6 +382,138 @@ describe('tags', () => {
       await expect(
         prisma.tag.create({ data: { userId: owner.id, name: 'a|b', nameKey: 'a|b' } }),
       ).rejects.toThrow();
+    });
+  });
+
+  describe('managing them', () => {
+    it('lists the tags of the account by name, counting only live transactions', async () => {
+      await register({ tags: ['oficina', 'almuerzo'] });
+      const deleted = await register({ tags: ['almuerzo'] });
+      await register({ tags: ['cena'] }, bruno);
+      await request(server)
+        .delete(`${TRANSACTIONS}/${deleted.id}`)
+        .set('Authorization', `Bearer ${ana}`)
+        .expect(204);
+
+      await expect(tagList()).resolves.toEqual([
+        { id: expect.any(String) as string, name: 'almuerzo', transactionCount: 1 },
+        { id: expect.any(String) as string, name: 'oficina', transactionCount: 1 },
+      ]);
+    });
+
+    it('renames a tag everywhere it is used', async () => {
+      const { id } = await register({ tags: ['comida-rapida'] });
+
+      const response = await renameTag(await tagId('comida-rapida'), 'Delivery').expect(200);
+
+      expect(response.body).toMatchObject({ name: 'Delivery', transactionCount: 1 });
+      await expect(tagsOfTransaction(id)).resolves.toEqual(['Delivery']);
+    });
+
+    // Decidido con el autor el 2026-09-28: el nombre de otra etiqueta las fusiona.
+    it('merges into another tag with that name, without repeating it anywhere', async () => {
+      const fast = await register({ tags: ['comida-rapida'] });
+      const both = await register({ tags: ['comida-rapida', 'delivery', 'cena'] });
+      const delivery = await register({ tags: ['delivery'] });
+      const target = await tagId('delivery');
+
+      const response = await renameTag(await tagId('comida-rapida'), 'Delivery').expect(200);
+
+      expect(response.body).toEqual({ id: target, name: 'Delivery', transactionCount: 3 });
+      await expect(tagsOfTransaction(fast.id)).resolves.toEqual(['Delivery']);
+      await expect(tagsOfTransaction(both.id)).resolves.toEqual(['cena', 'Delivery']);
+      await expect(tagsOfTransaction(delivery.id)).resolves.toEqual(['Delivery']);
+      await expect(tagsOf(ANA.email)).resolves.toEqual(['cena', 'Delivery']);
+    });
+
+    it('rejects a name with | with 422, changing nothing', async () => {
+      await register({ tags: ['almuerzo'] });
+
+      const response = await renameTag(await tagId('almuerzo'), 'a|b').expect(422);
+
+      expect(codeOf(response)).toBe(problemType('TAG_NAME_INVALID'));
+      await expect(tagsOf(ANA.email)).resolves.toEqual(['almuerzo']);
+    });
+
+    it('deletes a tag, taking it out of every transaction, which stay as they were', async () => {
+      const { id } = await register({ tags: ['almuerzo', 'oficina'] });
+
+      await deleteTag(await tagId('almuerzo')).expect(204);
+
+      await expect(tagsOfTransaction(id)).resolves.toEqual(['oficina']);
+      await expect(prisma.transaction.count()).resolves.toBe(1);
+      await expect(tagsOf(ANA.email)).resolves.toEqual(['oficina']);
+    });
+
+    describe('never touches what belongs to another account', () => {
+      it('neither renaming nor deleting', async () => {
+        await register({ tags: ['cena'] }, bruno);
+        const hers = await tagId('cena', bruno);
+
+        const renamed = await renameTag(hers, 'otra').expect(404);
+        await deleteTag(hers).expect(404);
+
+        expect(codeOf(renamed)).toBe(problemType('TAG_NOT_FOUND'));
+        await expect(tagsOf(BRUNO.email)).resolves.toEqual(['cena']);
+      });
+
+      it('nor merging into a tag of the same name in another account', async () => {
+        await register({ tags: ['almuerzo'] });
+        await register({ tags: ['delivery'] }, bruno);
+
+        await renameTag(await tagId('almuerzo'), 'delivery').expect(200);
+
+        await expect(tagsOf(ANA.email)).resolves.toEqual(['delivery']);
+        await expect(tagsOf(BRUNO.email)).resolves.toEqual(['delivery']);
+        await expect(tagList(bruno)).resolves.toMatchObject([{ transactionCount: 1 }]);
+      });
+    });
+
+    it.each([MISSING_ID, '42'])('answers 404 for the id %s', async (id) => {
+      await renameTag(id, 'otra').expect(404);
+      await deleteTag(id).expect(404);
+    });
+  });
+
+  describe('access', () => {
+    const one = `${TAGS}/${MISSING_ID}`;
+    const routes = [
+      ['GET', TAGS],
+      ['PATCH', one],
+      ['DELETE', one],
+    ] as const;
+
+    function send(method: string, path: string): request.Test {
+      switch (method) {
+        case 'GET':
+          return request(server).get(path);
+        case 'PATCH':
+          return request(server).patch(path).send({ name: 'otra' });
+        default:
+          return request(server).delete(path);
+      }
+    }
+
+    it.each(routes)('%s %s requires a session', async (method, path) => {
+      await send(method, path).expect(401);
+    });
+
+    it.each(routes)('%s %s refuses a personal access token', async (method, path) => {
+      const created = await request(server)
+        .post(TOKENS)
+        .set('Authorization', `Bearer ${ana}`)
+        .send({ name: 'iPhone', scopes: ['captures:write'] })
+        .expect(201);
+      const { token } = created.body as { token: string };
+
+      await send(method, path).set('Authorization', `Bearer ${token}`).expect(403);
+    });
+
+    // 404 y no 403: un 403 confirmaría que el módulo existe.
+    it.each(routes)('%s %s answers 404 while transactions is off', async (method, path) => {
+      process.env.FEATURE_TRANSACTIONS = 'false';
+
+      await send(method, path).set('Authorization', `Bearer ${ana}`).expect(404);
     });
   });
 });
