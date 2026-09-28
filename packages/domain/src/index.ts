@@ -155,3 +155,10 @@ export {
   TransferReceivedAmountMismatchError,
   TransferReceivedAmountRequiredError,
 } from './transactions/transfer-policy.js';
+export {
+  InvalidTagNameError,
+  MAX_TAGS_PER_TRANSACTION,
+  type NormalizedTag,
+  normalizeTags,
+  TooManyTagsError,
+} from './transactions/tag-policy.js';

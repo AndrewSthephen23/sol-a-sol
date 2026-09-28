@@ -52,6 +52,8 @@ export interface TransactionResponse {
   merchant: string | null;
   source: Transaction['source'];
   captureId: string | null;
+  /** Nombres de sus etiquetas, en orden alfabético. */
+  tags: string[];
   createdAt: Date;
   updatedAt: Date;
 }

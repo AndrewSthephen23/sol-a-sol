@@ -1,8 +1,9 @@
-import { searchKey, type TypedAmount } from '@sol-a-sol/domain';
+import { type NormalizedTag, searchKey, type TypedAmount } from '@sol-a-sol/domain';
 
 import {
   type NewTransaction,
   newestFirst,
+  orderTags,
   type PagePosition,
   type Transaction,
   type TransactionChanges,
@@ -10,22 +11,30 @@ import {
   type TransactionRepository,
 } from './transaction-repository.js';
 
-interface Row extends Transaction {
+interface Row extends Omit<Transaction, 'tags'> {
   userId: string;
   deletedAt: Date | null;
+  /** Claves de sus etiquetas: el nombre se lee de la etiqueta, como en la base. */
+  tagKeys: string[];
 }
 
-/** Repositorio en memoria para probar los casos de uso sin base de datos. */
+/**
+ * Repositorio en memoria para probar los casos de uso sin base de datos. Imita las etiquetas de la
+ * base: una por clave y cuenta, que se crea la primera vez y conserva su primera escritura.
+ */
 export class FakeTransactionRepository implements TransactionRepository {
   readonly rows: Row[] = [];
+  /** Nombre de cada etiqueta, por cuenta y clave. */
+  readonly tagNames = new Map<string, string>();
   private sequence = 0;
 
   constructor(private readonly now = new Date('2026-09-24T15:00:00.000Z')) {}
 
-  create(transaction: NewTransaction): Promise<Transaction> {
+  create({ tags, ...transaction }: NewTransaction): Promise<Transaction> {
     this.sequence += 1;
     const row: Row = {
       ...transaction,
+      tagKeys: this.tagKeysOf(transaction.userId, tags),
       id: `01999999-9999-7999-8999-${String(this.sequence).padStart(12, '0')}`,
       captureId: null,
       createdAt: this.now,
@@ -34,21 +43,26 @@ export class FakeTransactionRepository implements TransactionRepository {
     };
     this.rows.push(row);
 
-    return Promise.resolve(publicOf(row));
+    return Promise.resolve(this.publicOf(row));
   }
 
   find(userId: string, id: string): Promise<Transaction | null> {
     const row = this.liveRow(userId, id);
 
-    return Promise.resolve(row === undefined ? null : publicOf(row));
+    return Promise.resolve(row === undefined ? null : this.publicOf(row));
   }
 
-  update(userId: string, id: string, changes: TransactionChanges): Promise<Transaction | null> {
+  update(
+    userId: string,
+    id: string,
+    { tags, ...changes }: TransactionChanges,
+  ): Promise<Transaction | null> {
     const row = this.liveRow(userId, id);
     if (row === undefined) return Promise.resolve(null);
     Object.assign(row, changes, { updatedAt: this.now });
+    if (tags !== undefined) row.tagKeys = this.tagKeysOf(userId, tags);
 
-    return Promise.resolve(publicOf(row));
+    return Promise.resolve(this.publicOf(row));
   }
 
   softDelete(userId: string, id: string, deletedAt: Date): Promise<boolean> {
@@ -82,7 +96,7 @@ export class FakeTransactionRepository implements TransactionRepository {
         .toSorted(newestFirst)
         .filter((row) => after === null || newestFirst(row, after) > 0)
         .slice(0, page.limit)
-        .map(publicOf),
+        .map((row) => this.publicOf(row)),
     );
   }
 
@@ -106,8 +120,38 @@ export class FakeTransactionRepository implements TransactionRepository {
         (filter.search === undefined ||
           [row.description, row.merchant ?? ''].some((text) =>
             searchKey(text).includes(filter.search ?? ''),
-          )),
+          )) &&
+        (filter.tagKey === undefined || row.tagKeys.includes(filter.tagKey)),
     );
+  }
+
+  /** Crea las etiquetas que la cuenta no tiene y devuelve las claves de todas. */
+  private tagKeysOf(userId: string, tags: readonly NormalizedTag[]): string[] {
+    for (const tag of tags) {
+      const id = `${userId}/${tag.key}`;
+      if (!this.tagNames.has(id)) this.tagNames.set(id, tag.name);
+    }
+
+    return tags.map((tag) => tag.key);
+  }
+
+  /** Una copia sin `userId` ni `deletedAt`, como la que devuelve el adaptador de Prisma. */
+  private publicOf(row: Row): Transaction {
+    return {
+      id: row.id,
+      date: row.date,
+      type: row.type,
+      categoryId: row.categoryId,
+      amount: row.amount,
+      description: row.description,
+      paymentMethodId: row.paymentMethodId,
+      merchant: row.merchant,
+      source: row.source,
+      captureId: row.captureId,
+      tags: orderTags(row.tagKeys.map((key) => this.tagNames.get(`${row.userId}/${key}`) ?? key)),
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    };
   }
 
   private liveRow(userId: string, id: string): Row | undefined {
@@ -116,22 +160,4 @@ export class FakeTransactionRepository implements TransactionRepository {
         candidate.userId === userId && candidate.id === id && candidate.deletedAt === null,
     );
   }
-}
-
-/** Una copia sin `userId` ni `deletedAt`, como la que devuelve el adaptador de Prisma. */
-function publicOf(row: Row): Transaction {
-  return {
-    id: row.id,
-    date: row.date,
-    type: row.type,
-    categoryId: row.categoryId,
-    amount: row.amount,
-    description: row.description,
-    paymentMethodId: row.paymentMethodId,
-    merchant: row.merchant,
-    source: row.source,
-    captureId: row.captureId,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-  };
 }

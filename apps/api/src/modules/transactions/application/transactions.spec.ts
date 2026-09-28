@@ -4,10 +4,12 @@ import {
   CategoryTypeMismatchError,
   FixedClock,
   FutureTransactionDateError,
+  InvalidTagNameError,
   InvalidAmountError,
   LocalDate,
   Money,
   NonPositiveTransactionAmountError,
+  TooManyTagsError,
   TransactionCurrencyRequiredError,
 } from '@sol-a-sol/domain';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -882,6 +884,140 @@ describe('transactions', () => {
         await expect(idsOf({ currency: 'USD' })).resolves.toEqual([moved]);
         await expect(idsOf({ q: 'CAMBIO' })).resolves.toEqual([moved]);
         await expect(idsOf({ q: 'tambo' })).resolves.toEqual([]);
+      });
+    });
+  });
+
+  describe('tags', () => {
+    it('registers a transaction with its tags, in alphabetical order', async () => {
+      const created = await create.execute({ ...LUNCH, tags: ['oficina', 'Almuerzo'] });
+
+      expect(created.tags).toEqual(['Almuerzo', 'oficina']);
+    });
+
+    it('registers without tags', async () => {
+      await expect(create.execute(LUNCH)).resolves.toMatchObject({ tags: [] });
+    });
+
+    // "Almuerzo" y "almuerzó" son la misma: se reutiliza la que ya existe, con su escritura.
+    it('reuses an existing tag, keeping its first spelling', async () => {
+      await create.execute({ ...LUNCH, tags: ['Almuerzo'] });
+
+      const second = await create.execute({ ...LUNCH, tags: ['ALMUERZÓ'] });
+
+      expect(second.tags).toEqual(['Almuerzo']);
+    });
+
+    it('collapses the same tag sent twice', async () => {
+      const created = await create.execute({ ...LUNCH, tags: ['cena', 'Cena'] });
+
+      expect(created.tags).toEqual(['cena']);
+    });
+
+    it.each([
+      ['a blank tag', [' '], InvalidTagNameError],
+      ['a tag with |', ['a|b'], InvalidTagNameError],
+      [
+        'more than ten',
+        Array.from({ length: 11 }, (_, index) => `t${String(index)}`),
+        TooManyTagsError,
+      ],
+    ])('rejects %s', async (_case, tags, error) => {
+      await expect(create.execute({ ...LUNCH, tags })).rejects.toThrow(error);
+    });
+
+    it('replaces them when correcting, and takes them all out with an empty list', async () => {
+      const { id } = await create.execute({ ...LUNCH, tags: ['almuerzo', 'oficina'] });
+
+      const replaced = await update.execute({ userId: ANA, id, changes: { tags: ['cena'] } });
+      const cleared = await update.execute({ userId: ANA, id, changes: { tags: [] } });
+
+      expect(replaced.tags).toEqual(['cena']);
+      expect(cleared.tags).toEqual([]);
+    });
+
+    it('keeps them when correcting something else', async () => {
+      const { id } = await create.execute({ ...LUNCH, tags: ['almuerzo'] });
+
+      const updated = await update.execute({ userId: ANA, id, changes: { description: 'Menú' } });
+
+      expect(updated.tags).toEqual(['almuerzo']);
+    });
+
+    it('rejects a bad tag when correcting, changing nothing', async () => {
+      const { id } = await create.execute({ ...LUNCH, tags: ['almuerzo'] });
+
+      await expect(update.execute({ userId: ANA, id, changes: { tags: ['a|b'] } })).rejects.toThrow(
+        InvalidTagNameError,
+      );
+      await expect(get.execute({ userId: ANA, id })).resolves.toMatchObject({
+        tags: ['almuerzo'],
+      });
+    });
+
+    describe('in the list', () => {
+      function idsTagged(tag: string, userId = ANA): Promise<string[]> {
+        return list
+          .execute({ userId, after: null, limit: 50, tag })
+          .then((page) => page.items.map((item) => item.id));
+      }
+
+      it('filters by a tag, ignoring case and accents', async () => {
+        const lunch = await create.execute({ ...LUNCH, tags: ['Almuerzo'] });
+        await create.execute({ ...LUNCH, tags: ['cena'] });
+
+        await expect(idsTagged('ALMUERZÓ')).resolves.toEqual([lunch.id]);
+      });
+
+      // "Cuánto gasté en almuerzos": los totales siguen al filtro.
+      it('adds up only the tagged transactions', async () => {
+        await create.execute({ ...LUNCH, amount: '10.00', tags: ['almuerzo'] });
+        await create.execute({ ...LUNCH, amount: '4.50', tags: ['almuerzo', 'oficina'] });
+        await create.execute({ ...LUNCH, amount: '30.00', tags: ['cena'] });
+
+        const { totals } = await list.execute({
+          userId: ANA,
+          after: null,
+          limit: 50,
+          tag: 'almuerzo',
+        });
+
+        expect(totals[0]?.expense.toFixed()).toBe('14.50');
+      });
+
+      it('leaves transfers out, which have no tags', async () => {
+        await create.execute({ ...LUNCH, tags: ['almuerzo'] });
+        await transfers.create({
+          userId: ANA,
+          date: LocalDate.of(2026, 9, 5),
+          fromPaymentMethodId: PAYROLL,
+          toPaymentMethodId: USD_ACCOUNT,
+          amount: Money.of('10.00', 'PEN'),
+          receivedAmount: Money.of('2.70', 'USD'),
+          description: 'almuerzo',
+          source: 'MANUAL',
+        });
+
+        const { items } = await list.execute({
+          userId: ANA,
+          after: null,
+          limit: 50,
+          tag: 'almuerzo',
+        });
+
+        expect(items.map((item) => item.kind)).toEqual(['transaction']);
+      });
+
+      it('does not find the tags of another account', async () => {
+        await create.execute({ ...LUNCH, tags: ['almuerzo'] });
+
+        await expect(idsTagged('almuerzo', BRUNO)).resolves.toEqual([]);
+      });
+
+      it('finds nothing for an unknown tag', async () => {
+        await create.execute({ ...LUNCH, tags: ['almuerzo'] });
+
+        await expect(idsTagged('desayuno')).resolves.toEqual([]);
       });
     });
   });

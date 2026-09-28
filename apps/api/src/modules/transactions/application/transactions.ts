@@ -8,6 +8,7 @@ import {
   type Currency,
   LocalDate,
   Money,
+  normalizeTags,
   resolveTransactionCurrency,
   searchKey,
   today,
@@ -62,6 +63,8 @@ export interface CreateTransactionInput {
   description: string;
   paymentMethodId?: string | null;
   merchant?: string | null;
+  /** Por nombre; las que no existen se crean. */
+  tags?: readonly string[];
   source: TransactionSource;
 }
 
@@ -88,6 +91,7 @@ export class CreateTransaction {
     const currency = resolveTransactionCurrency(input.currency ?? null, methodCurrency);
     const amount = Money.of(input.amount, currency);
     assertTransactionAmount(amount);
+    const tags = normalizeTags(input.tags ?? []);
 
     const created = await this.transactions.create({
       userId,
@@ -99,6 +103,7 @@ export class CreateTransaction {
       paymentMethodId,
       merchant: input.merchant ?? null,
       source: input.source,
+      tags,
     });
     // Después de guardar, nunca antes: quien escuche puede necesitar leerla (ADR-0004).
     const event: TransactionCreated = { userId, transactionId: created.id };
@@ -146,6 +151,8 @@ export interface TransactionCorrection {
   description?: string;
   paymentMethodId?: string | null;
   merchant?: string | null;
+  /** **Reemplaza** las etiquetas; `[]` las quita todas. */
+  tags?: readonly string[];
 }
 
 export interface UpdateTransactionInput {
@@ -177,6 +184,7 @@ export class UpdateTransaction {
     await this.assertCategory(userId, current, changes);
     await this.assertPaymentMethod(userId, current, changes);
     const amount = amountOf(current, changes);
+    const tags = changes.tags === undefined ? undefined : normalizeTags(changes.tags);
 
     const updated = await this.transactions.update(
       userId,
@@ -189,6 +197,7 @@ export class UpdateTransaction {
         description: changes.description,
         paymentMethodId: changes.paymentMethodId,
         merchant: changes.merchant,
+        tags,
       }),
     );
     // Entre la lectura y la escritura pudo borrarse: para quien llama, simplemente no existe.
@@ -332,6 +341,8 @@ export interface ListTransactionsInput {
   currency?: Currency;
   /** Solo transacciones o solo transferencias. Sin él, las dos. */
   kind?: MovementKind;
+  /** Solo las transacciones con esta etiqueta, sin distinguir mayúsculas ni tildes. */
+  tag?: string;
   /** Texto a buscar en la descripción o el comercio. */
   q?: string;
   after: PagePosition | null;
@@ -385,12 +396,16 @@ export class ListTransactions {
         currency: input.currency,
         categoryIds,
         search: input.q === undefined ? undefined : searchKey(input.q),
+        tagKey: input.tag === undefined ? undefined : searchKey(input.tag),
       }),
     };
     const withTransactions = input.kind !== 'transfer';
-    // Una transferencia no tiene tipo ni categoría: filtrar por ellos las deja fuera.
+    // Una transferencia no tiene tipo, categoría ni etiquetas: filtrar por ellos las deja fuera.
     const withTransfers =
-      input.kind !== 'transaction' && input.type === undefined && input.categoryId === undefined;
+      input.kind !== 'transaction' &&
+      input.type === undefined &&
+      input.categoryId === undefined &&
+      input.tag === undefined;
     // Una fila de más dice si hay otra página sin contar todas.
     const page = { after: input.after, limit: limit + 1 };
 

@@ -5,6 +5,8 @@ import {
   CURSOR_MAX_LENGTH,
   listTransactionsQuerySchema,
   SEARCH_MAX_LENGTH,
+  TAG_NAME_MAX_LENGTH,
+  TAGS_INPUT_MAX_ITEMS,
   TRANSACTIONS_DEFAULT_LIMIT,
   TRANSACTIONS_MAX_LIMIT,
   MERCHANT_MAX_LENGTH,
@@ -42,6 +44,25 @@ describe('create transaction request', () => {
     };
 
     expect(createTransactionRequestSchema.parse(required)).toEqual(required);
+  });
+
+  it('accepts tags, empty or not', () => {
+    expect(accepts({ ...LUNCH, tags: ['almuerzo', 'oficina'] })).toBe(true);
+    expect(accepts({ ...LUNCH, tags: [] })).toBe(true);
+  });
+
+  // Vacías o con `|` las rechaza el dominio, diciendo qué regla rompen.
+  it.each([[['']], [['a|b']]])('leaves the tags %j to the domain', (list) => {
+    expect(accepts({ ...LUNCH, tags: list })).toBe(true);
+  });
+
+  it.each([
+    ['a tag too long', ['x'.repeat(TAG_NAME_MAX_LENGTH + 1)]],
+    ['too many items', Array.from({ length: TAGS_INPUT_MAX_ITEMS + 1 }, () => 'x')],
+    ['a tag that is not text', [42]],
+    ['a single text instead of a list', 'almuerzo'],
+  ])('rejects %s', (_case, list) => {
+    expect(accepts({ ...LUNCH, tags: list })).toBe(false);
   });
 
   it('accepts null for the payment method and the merchant', () => {
@@ -141,6 +162,12 @@ describe('update transaction request', () => {
     expect(acceptsChange({})).toBe(false);
   });
 
+  it('accepts replacing the tags, also with none', () => {
+    expect(acceptsChange({ tags: ['cena'] })).toBe(true);
+    expect(acceptsChange({ tags: [] })).toBe(true);
+    expect(acceptsChange({ tags: null })).toBe(false);
+  });
+
   it.each([
     ['an amount sent as a number', { amount: 25.9 }],
     ['a blank description', { description: ' ' }],
@@ -212,6 +239,15 @@ describe('list transactions query', () => {
 
   it.each(['transaction', 'transfer'])('accepts the kind %j', (kind) => {
     expect(parse({ kind }).success).toBe(true);
+  });
+
+  it('accepts a tag, trimmed', () => {
+    expect(listTransactionsQuerySchema.parse({ tag: ' almuerzo ' }).tag).toBe('almuerzo');
+    expect(parse({ tag: ' ' }).success).toBe(false);
+  });
+
+  it('rejects only transfers together with a tag', () => {
+    expect(parse({ kind: 'transfer', tag: 'almuerzo' }).success).toBe(false);
   });
 
   it('rejects an unknown kind', () => {
