@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { TRANSACTION_DESCRIPTION_MAX_LENGTH } from './transactions.js';
-import { createTransferRequestSchema } from './transfers.js';
+import { createTransferRequestSchema, updateTransferRequestSchema } from './transfers.js';
 
 const CHANGE = {
   date: '2026-09-10',
@@ -71,4 +71,35 @@ describe('create transfer request', () => {
       ).toBe(false);
     },
   );
+});
+
+describe('update transfer request', () => {
+  function acceptsChange(body: object): boolean {
+    return updateTransferRequestSchema.safeParse(body).success;
+  }
+
+  it('accepts any single field', () => {
+    for (const [field, value] of Object.entries(CHANGE)) {
+      expect(acceptsChange({ [field]: value }), field).toBe(true);
+    }
+  });
+
+  it('accepts a whole correction at once', () => {
+    expect(updateTransferRequestSchema.parse(CHANGE)).toEqual(CHANGE);
+  });
+
+  it('rejects an empty change', () => {
+    expect(acceptsChange({})).toBe(false);
+  });
+
+  it.each([
+    ['an amount sent as a number', { amount: 37.5 }],
+    ['a null account', { toPaymentMethodId: null }],
+    ['a null received amount', { receivedAmount: null }],
+    ['a blank description', { description: ' ' }],
+    ['a source', { source: 'MANUAL' }],
+    ['a userId', { userId: CHANGE.fromPaymentMethodId }],
+  ])('rejects %s', (_case, body) => {
+    expect(acceptsChange(body)).toBe(false);
+  });
 });

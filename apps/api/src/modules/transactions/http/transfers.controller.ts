@@ -1,11 +1,33 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
-import { type CreateTransferRequest, createTransferRequestSchema } from '@sol-a-sol/contracts';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  type CreateTransferRequest,
+  createTransferRequestSchema,
+  type UpdateTransferRequest,
+  updateTransferRequestSchema,
+} from '@sol-a-sol/contracts';
 import { z } from 'zod';
 
 import { RequiresFeature } from '../../../shared/feature-flags/feature-flag.guard.js';
 import { ZodValidationPipe } from '../../../shared/http/zod-validation.pipe.js';
 import { AccessTokenGuard, CurrentUser } from '../../identity/index.js';
-import { CreateTransfer, GetTransfer } from '../application/transfers.js';
+import {
+  CreateTransfer,
+  DeleteTransfer,
+  GetTransfer,
+  RestoreTransfer,
+  UpdateTransfer,
+} from '../application/transfers.js';
 import { TransferNotFoundError } from '../domain/errors.js';
 import type { Transfer } from '../ports/transfer-repository.js';
 
@@ -38,6 +60,9 @@ export class TransfersController {
   constructor(
     private readonly createTransfer: CreateTransfer,
     private readonly getTransfer: GetTransfer,
+    private readonly updateTransfer: UpdateTransfer,
+    private readonly deleteTransfer: DeleteTransfer,
+    private readonly restoreTransfer: RestoreTransfer,
   ) {}
 
   /** Lo que llega desde la web es `MANUAL`. */
@@ -52,10 +77,45 @@ export class TransfersController {
   /** 404 si no existe, **es de otra cuenta o está borrada**. */
   @Get(':id')
   async find(@CurrentUser() userId: string, @Param('id') id: string): Promise<TransferResponse> {
-    if (!transferIdSchema.safeParse(id).success) throw new TransferNotFoundError();
+    assertTransferId(id);
 
     return toResponse(await this.getTransfer.execute({ userId, id }));
   }
+
+  /** Corrige lo que se mande, menos el origen. 404 si no existe, es ajena o está borrada. */
+  @Patch(':id')
+  async update(
+    @CurrentUser() userId: string,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(updateTransferRequestSchema)) body: UpdateTransferRequest,
+  ): Promise<TransferResponse> {
+    assertTransferId(id);
+
+    return toResponse(await this.updateTransfer.execute({ userId, id, changes: body }));
+  }
+
+  /** Borrado lógico. 404 si ya estaba borrada. */
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async remove(@CurrentUser() userId: string, @Param('id') id: string): Promise<void> {
+    assertTransferId(id);
+
+    await this.deleteTransfer.execute({ userId, id });
+  }
+
+  /** Deshace el borrado, sin plazo. Con una que no está borrada, la devuelve tal cual. */
+  @Post(':id/restore')
+  @HttpCode(HttpStatus.OK)
+  async restore(@CurrentUser() userId: string, @Param('id') id: string): Promise<TransferResponse> {
+    assertTransferId(id);
+
+    return toResponse(await this.restoreTransfer.execute({ userId, id }));
+  }
+}
+
+/** Un id que ni siquiera es un UUID tampoco existe: 404 y no 422. */
+function assertTransferId(id: string): void {
+  if (!transferIdSchema.safeParse(id).success) throw new TransferNotFoundError();
 }
 
 function toResponse({ amount, receivedAmount, date, ...fields }: Transfer): TransferResponse {

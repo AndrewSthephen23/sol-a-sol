@@ -142,6 +142,23 @@ describe('transfers', () => {
     return request(server).get(`${TRANSFERS}/${id}`).set('Authorization', `Bearer ${session}`);
   }
 
+  function patch(id: string, body: object, session = ana): request.Test {
+    return request(server)
+      .patch(`${TRANSFERS}/${id}`)
+      .set('Authorization', `Bearer ${session}`)
+      .send(body);
+  }
+
+  function remove(id: string, session = ana): request.Test {
+    return request(server).delete(`${TRANSFERS}/${id}`).set('Authorization', `Bearer ${session}`);
+  }
+
+  function restore(id: string, session = ana): request.Test {
+    return request(server)
+      .post(`${TRANSFERS}/${id}/restore`)
+      .set('Authorization', `Bearer ${session}`);
+  }
+
   function codeOf(response: request.Response): string {
     return (response.body as ProblemDetails).type;
   }
@@ -354,16 +371,202 @@ describe('transfers', () => {
     });
   });
 
+  describe('correcting one', () => {
+    /** Soles de la cuenta Digital a dólares de Interbank: 37.51 → 10.03. */
+    function exchange(): Promise<TransferBody> {
+      return register({
+        ...toYape(),
+        toPaymentMethodId: accounts.dollars,
+        amount: '37.51',
+        receivedAmount: '10.03',
+      });
+    }
+
+    it('changes only what was sent, keeping where it came from', async () => {
+      const created = await register();
+      await prisma.transfer.update({ where: { id: created.id }, data: { source: 'IMPORT' } });
+
+      const response = await patch(created.id, {
+        description: 'Recarga',
+        date: '2025-12-31',
+      }).expect(200);
+
+      expect(response.body).toMatchObject({
+        description: 'Recarga',
+        date: '2025-12-31',
+        amount: '50.00',
+        source: 'IMPORT',
+      });
+    });
+
+    it('moves both amounts together in the same currency, exact down to the columns', async () => {
+      const created = await register();
+
+      await patch(created.id, { amount: '1234567890123.47' }).expect(200);
+
+      await expect(storedAmounts(created.id)).resolves.toEqual([
+        '1234567890123.47',
+        '1234567890123.47',
+      ]);
+    });
+
+    it('changes both amounts of a currency change together', async () => {
+      const created = await exchange();
+
+      await patch(created.id, { amount: '38.00', receivedAmount: '10.10' }).expect(200);
+
+      await expect(storedAmounts(created.id)).resolves.toEqual(['38.00', '10.10']);
+    });
+
+    it('turns a currency change into a same-currency transfer when the destination is in soles', async () => {
+      const created = await exchange();
+
+      const response = await patch(created.id, { toPaymentMethodId: accounts.yape }).expect(200);
+
+      expect(response.body).toMatchObject({
+        amount: '37.51',
+        receivedAmount: '37.51',
+        receivedCurrency: 'PEN',
+      });
+    });
+
+    it('keeps working on a transfer whose account was archived later', async () => {
+      const created = await register();
+      await request(server)
+        .patch(`${METHODS}/${accounts.yape}`)
+        .set('Authorization', `Bearer ${ana}`)
+        .send({ archived: true })
+        .expect(200);
+
+      await patch(created.id, { amount: '60.00' }).expect(200);
+    });
+
+    describe('is rejected with 422, leaving it as it was', () => {
+      it.each([
+        [
+          'changing only the amount sent of a currency change',
+          { amount: '38.00' },
+          'TRANSFER_RECEIVED_AMOUNT_REQUIRED',
+        ],
+        ['the same account on both sides', 'same-account', 'TRANSFER_SAME_ACCOUNT'],
+        ['a source in the body', { source: 'MANUAL' }, 'VALIDATION_FAILED'],
+        ['an empty change', {}, 'VALIDATION_FAILED'],
+      ])('for %s', async (_case, body, code) => {
+        const created = await exchange();
+        const change = body === 'same-account' ? { toPaymentMethodId: accounts.digital } : body;
+
+        const response = await patch(created.id, change).expect(422);
+
+        expect(codeOf(response)).toBe(problemType(code));
+        await expect(storedAmounts(created.id)).resolves.toEqual(['37.51', '10.03']);
+      });
+    });
+
+    it('answers 404 for the transfer of another account, leaving it as it was', async () => {
+      const created = await register();
+
+      const response = await patch(created.id, { amount: '1.00' }, bruno).expect(404);
+
+      expect(codeOf(response)).toBe(problemType('TRANSFER_NOT_FOUND'));
+      await expect(storedAmounts(created.id)).resolves.toEqual(['50.00', '50.00']);
+    });
+
+    it('answers 404 for an account of another user', async () => {
+      const created = await register();
+      const hers = await methodOf(bruno, account('Cuenta de Bruno', 'BCP', 'PEN'));
+
+      const response = await patch(created.id, { toPaymentMethodId: hers }).expect(404);
+
+      expect(codeOf(response)).toBe(problemType('PAYMENT_METHOD_NOT_FOUND'));
+    });
+
+    it('answers 404 for a deleted transfer', async () => {
+      const created = await register();
+      await remove(created.id).expect(204);
+
+      await patch(created.id, { amount: '1.00' }).expect(404);
+    });
+  });
+
+  describe('deleting and restoring one', () => {
+    it('stops showing a deleted one but keeps the row', async () => {
+      const created = await register();
+
+      await remove(created.id).expect(204);
+
+      await get(created.id).expect(404);
+      const row = await prisma.transfer.findUnique({ where: { id: created.id } });
+      expect(row?.deletedAt).toBeInstanceOf(Date);
+    });
+
+    it('answers 404 the second time and for another account', async () => {
+      const created = await register();
+
+      await remove(created.id, bruno).expect(404);
+      await remove(created.id).expect(204);
+      const response = await remove(created.id).expect(404);
+
+      expect(codeOf(response)).toBe(problemType('TRANSFER_NOT_FOUND'));
+    });
+
+    it('brings a deleted one back as it was, with no time limit', async () => {
+      const created = await register();
+      await prisma.transfer.update({
+        where: { id: created.id },
+        data: { deletedAt: new Date('2026-01-01T00:00:00.000Z') },
+      });
+
+      const response = await restore(created.id).expect(200);
+
+      expect(response.body).toMatchObject({ ...created, updatedAt: expect.any(String) as string });
+      await get(created.id).expect(200);
+    });
+
+    it('returns one that is not deleted as it is', async () => {
+      const created = await register();
+
+      const response = await restore(created.id).expect(200);
+
+      expect(response.body).toEqual(created);
+    });
+
+    it('does not restore the transfer of another account', async () => {
+      const created = await register();
+      await remove(created.id).expect(204);
+
+      await restore(created.id, bruno).expect(404);
+
+      await get(created.id).expect(404);
+    });
+
+    it.each([MISSING_ID, '42'])('answers 404 for the id %s', async (id) => {
+      await restore(id).expect(404);
+      await remove(id).expect(404);
+      await patch(id, { description: 'Otra' }).expect(404);
+    });
+  });
+
   describe('access', () => {
+    const one = `${TRANSFERS}/${MISSING_ID}`;
     const routes = [
       ['POST', TRANSFERS],
-      ['GET', `${TRANSFERS}/${MISSING_ID}`],
+      ['GET', one],
+      ['PATCH', one],
+      ['DELETE', one],
+      ['POST', `${one}/restore`],
     ] as const;
 
     function send(method: string, path: string): request.Test {
-      return method === 'GET'
-        ? request(server).get(path)
-        : request(server).post(path).send(toYape());
+      switch (method) {
+        case 'GET':
+          return request(server).get(path);
+        case 'PATCH':
+          return request(server).patch(path).send({ description: 'Otra' });
+        case 'DELETE':
+          return request(server).delete(path);
+        default:
+          return request(server).post(path).send(toYape());
+      }
     }
 
     it.each(routes)('%s %s requires a session', async (method, path) => {

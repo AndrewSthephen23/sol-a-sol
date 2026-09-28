@@ -12,7 +12,13 @@ import {
   RestoreTransaction,
   UpdateTransaction,
 } from './application/transactions.js';
-import { CreateTransfer, GetTransfer } from './application/transfers.js';
+import {
+  CreateTransfer,
+  DeleteTransfer,
+  GetTransfer,
+  RestoreTransfer,
+  UpdateTransfer,
+} from './application/transfers.js';
 import { TransactionsController } from './http/transactions.controller.js';
 import { TransfersController } from './http/transfers.controller.js';
 import { PrismaTransactionRepository } from './infrastructure/prisma-transaction-repository.js';
@@ -41,6 +47,9 @@ import { TRANSFER_REPOSITORY } from './ports/transfer-repository.js';
     { provide: TRANSACTION_REPOSITORY, useClass: PrismaTransactionRepository },
     CreateTransfer,
     GetTransfer,
+    UpdateTransfer,
+    DeleteTransfer,
+    RestoreTransfer,
     { provide: TRANSFER_REPOSITORY, useClass: PrismaTransferRepository },
     { provide: CATALOG_READER, useExisting: CatalogLookup },
   ],

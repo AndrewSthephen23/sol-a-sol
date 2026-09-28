@@ -27,6 +27,16 @@ export interface NewTransfer {
   source: TransactionSource;
 }
 
+/** Lo que se puede corregir. El origen (`source`) no está: no cambia al editar. */
+export interface TransferChanges {
+  date?: LocalDate;
+  fromPaymentMethodId?: string;
+  toPaymentMethodId?: string;
+  amount?: Money;
+  receivedAmount?: Money;
+  description?: string;
+}
+
 /**
  * Todo método **exige el `userId`**, y va dentro del `WHERE`. Las borradas no aparecen en las
  * consultas normales.
@@ -36,6 +46,15 @@ export interface TransferRepository {
 
   /** `null` si no existe, **es de otra cuenta o está borrada**. */
   find(userId: string, id: string): Promise<Transfer | null>;
+
+  /** `null` si no existe, es de otra cuenta o está borrada. */
+  update(userId: string, id: string, changes: TransferChanges): Promise<Transfer | null>;
+
+  /** Borrado lógico. `false` si no existe, es de otra cuenta o ya estaba borrada. */
+  softDelete(userId: string, id: string, deletedAt: Date): Promise<boolean>;
+
+  /** Deshace el borrado. `false` si no estaba borrada, no existe o es de otra cuenta. */
+  restore(userId: string, id: string): Promise<boolean>;
 }
 
 export const TRANSFER_REPOSITORY = Symbol('TransferRepository');

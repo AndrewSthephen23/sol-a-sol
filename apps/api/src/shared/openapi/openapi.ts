@@ -16,6 +16,7 @@ import {
   updateCategoryRequestSchema,
   updatePaymentMethodRequestSchema,
   updateTransactionRequestSchema,
+  updateTransferRequestSchema,
   loginRequestSchema,
   problemDetailsSchema,
   PROBLEM_CONTENT_TYPE,
@@ -249,6 +250,10 @@ function queryParameter(
     schema,
     ...(description === undefined ? {} : { description }),
   };
+}
+
+function transferResponse(description: string): Record<string, unknown> {
+  return { description, content: { 'application/json': { schema: TRANSFER_SCHEMA } } };
 }
 
 function transactionResponse(description: string): Record<string, unknown> {
@@ -885,13 +890,65 @@ function transactionsPaths(): Record<string, unknown> {
         security: [{ accessToken: [] }],
         parameters: [TRANSACTION_ID_PARAMETER],
         responses: {
-          '200': {
-            description: 'La transferencia.',
-            content: { 'application/json': { schema: TRANSFER_SCHEMA } },
-          },
+          '200': transferResponse('La transferencia.'),
           '401': unauthorized,
           '403': forbidden,
           '404': notFound,
+        },
+      },
+      patch: {
+        tags: ['transactions'],
+        summary: 'Corrige una transferencia, también de meses pasados.',
+        description:
+          'Se manda solo lo que cambia; el origen (`source`) no se corrige. Las reglas se ' +
+          'aplican a la transferencia como quedaría. Una cuenta archivada que ya tenía sigue ' +
+          'valiendo; elegirla ahora, no. En un cambio de moneda, corregir el monto enviado exige ' +
+          'mandar también el recibido.',
+        security: [{ accessToken: [] }],
+        parameters: [TRANSACTION_ID_PARAMETER],
+        requestBody: jsonBody(updateTransferRequestSchema),
+        responses: {
+          '200': transferResponse('La transferencia como quedó.'),
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem(
+            'La transferencia no existe, es de otra cuenta o está borrada; o una cuenta elegida ' +
+              'no existe o es de otra cuenta.',
+          ),
+          '422': problem(
+            'El cuerpo está vacío, trae un campo desconocido, o la transferencia quedaría ' +
+              'rompiendo una regla.',
+          ),
+        },
+      },
+      delete: {
+        tags: ['transactions'],
+        summary: 'Borra una transferencia (borrado lógico).',
+        description: 'Deja de aparecer, pero la fila queda y se puede restaurar sin plazo.',
+        security: [{ accessToken: [] }],
+        parameters: [TRANSACTION_ID_PARAMETER],
+        responses: {
+          '204': { description: 'Borrada.' },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem('No existe, es de otra cuenta o ya estaba borrada.'),
+        },
+      },
+    },
+    [`/${API_PREFIX}/transfers/{id}/restore`]: {
+      post: {
+        tags: ['transactions'],
+        summary: 'Deshace el borrado de una transferencia.',
+        description:
+          'Sin plazo. Con una transferencia que no está borrada, la devuelve tal cual y no hace ' +
+          'nada más.',
+        security: [{ accessToken: [] }],
+        parameters: [TRANSACTION_ID_PARAMETER],
+        responses: {
+          '200': transferResponse('La transferencia, otra vez vigente.'),
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem('No existe o es de otra cuenta.'),
         },
       },
     },
