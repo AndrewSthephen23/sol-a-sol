@@ -92,6 +92,10 @@ Una segunda forma de mirar las transacciones, además de la categoría: por mome
 
 **Tablas:** `tags(id, user_id, name, name_key, …)` con índice único `(user_id, name_key)`, y `transaction_tags(transaction_id, tag_id, user_id)`, con **claves foráneas compuestas** `(transaction_id, user_id)` y `(tag_id, user_id)`: una transacción no puede llevar la etiqueta de otra cuenta. Borrar una etiqueta borra sus vínculos (`CASCADE`). `name_key` la calcula la aplicación con `searchKey`, así que la tabla de acentos sigue siendo una sola. La transacción, sus etiquetas nuevas y sus vínculos se guardan en **una sola transacción de la base**, y las etiquetas se crean con `createMany … skipDuplicates`: dos altas a la vez con la misma etiqueta nueva crean una sola.
 
+## Importación CSV
+
+El formato oficial está en [`transactions-import-format.md`](transactions-import-format.md). En el dominio viven el lector (`readCsv`, `packages/domain/src/text/csv.ts`) y la interpretación de cada fila con su huella (`interpretImportRow` e `importFingerprints`, `packages/domain/src/transactions/import-row.ts`). Los endpoints de previsualizar y confirmar llegan en los siguientes PR de la tarea 07b.
+
 ## Eventos de dominio
 
 Se publican **después de guardar**, esperando a los oyentes, y llevan solo ids (ADR-0004). Nadie los escucha todavía: existen para que el presupuesto (H4), las tarjetas (H5) y los resúmenes (H6) no tengan que tocar este módulo.

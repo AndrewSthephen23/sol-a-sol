@@ -175,3 +175,18 @@ export {
   OnlySubcategoriesConvertError,
   planCategoryMerge,
 } from './catalog/category-merge.js';
+export { type CsvFile, type CsvRow, MalformedCsvError, readCsv } from './text/csv.js';
+export {
+  IMPORT_COLUMNS,
+  type ImportColumn,
+  type ImportedRow,
+  type ImportedTransaction,
+  type ImportedTransfer,
+  importFingerprints,
+  type ImportLayout,
+  importLayout,
+  interpretImportRow,
+  MissingImportColumnsError,
+  type RowInterpretation,
+  type RowProblem,
+} from './transactions/import-row.js';
