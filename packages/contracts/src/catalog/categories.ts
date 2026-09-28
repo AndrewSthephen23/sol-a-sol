@@ -42,8 +42,11 @@ export const createCategoryRequestSchema = z.strictObject({
 export type CreateCategoryRequest = z.infer<typeof createCategoryRequestSchema>;
 
 /**
- * Se renombra, se cambia el color o el ícono, y se archiva o restaura con `archived`. El tipo y
- * la madre no se cambian: las transacciones quedarían con otro tipo que su categoría.
+ * Se renombra, se cambia el color o el ícono, y se archiva o restaura con `archived`. El tipo no
+ * se cambia: las transacciones quedarían con otro tipo que su categoría.
+ *
+ * `parentId` muda una **subcategoría** a otra madre de primer nivel del mismo tipo, con todas sus
+ * transacciones (decidido con el autor el 2026-09-28). Qué madres valen lo decide el dominio.
  */
 export const updateCategoryRequestSchema = z
   .strictObject({
@@ -51,6 +54,7 @@ export const updateCategoryRequestSchema = z
     color: color.optional(),
     icon: icon.optional(),
     archived: z.boolean().optional(),
+    parentId: z.uuid().optional(),
   })
   .refine((body) => Object.keys(body).length > 0, { message: 'Nothing to change.' });
 

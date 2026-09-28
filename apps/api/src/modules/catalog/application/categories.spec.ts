@@ -4,6 +4,7 @@ import {
   CategoryTypeRequiredError,
   FixedClock,
   InvalidCategoryColorError,
+  OnlySubcategoriesMoveError,
   SubcategoryTypeMismatchError,
 } from '@sol-a-sol/domain';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -158,6 +159,97 @@ describe('categories', () => {
       await create.execute({ userId: ANA, ...FOOD });
 
       await expect(list.execute({ userId: BRUNO, includeArchived: true })).resolves.toEqual([]);
+    });
+  });
+
+  describe('moving a subcategory', () => {
+    async function tree() {
+      const food = await create.execute({ userId: ANA, ...FOOD });
+      const transport = await create.execute({
+        userId: ANA,
+        name: 'Transporte',
+        type: 'VARIABLE_EXPENSE',
+      });
+      const taxi = await create.execute({ userId: ANA, name: 'Taxi', parentId: food.id });
+
+      return { food, transport, taxi };
+    }
+
+    it('moves it under another parent of the same type', async () => {
+      const { transport, taxi } = await tree();
+
+      const moved = await update.execute({
+        userId: ANA,
+        id: taxi.id,
+        changes: { parentId: transport.id },
+      });
+
+      expect(moved).toMatchObject({ id: taxi.id, parentId: transport.id, name: 'Taxi' });
+    });
+
+    it('accepts moving it to the parent it already has', async () => {
+      const { food, taxi } = await tree();
+
+      await expect(
+        update.execute({ userId: ANA, id: taxi.id, changes: { parentId: food.id } }),
+      ).resolves.toMatchObject({ parentId: food.id });
+    });
+
+    it('does not move a top-level category', async () => {
+      const { food, transport } = await tree();
+
+      await expect(
+        update.execute({ userId: ANA, id: food.id, changes: { parentId: transport.id } }),
+      ).rejects.toThrow(OnlySubcategoriesMoveError);
+    });
+
+    it('does not move it under a parent of another type', async () => {
+      const { taxi } = await tree();
+      const rent = await create.execute({ userId: ANA, name: 'Vivienda', type: 'FIXED_EXPENSE' });
+
+      await expect(
+        update.execute({ userId: ANA, id: taxi.id, changes: { parentId: rent.id } }),
+      ).rejects.toThrow(SubcategoryTypeMismatchError);
+    });
+
+    it('does not move it under a subcategory', async () => {
+      const { transport, taxi } = await tree();
+      const bus = await create.execute({ userId: ANA, name: 'Bus', parentId: transport.id });
+
+      await expect(
+        update.execute({ userId: ANA, id: taxi.id, changes: { parentId: bus.id } }),
+      ).rejects.toThrow(CategoryTooDeepError);
+    });
+
+    it('does not move it under an archived parent', async () => {
+      const { transport, taxi } = await tree();
+      await update.execute({ userId: ANA, id: transport.id, changes: { archived: true } });
+
+      await expect(
+        update.execute({ userId: ANA, id: taxi.id, changes: { parentId: transport.id } }),
+      ).rejects.toThrow(ArchivedParentCategoryError);
+    });
+
+    it('rejects a new parent that already has a child with that name', async () => {
+      const { transport, taxi } = await tree();
+      await create.execute({ userId: ANA, name: 'taxi', parentId: transport.id });
+
+      await expect(
+        update.execute({ userId: ANA, id: taxi.id, changes: { parentId: transport.id } }),
+      ).rejects.toThrow(CategoryNameTakenError);
+    });
+
+    it('does not find a parent of another account', async () => {
+      const { taxi } = await tree();
+      const hers = await create.execute({
+        userId: BRUNO,
+        name: 'Transporte',
+        type: 'VARIABLE_EXPENSE',
+      });
+
+      await expect(
+        update.execute({ userId: ANA, id: taxi.id, changes: { parentId: hers.id } }),
+      ).rejects.toThrow(CategoryNotFoundError);
     });
   });
 

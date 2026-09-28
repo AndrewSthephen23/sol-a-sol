@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   ArchivedParentCategoryError,
   assertCanBeParent,
+  assertCanMoveTo,
   assertCanRestore,
   assertCategoryColor,
   CategoryTooDeepError,
@@ -10,6 +11,7 @@ import {
   categoryNameKey,
   childrenArchivedWith,
   InvalidCategoryColorError,
+  OnlySubcategoriesMoveError,
   resolveCategoryType,
   SubcategoryTypeMismatchError,
 } from './category-policy.js';
@@ -74,6 +76,43 @@ describe('assertCanBeParent', () => {
   });
 });
 
+describe('assertCanMoveTo', () => {
+  const DELIVERY = { parentId: 'category-food', type: 'VARIABLE_EXPENSE' } as const;
+  const TRANSPORT = { parentId: null, type: 'VARIABLE_EXPENSE', archivedAt: null } as const;
+
+  it('moves a subcategory under another active parent of the same type', () => {
+    expect(() => {
+      assertCanMoveTo(DELIVERY, TRANSPORT);
+    }).not.toThrow();
+  });
+
+  // Una de primer nivel puede tener hijas: colgarla de otra dejaría dos niveles.
+  it('does not move a top-level category', () => {
+    expect(() => {
+      assertCanMoveTo({ ...DELIVERY, parentId: null }, TRANSPORT);
+    }).toThrow(OnlySubcategoriesMoveError);
+  });
+
+  it('does not move it under another subcategory', () => {
+    expect(() => {
+      assertCanMoveTo(DELIVERY, { ...TRANSPORT, parentId: 'category-other' });
+    }).toThrow(CategoryTooDeepError);
+  });
+
+  // Cambiar de tipo cambiaría lo que son sus transacciones.
+  it('does not move it under a parent of another type', () => {
+    expect(() => {
+      assertCanMoveTo(DELIVERY, { ...TRANSPORT, type: 'FIXED_EXPENSE' });
+    }).toThrow(SubcategoryTypeMismatchError);
+  });
+
+  it('does not move it under an archived parent', () => {
+    expect(() => {
+      assertCanMoveTo(DELIVERY, { ...TRANSPORT, archivedAt: new Date('2026-09-28T00:00:00Z') });
+    }).toThrow(ArchivedParentCategoryError);
+  });
+});
+
 describe('assertCanRestore', () => {
   it('restores a top-level category', () => {
     expect(() => {
@@ -133,6 +172,12 @@ describe('assertCategoryColor', () => {
 describe('errors', () => {
   it.each([
     ['CategoryTooDeepError', () => new CategoryTooDeepError(), 'CATEGORY_TOO_DEEP', /single level/],
+    [
+      'OnlySubcategoriesMoveError',
+      () => new OnlySubcategoriesMoveError(),
+      'ONLY_SUBCATEGORIES_MOVE',
+      /only a subcategory/i,
+    ],
     [
       'CategoryTypeRequiredError',
       () => new CategoryTypeRequiredError(),

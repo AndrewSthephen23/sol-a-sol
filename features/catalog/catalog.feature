@@ -165,3 +165,21 @@ Característica: Catálogo
       Cuando intento archivarla desde mi cuenta
       Entonces la respuesta es que no existe
       Y su tarjeta sigue intacta
+
+  Regla: Una subcategoría se muda a otra madre del mismo tipo con sus transacciones
+
+    Escenario: Muevo "Taxi" de "Comida" a "Transporte"
+      Dado que tengo "Comida > Taxi" con gastos registrados
+      Y la categoría "Transporte" del mismo tipo
+      Cuando muevo "Taxi" a "Transporte"
+      Entonces queda "Transporte > Taxi"
+      Y sus gastos aparecen al filtrar por "Transporte"
+
+    Escenario: Una categoría de primer nivel no se muda
+      Cuando intento mover "Comida" dentro de "Transporte"
+      Entonces se rechaza porque solo se mudan las subcategorías
+
+    Escenario: No se muda a una madre de otro tipo
+      Dado que "Vivienda" es de gasto fijo
+      Cuando intento mover "Comida > Taxi" a "Vivienda"
+      Entonces se rechaza porque la madre es de otro tipo

@@ -23,11 +23,15 @@ export interface NewCategory {
   icon: string;
 }
 
-/** Lo que se puede cambiar. El tipo y la madre no están: no se cambian. */
+/**
+ * Lo que se puede cambiar. El tipo no está: no se cambia. La madre, solo en una subcategoría y a
+ * otra del mismo tipo (`assertCanMoveTo`).
+ */
 export interface CategoryChanges {
   name?: string;
   color?: string;
   icon?: string;
+  parentId?: string;
 }
 
 /** Categorías que cambian de estado junto con la editada: ella misma y, en cascada, sus hijas. */

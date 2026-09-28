@@ -37,6 +37,14 @@ export class ArchivedParentCategoryError extends DomainError {
   }
 }
 
+export class OnlySubcategoriesMoveError extends DomainError {
+  readonly code = 'ONLY_SUBCATEGORIES_MOVE';
+
+  constructor() {
+    super('Only a subcategory moves to another parent: a top-level category may have its own.');
+  }
+}
+
 export class InvalidCategoryColorError extends DomainError {
   readonly code = 'INVALID_CATEGORY_COLOR';
 
@@ -77,6 +85,22 @@ export function resolveCategoryType(
 /** Un solo nivel: una subcategoría no puede ser madre de otra. */
 export function assertCanBeParent(parent: { parentId: string | null }): void {
   if (parent.parentId !== null) throw new CategoryTooDeepError();
+}
+
+/**
+ * Una **subcategoría** se muda a otra madre con todas sus transacciones (decidido con el autor el
+ * 2026-09-28). La madre nueva es de primer nivel, **del mismo tipo** (cambiar de tipo cambiaría
+ * lo que son sus transacciones) y activa. Una categoría de primer nivel no se muda: puede tener
+ * hijas, y colgarla de otra dejaría dos niveles.
+ */
+export function assertCanMoveTo(
+  category: { parentId: string | null; type: TransactionType },
+  parent: { parentId: string | null; type: TransactionType; archivedAt: Date | null },
+): void {
+  if (category.parentId === null) throw new OnlySubcategoriesMoveError();
+  assertCanBeParent(parent);
+  if (parent.type !== category.type) throw new SubcategoryTypeMismatchError();
+  if (parent.archivedAt !== null) throw new ArchivedParentCategoryError();
 }
 
 /**

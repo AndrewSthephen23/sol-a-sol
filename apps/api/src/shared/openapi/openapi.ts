@@ -626,9 +626,11 @@ function catalogPaths(): Record<string, unknown> {
     [`/${API_PREFIX}/categories/{id}`]: {
       patch: {
         tags: ['catalog'],
-        summary: 'Renombra, cambia color o ícono, archiva o restaura una categoría.',
+        summary: 'Renombra, cambia color o ícono, muda, archiva o restaura una categoría.',
         description:
-          'El tipo y la madre no se cambian. `archived: true` archiva la categoría y sus hijas; ' +
+          'El tipo no se cambia. `parentId` muda una **subcategoría** a otra madre de primer ' +
+          'nivel, del mismo tipo y activa, con todas sus transacciones; una categoría de primer ' +
+          'nivel no se muda. `archived: true` archiva la categoría y sus hijas; ' +
           '`false` la restaura junto con las hijas que se archivaron con ella. Una subcategoría ' +
           'no se restaura mientras su madre siga archivada. No hay `DELETE`.',
         security: [{ accessToken: [] }],
@@ -641,11 +643,12 @@ function catalogPaths(): Record<string, unknown> {
           },
           '401': problem('Falta el token de acceso o no vale.'),
           '403': problem('Llegó un token personal: el catálogo solo se gestiona desde una sesión.'),
-          '404': problem('No existe o es de otra cuenta.'),
-          '409': problem('Una hermana ya tiene ese nombre.'),
+          '404': problem('La categoría o la madre nueva no existen o son de otra cuenta.'),
+          '409': problem('Una hermana (en la madre nueva, si se muda) ya tiene ese nombre.'),
           '422': problem(
-            'El cuerpo está vacío, intenta cambiar el tipo o la madre, el color no es #RRGGBB, ' +
-              'o la madre de la subcategoría sigue archivada.',
+            'El cuerpo está vacío, intenta cambiar el tipo, el color no es #RRGGBB, la madre de ' +
+              'la subcategoría sigue archivada, o no se puede mudar: es de primer nivel, la madre ' +
+              'nueva es una subcategoría, es de otro tipo o está archivada.',
           ),
         },
       },
