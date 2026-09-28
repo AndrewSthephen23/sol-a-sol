@@ -687,6 +687,32 @@ function catalogPaths(): Record<string, unknown> {
         },
       },
     },
+    [`/${API_PREFIX}/categories/{id}/convert-to-tag`]: {
+      post: {
+        tags: ['catalog'],
+        summary: 'Convierte una subcategoría en etiqueta.',
+        description:
+          'La subcategoría se fusiona en su madre y se archiva, y sus movimientos quedan con la ' +
+          'etiqueta de su nombre ("Comida > Desayuno" → "Comida" con `Desayuno`). Solo una ' +
+          'subcategoría, con la madre activa y un nombre sin `|`. No se deshace. Un movimiento ' +
+          'que ya tiene el máximo de etiquetas pasa a la madre sin la nueva.',
+        security: [{ accessToken: [] }],
+        parameters: [CATEGORY_ID_PARAMETER],
+        responses: {
+          '200': {
+            description: 'La madre, que recibe sus movimientos.',
+            content: { 'application/json': { schema: CATEGORY_SCHEMA } },
+          },
+          '401': problem('Falta el token de acceso o no vale.'),
+          '403': problem('Llegó un token personal: el catálogo solo se gestiona desde una sesión.'),
+          '404': problem('No existe o es de otra cuenta.'),
+          '422': problem(
+            'Es de primer nivel (`ONLY_SUBCATEGORIES_CONVERT`), su madre está archivada, o su ' +
+              'nombre no puede ser etiqueta (`TAG_NAME_INVALID`).',
+          ),
+        },
+      },
+    },
     [`/${API_PREFIX}/payment-methods`]: {
       get: {
         tags: ['catalog'],

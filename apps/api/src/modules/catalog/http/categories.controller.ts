@@ -31,7 +31,7 @@ import {
   ListCategories,
   UpdateCategory,
 } from '../application/categories.js';
-import { MergeCategory } from '../application/merge-category.js';
+import { ConvertCategoryToTag, MergeCategory } from '../application/merge-category.js';
 import { CategoryNotFoundError } from '../domain/errors.js';
 import type { Category } from '../ports/category-repository.js';
 
@@ -52,6 +52,7 @@ export class CategoriesController {
     private readonly listCategories: ListCategories,
     private readonly updateCategory: UpdateCategory,
     private readonly mergeCategory: MergeCategory,
+    private readonly convertToTag: ConvertCategoryToTag,
   ) {}
 
   @Get()
@@ -96,6 +97,18 @@ export class CategoriesController {
     assertCategoryId(id);
 
     return this.mergeCategory.execute({ userId, id, intoId: body.intoCategoryId });
+  }
+
+  /**
+   * Convierte una subcategoría en etiqueta: se fusiona en su madre, y sus transacciones quedan
+   * con la etiqueta de su nombre. Devuelve la madre.
+   */
+  @Post(':id/convert-to-tag')
+  @HttpCode(HttpStatus.OK)
+  async toTag(@CurrentUser() userId: string, @Param('id') id: string): Promise<Category> {
+    assertCategoryId(id);
+
+    return this.convertToTag.execute({ userId, id });
   }
 }
 

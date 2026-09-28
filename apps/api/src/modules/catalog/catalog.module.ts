@@ -5,7 +5,7 @@ import { TimeModule } from '../../shared/time/time.module.js';
 import { IdentityModule } from '../identity/index.js';
 import { CatalogLookup } from './application/catalog-lookup.js';
 import { CreateCategory, ListCategories, UpdateCategory } from './application/categories.js';
-import { MergeCategory } from './application/merge-category.js';
+import { ConvertCategoryToTag, MergeCategory } from './application/merge-category.js';
 import {
   SeedAccountsWithoutCategories,
   SeedDefaultCategories,
@@ -40,6 +40,7 @@ import { PAYMENT_METHOD_REPOSITORY } from './ports/payment-method-repository.js'
     ListCategories,
     UpdateCategory,
     MergeCategory,
+    ConvertCategoryToTag,
     SeedDefaultCategories,
     SeedAccountsWithoutCategories,
     DefaultCategoriesOnRegistration,

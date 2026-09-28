@@ -2,6 +2,8 @@ import {
   ArchivedParentCategoryError,
   CategoryMergeTypeMismatchError,
   FixedClock,
+  InvalidTagNameError,
+  OnlySubcategoriesConvertError,
   type TransactionType,
 } from '@sol-a-sol/domain';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -11,7 +13,7 @@ import { CategoryNotFoundError } from '../domain/errors.js';
 import { CATEGORY_MERGED } from '../domain/events.js';
 import { FakeCategoryRepository } from '../ports/category-repository.fake.js';
 import { CreateCategory, UpdateCategory } from './categories.js';
-import { MergeCategory } from './merge-category.js';
+import { ConvertCategoryToTag, MergeCategory } from './merge-category.js';
 
 const ANA = 'user-ana';
 const BRUNO = 'user-bruno';
@@ -130,5 +132,77 @@ describe('merging categories', () => {
 
     await expect(merge.execute({ userId: ANA, id, intoId })).rejects.toThrow(CategoryNotFoundError);
     expect(events.published).toEqual([]);
+  });
+
+  describe('converting a subcategory into a tag', () => {
+    let convert: ConvertCategoryToTag;
+
+    beforeEach(() => {
+      convert = new ConvertCategoryToTag(categories, events, FixedClock.at(NOW));
+    });
+
+    it('merges it into its parent, announcing the tag with its name', async () => {
+      const food = await top('Comida');
+      const breakfast = await child('Desayuno', food.id);
+
+      const parent = await convert.execute({ userId: ANA, id: breakfast.id });
+
+      expect(parent).toMatchObject({ id: food.id, archivedAt: null });
+      await expect(stored(breakfast.id)).resolves.toMatchObject({ archivedAt: new Date(NOW) });
+      expect(events.published).toEqual([
+        {
+          name: CATEGORY_MERGED,
+          payload: { userId: ANA, fromId: breakfast.id, intoId: food.id, tag: 'Desayuno' },
+        },
+      ]);
+    });
+
+    it('does not announce a tag when merging normally', async () => {
+      const food = await top('Comida');
+      const soda = await child('Gaseosa', food.id);
+
+      await merge.execute({ userId: ANA, id: soda.id, intoId: food.id });
+
+      expect(events.published[0]?.payload).not.toHaveProperty('tag');
+    });
+
+    it('rejects a top-level category', async () => {
+      const food = await top('Comida');
+
+      await expect(convert.execute({ userId: ANA, id: food.id })).rejects.toThrow(
+        OnlySubcategoriesConvertError,
+      );
+    });
+
+    // `|` separa las etiquetas en el CSV: se rechaza antes de archivar nada.
+    it('rejects a name that cannot be a tag, changing nothing', async () => {
+      const food = await top('Comida');
+      const odd = await child('Pan|Leche', food.id);
+
+      await expect(convert.execute({ userId: ANA, id: odd.id })).rejects.toThrow(
+        InvalidTagNameError,
+      );
+      await expect(stored(odd.id)).resolves.toMatchObject({ archivedAt: null });
+      expect(events.published).toEqual([]);
+    });
+
+    it('rejects when the parent is archived', async () => {
+      const food = await top('Comida');
+      const breakfast = await child('Desayuno', food.id);
+      await update.execute({ userId: ANA, id: food.id, changes: { archived: true } });
+
+      await expect(convert.execute({ userId: ANA, id: breakfast.id })).rejects.toThrow(
+        ArchivedParentCategoryError,
+      );
+    });
+
+    it('does not find a subcategory of another account', async () => {
+      const food = await top('Comida', BRUNO);
+      const hers = await create.execute({ userId: BRUNO, name: 'Desayuno', parentId: food.id });
+
+      await expect(convert.execute({ userId: ANA, id: hers.id })).rejects.toThrow(
+        CategoryNotFoundError,
+      );
+    });
   });
 });

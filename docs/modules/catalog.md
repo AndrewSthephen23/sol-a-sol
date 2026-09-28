@@ -32,6 +32,7 @@ Decididas con el autor el 2026-09-23 (tarea 01) y el 2026-09-24 (tarea 02).
 | Cambiar el tipo        | **No se puede.** Sus transacciones quedarían con otro tipo que su categoría (la base lo impide). Si está mal clasificada, se crea otra y se fusiona (tarea 07d)                                                                                                                                                                                                                                                                                                                                                                                                     |
 | Mudar una subcategoría | **Sí**, a otra madre **de primer nivel, del mismo tipo y activa**, con todas sus transacciones (`parentId` en `PATCH`, decidido con el autor el 2026-09-28). Una categoría de primer nivel **no se muda** (`ONLY_SUBCATEGORIES_MOVE`): puede tener hijas y quedarían dos niveles. Si la madre nueva ya tiene una hija con ese nombre, **409**                                                                                                                                                                                                                       |
 | Fusionar               | `POST /categories/{id}/merge`: sus transacciones pasan a la destino, **sus hijas se mudan con ella** (las del mismo nombre que una hija de la destino se fusionan también) y la origen **se archiva**. **No se deshace**; la vista previa es el `count` de los totales de `GET /transactions?categoryId=`. Mismo tipo, destino activa, no en sí misma ni en una hija suya, y una categoría con hijas no va a una subcategoría. Volver a fusionar una ya archivada mueve lo que haya quedado (2026-09-28, [ADR-0005](../adr/0005-fusionar-categorias-por-evento.md)) |
+| Convertir en etiqueta  | `POST /categories/{id}/convert-to-tag`: una **subcategoría** se fusiona en su madre y sus transacciones quedan con la **etiqueta de su nombre** ("Comida > Desayuno" → "Comida" con `Desayuno`; si la etiqueta existe, se reutiliza). Madre activa, nombre sin `\|` (`TAG_NAME_INVALID`); una de primer nivel no se convierte (`ONLY_SUBCATEGORIES_CONVERT`). Una transacción que ya tiene 10 etiquetas pasa a la madre sin la nueva. No se deshace (2026-09-28)                                                                                                    |
 | Semilla                | Se crea **al registrarse** cada usuario (evento de registro: `identity` no importa `catalog`), y `pnpm db:seed` la aplica a las cuentas **sin ninguna categoría**, nunca a las que ya tienen alguna. Llega en un PR aparte (ver abajo)                                                                                                                                                                                                                                                                                                                              |
 
 #### La semilla
@@ -100,7 +101,7 @@ Por eso la regla se protege en capas. Ninguna depende de las otras:
 
 ## Eventos de dominio
 
-- **Emite:** `catalog.category.merged { userId, fromId, intoId }`, uno por cada fusión (la pedida y las de hijas del mismo nombre). Lo escucha `transactions` para mover sus filas; lo escuchará el presupuesto (H4).
+- **Emite:** `catalog.category.merged { userId, fromId, intoId, tag? }` (`tag` solo al convertir una subcategoría en etiqueta), uno por cada fusión (la pedida y las de hijas del mismo nombre). Lo escucha `transactions` para mover sus filas; lo escuchará el presupuesto (H4).
 - **Escucha:** `identity.user.registered`, para sembrar las categorías iniciales de la cuenta nueva.
 
 ## API pública para otros módulos
@@ -111,15 +112,16 @@ Por eso la regla se protege en capas. Ninguna depende de las otras:
 
 Todos exigen una sesión (`Authorization: Bearer <token de acceso>`), filtran por el `userId` del token y responden **404** con el flag apagado. Detalle en `/api/v1/openapi.json`.
 
-| Método  | Ruta                            | Qué hace                                                                                                                                                               |
-| ------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET`   | `/api/v1/categories`            | Lista las categorías anidadas por nombre; `?type=` filtra y `?includeArchived=true` suma las archivadas                                                                |
-| `POST`  | `/api/v1/categories`            | Crea una categoría o, con `parentId`, una subcategoría. **409** si el nombre choca                                                                                     |
-| `PATCH` | `/api/v1/categories/{id}`       | Renombra, cambia color o ícono, **muda una subcategoría** a otra madre (`parentId`), y archiva o restaura (en cascada) con `archived`. **404** si no existe o es ajena |
-| `POST`  | `/api/v1/categories/{id}/merge` | Fusiona en `intoCategoryId`. **200** con la destino; **404** si alguna no existe o es ajena                                                                            |
-| `GET`   | `/api/v1/payment-methods`       | Lista los métodos de la cuenta por alias; `?includeArchived=true` suma los archivados                                                                                  |
-| `POST`  | `/api/v1/payment-methods`       | Registra uno. **409** si el alias ya existe; **422** si rompe una regla de su tipo                                                                                     |
-| `PATCH` | `/api/v1/payment-methods/{id}`  | Corrige cualquier campo menos el tipo, y archiva o restaura con `archived`. **404** si no existe o es ajeno                                                            |
+| Método  | Ruta                                     | Qué hace                                                                                                                                                               |
+| ------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`   | `/api/v1/categories`                     | Lista las categorías anidadas por nombre; `?type=` filtra y `?includeArchived=true` suma las archivadas                                                                |
+| `POST`  | `/api/v1/categories`                     | Crea una categoría o, con `parentId`, una subcategoría. **409** si el nombre choca                                                                                     |
+| `PATCH` | `/api/v1/categories/{id}`                | Renombra, cambia color o ícono, **muda una subcategoría** a otra madre (`parentId`), y archiva o restaura (en cascada) con `archived`. **404** si no existe o es ajena |
+| `POST`  | `/api/v1/categories/{id}/merge`          | Fusiona en `intoCategoryId`. **200** con la destino; **404** si alguna no existe o es ajena                                                                            |
+| `POST`  | `/api/v1/categories/{id}/convert-to-tag` | Convierte una subcategoría en etiqueta. **200** con la madre                                                                                                           |
+| `GET`   | `/api/v1/payment-methods`                | Lista los métodos de la cuenta por alias; `?includeArchived=true` suma los archivados                                                                                  |
+| `POST`  | `/api/v1/payment-methods`                | Registra uno. **409** si el alias ya existe; **422** si rompe una regla de su tipo                                                                                     |
+| `PATCH` | `/api/v1/payment-methods/{id}`           | Corrige cualquier campo menos el tipo, y archiva o restaura con `archived`. **404** si no existe o es ajeno                                                            |
 
 ### Errores
 
@@ -139,6 +141,7 @@ Todos exigen una sesión (`Authorization: Bearer <token de acceso>`), filtran po
 | `CATEGORY_MERGE_SAME`              | 422    | Fusionar una categoría en sí misma                                                    |
 | `CATEGORY_MERGE_TYPE_MISMATCH`     | 422    | Fusionar categorías de tipos distintos                                                |
 | `CATEGORY_MERGE_INTO_OWN_CHILD`    | 422    | Fusionar una categoría en una de sus hijas                                            |
+| `ONLY_SUBCATEGORIES_CONVERT`       | 422    | Convertir en etiqueta una categoría de primer nivel                                   |
 | `PARENT_CATEGORY_ARCHIVED`         | 422    | Restaurar una hija, o crear una nueva, con la madre archivada                         |
 | `INVALID_CATEGORY_COLOR`           | 422    | El color no es `#RRGGBB`                                                              |
 | `CATEGORY_NAME_TAKEN`              | 409    | Una hermana del mismo tipo ya se llama así, sin mayúsculas ni acentos, archivada o no |

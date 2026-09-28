@@ -1,5 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { type Clock, planCategoryMerge } from '@sol-a-sol/domain';
+import {
+  assertCanConvertToTag,
+  type Clock,
+  normalizeTagName,
+  planCategoryMerge,
+} from '@sol-a-sol/domain';
 
 import { EVENT_PUBLISHER, type EventPublisher } from '../../../shared/events/event-publisher.js';
 import { CLOCK } from '../../../shared/time/system-clock.js';
@@ -41,26 +46,85 @@ export class MergeCategory {
     const into = await this.categories.find(userId, intoId);
     if (from === null || into === null) throw new CategoryNotFoundError();
 
-    const plan = planCategoryMerge(
+    return mergeAndAnnounce(
+      { categories: this.categories, events: this.events, now: this.clock.now() },
+      userId,
       from,
       into,
-      await this.categories.children(userId, from.id),
-      await this.categories.children(userId, into.id),
     );
-    await this.categories.applyMerge(userId, {
-      moves: plan.moves,
-      archivedIds: plan.merges.map((merge) => merge.fromId),
-      archivedAt: this.clock.now(),
-    });
-    // Después de guardar (ADR-0004). La fusión pedida primero; luego las de sus hijas.
-    for (const { fromId, intoId: target } of plan.merges) {
-      const event: CategoryMerged = { userId, fromId, intoId: target };
-      await this.events.publish(CATEGORY_MERGED, event);
-    }
-
-    const merged = await this.categories.find(userId, into.id);
-    if (merged === null) throw new CategoryNotFoundError();
-
-    return merged;
   }
+}
+
+/**
+ * Convierte una subcategoría en etiqueta (decidido con el autor el 2026-09-28): se fusiona en su
+ * madre y sus transacciones quedan con la etiqueta de su nombre ("Comida > Desayuno" → "Comida"
+ * con `Desayuno`). La etiqueta la pone `transactions` al escuchar la fusión (ADR-0005). Devuelve
+ * la madre.
+ */
+@Injectable()
+export class ConvertCategoryToTag {
+  constructor(
+    @Inject(CATEGORY_REPOSITORY) private readonly categories: CategoryRepository,
+    @Inject(EVENT_PUBLISHER) private readonly events: EventPublisher,
+    @Inject(CLOCK) private readonly clock: Clock,
+  ) {}
+
+  async execute({ userId, id }: { userId: string; id: string }): Promise<Category> {
+    const category = await this.categories.find(userId, id);
+    if (category === null) throw new CategoryNotFoundError();
+    assertCanConvertToTag(category);
+    // Antes de cambiar nada: un nombre con `|` no puede ser etiqueta.
+    const tag = normalizeTagName(category.name).name;
+    const parent =
+      category.parentId === null ? null : await this.categories.find(userId, category.parentId);
+    if (parent === null) throw new CategoryNotFoundError();
+
+    return mergeAndAnnounce(
+      { categories: this.categories, events: this.events, now: this.clock.now() },
+      userId,
+      category,
+      parent,
+      tag,
+    );
+  }
+}
+
+/**
+ * Valida la fusión, aplica la parte de `catalog` en una sola transacción y la anuncia (ADR-0005).
+ * La fusión pedida primero, con la etiqueta si hay; luego las de sus hijas, sin ella.
+ */
+async function mergeAndAnnounce(
+  deps: { categories: CategoryRepository; events: EventPublisher; now: Date },
+  userId: string,
+  from: Category,
+  into: Category,
+  tag?: string,
+): Promise<Category> {
+  const { categories, events } = deps;
+  const plan = planCategoryMerge(
+    from,
+    into,
+    await categories.children(userId, from.id),
+    await categories.children(userId, into.id),
+  );
+  await categories.applyMerge(userId, {
+    moves: plan.moves,
+    archivedIds: plan.merges.map((merge) => merge.fromId),
+    archivedAt: deps.now,
+  });
+  // Después de guardar (ADR-0004).
+  for (const [index, { fromId, intoId }] of plan.merges.entries()) {
+    const event: CategoryMerged = {
+      userId,
+      fromId,
+      intoId,
+      ...(index === 0 && tag !== undefined ? { tag } : {}),
+    };
+    await events.publish(CATEGORY_MERGED, event);
+  }
+
+  const merged = await categories.find(userId, into.id);
+  if (merged === null) throw new CategoryNotFoundError();
+
+  return merged;
 }

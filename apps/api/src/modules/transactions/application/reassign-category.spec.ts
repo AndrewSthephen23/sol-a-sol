@@ -53,4 +53,59 @@ describe('reassigning a merged category', () => {
     ).resolves.toBe(0);
     expect(transactions.rows[0]?.categoryId).toBe('soda');
   });
+
+  describe('with a tag, when a subcategory became one', () => {
+    function read(transactions: FakeTransactionRepository, id: string) {
+      return transactions.find(ANA, id);
+    }
+
+    it('tags every moved transaction, reusing an existing tag', async () => {
+      const transactions = new FakeTransactionRepository();
+      const plain = await transactions.create(lunch(ANA, 'breakfast'));
+      const tagged = await transactions.create({
+        ...lunch(ANA, 'breakfast'),
+        tags: [{ name: 'desayuno', key: 'desayuno' }],
+      });
+      const other = await transactions.create(lunch(ANA, 'food'));
+
+      await new ReassignCategory(transactions).execute({
+        userId: ANA,
+        fromId: 'breakfast',
+        intoId: 'food',
+        tag: 'Desayuno',
+      });
+
+      await expect(read(transactions, plain.id)).resolves.toMatchObject({
+        categoryId: 'food',
+        tags: ['desayuno'],
+      });
+      await expect(read(transactions, tagged.id)).resolves.toMatchObject({ tags: ['desayuno'] });
+      await expect(read(transactions, other.id)).resolves.toMatchObject({ tags: [] });
+      expect(transactions.tags).toHaveLength(1);
+    });
+
+    // El tope no se rompe: la transacción pasa a la madre, pero sin la etiqueta nueva.
+    it('does not tag a transaction that already has ten tags', async () => {
+      const transactions = new FakeTransactionRepository();
+      const full = await transactions.create({
+        ...lunch(ANA, 'breakfast'),
+        tags: Array.from({ length: 10 }, (_, index) => ({
+          name: `t${String(index)}`,
+          key: `t${String(index)}`,
+        })),
+      });
+
+      await new ReassignCategory(transactions).execute({
+        userId: ANA,
+        fromId: 'breakfast',
+        intoId: 'food',
+        tag: 'Desayuno',
+      });
+
+      const read = await transactions.find(ANA, full.id);
+      expect(read?.categoryId).toBe('food');
+      expect(read?.tags).toHaveLength(10);
+      expect(read?.tags).not.toContain('Desayuno');
+    });
+  });
 });

@@ -203,3 +203,20 @@ Característica: Catálogo
     Escenario: No se fusionan categorías de tipos distintos
       Cuando intento fusionar un gasto variable en uno fijo
       Entonces se rechaza
+
+  Regla: Una subcategoría se puede convertir en etiqueta
+
+    Escenario: "Comida > Desayuno" pasa a ser la etiqueta "Desayuno"
+      Dado que tengo 2 gastos en "Comida > Desayuno"
+      Cuando convierto "Desayuno" en etiqueta
+      Entonces esos gastos quedan en "Comida" con la etiqueta "Desayuno"
+      Y "Desayuno" queda archivada
+
+    Escenario: Se reutiliza la etiqueta si ya existe
+      Dado que ya tengo la etiqueta "desayuno"
+      Cuando convierto "Comida > Desayuno" en etiqueta
+      Entonces sigo teniendo una sola etiqueta "desayuno"
+
+    Escenario: Una categoría de primer nivel no se convierte
+      Cuando intento convertir "Comida" en etiqueta
+      Entonces se rechaza porque solo se convierten las subcategorías

@@ -1,4 +1,9 @@
-import { type NormalizedTag, searchKey, type TypedAmount } from '@sol-a-sol/domain';
+import {
+  MAX_TAGS_PER_TRANSACTION,
+  type NormalizedTag,
+  searchKey,
+  type TypedAmount,
+} from '@sol-a-sol/domain';
 
 import {
   type NewTransaction,
@@ -118,9 +123,24 @@ export class FakeTransactionRepository implements TransactionRepository {
     );
   }
 
-  reassignCategory(userId: string, fromId: string, intoId: string): Promise<number> {
+  reassignCategory(
+    userId: string,
+    fromId: string,
+    intoId: string,
+    tag?: NormalizedTag,
+  ): Promise<number> {
     const moved = this.rows.filter((row) => row.userId === userId && row.categoryId === fromId);
-    for (const row of moved) row.categoryId = intoId;
+    const [tagId] = tag === undefined || moved.length === 0 ? [] : this.tagIdsOf(userId, [tag]);
+    for (const row of moved) {
+      row.categoryId = intoId;
+      if (
+        tagId !== undefined &&
+        !row.tagIds.includes(tagId) &&
+        row.tagIds.length < MAX_TAGS_PER_TRANSACTION
+      ) {
+        row.tagIds.push(tagId);
+      }
+    }
 
     return Promise.resolve(moved.length);
   }

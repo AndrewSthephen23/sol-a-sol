@@ -14,4 +14,9 @@ export interface CategoryMerged {
   userId: string;
   fromId: string;
   intoId: string;
+  /**
+   * Solo al **convertir una subcategoría en etiqueta**: el nombre de la etiqueta que reciben sus
+   * transacciones al pasar a la madre (decidido el 2026-09-28).
+   */
+  tag?: string;
 }

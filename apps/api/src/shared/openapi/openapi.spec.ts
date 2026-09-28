@@ -86,6 +86,7 @@ describe('buildOpenApiDocument', () => {
       expect(withCatalog.paths).toHaveProperty(['/api/v1/categories', 'post']);
       expect(withCatalog.paths).toHaveProperty(['/api/v1/categories/{id}', 'patch']);
       expect(withCatalog.paths).toHaveProperty(['/api/v1/categories/{id}/merge', 'post']);
+      expect(withCatalog.paths).toHaveProperty(['/api/v1/categories/{id}/convert-to-tag', 'post']);
       expect(JSON.stringify(documentWith(true))).not.toMatch(/payment|catalog|categor/i);
     });
 

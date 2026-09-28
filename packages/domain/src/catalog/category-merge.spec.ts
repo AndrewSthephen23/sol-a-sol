@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import { ArchivedParentCategoryError, CategoryTooDeepError } from './category-policy.js';
 import {
+  assertCanConvertToTag,
   CategoryMergeIntoOwnChildError,
   CategoryMergeSameError,
   CategoryMergeTypeMismatchError,
   type MergeableCategory,
+  OnlySubcategoriesConvertError,
   planCategoryMerge,
 } from './category-merge.js';
 
@@ -109,6 +111,22 @@ describe('planCategoryMerge', () => {
   });
 });
 
+describe('assertCanConvertToTag', () => {
+  // "Comida > Desayuno" → "Comida" con la etiqueta "Desayuno" (decidido el 2026-09-28).
+  it('accepts a subcategory', () => {
+    expect(() => {
+      assertCanConvertToTag(SODA);
+    }).not.toThrow();
+  });
+
+  // Una de primer nivel no tiene madre a donde llevar sus transacciones.
+  it('rejects a top-level category', () => {
+    expect(() => {
+      assertCanConvertToTag(FOOD);
+    }).toThrow(OnlySubcategoriesConvertError);
+  });
+});
+
 describe('errors', () => {
   it.each([
     ['CategoryMergeSameError', () => new CategoryMergeSameError(), 'CATEGORY_MERGE_SAME', /itself/],
@@ -123,6 +141,12 @@ describe('errors', () => {
       () => new CategoryMergeIntoOwnChildError(),
       'CATEGORY_MERGE_INTO_OWN_CHILD',
       /own subcategories/,
+    ],
+    [
+      'OnlySubcategoriesConvertError',
+      () => new OnlySubcategoriesConvertError(),
+      'ONLY_SUBCATEGORIES_CONVERT',
+      /only a subcategory/i,
     ],
   ])('%s has a stable code and says which rule broke', (name, build, code, message) => {
     const error = build();

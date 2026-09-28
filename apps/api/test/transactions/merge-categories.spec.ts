@@ -267,12 +267,107 @@ describe('merging categories', () => {
     });
   });
 
+  describe('converting a subcategory into a tag', () => {
+    function toTag(id: string, session = ana): request.Test {
+      return request(server)
+        .post(`${CATEGORIES}/${id}/convert-to-tag`)
+        .set('Authorization', `Bearer ${session}`);
+    }
+
+    async function tagsOf(transactionId: string): Promise<string[]> {
+      const response = await request(server)
+        .get(`${TRANSACTIONS}/${transactionId}`)
+        .set('Authorization', `Bearer ${ana}`)
+        .expect(200);
+
+      return (response.body as { tags: string[] }).tags;
+    }
+
+    // "Comida > Desayuno" → "Comida" con la etiqueta "Desayuno" (decidido el 2026-09-28).
+    it('moves its transactions to the parent with the tag, and archives it', async () => {
+      const food = await top('Víveres');
+      const breakfast = await child('Desayuno', food.id);
+      const first = await spend(breakfast.id);
+      const second = await spend(breakfast.id);
+
+      const response = await toTag(breakfast.id).expect(200);
+
+      expect(response.body).toMatchObject({ id: food.id });
+      await expect(categoryOf(first)).resolves.toBe(food.id);
+      await expect(tagsOf(first)).resolves.toEqual(['Desayuno']);
+      await expect(tagsOf(second)).resolves.toEqual(['Desayuno']);
+      await expect(stored(breakfast.id)).resolves.toMatchObject({
+        archivedAt: expect.any(Date) as Date,
+      });
+    });
+
+    it('reuses a tag that already exists, and filters by it with its totals', async () => {
+      const food = await top('Víveres');
+      const breakfast = await child('Desayuno', food.id);
+      await spend(breakfast.id, '3.00');
+      await request(server)
+        .post(TRANSACTIONS)
+        .set('Authorization', `Bearer ${ana}`)
+        .send({
+          date: '2026-09-02',
+          type: 'VARIABLE_EXPENSE',
+          categoryId: food.id,
+          amount: '4.50',
+          currency: 'PEN',
+          description: 'Pan',
+          tags: ['desayuno'],
+        })
+        .expect(201);
+
+      await toTag(breakfast.id).expect(200);
+
+      const response = await request(server)
+        .get(TRANSACTIONS)
+        .query({ tag: 'DESAYUNO' })
+        .set('Authorization', `Bearer ${ana}`)
+        .expect(200);
+      expect((response.body as { totals: object[] }).totals).toMatchObject([
+        { expense: '7.50', count: 2 },
+      ]);
+      const tags = await prisma.tag.findMany({ where: { user: { email: ANA.email } } });
+      expect(tags.map((tag) => tag.name)).toEqual(['desayuno']);
+    });
+
+    it.each([
+      ['a top-level category', 'top', 'ONLY_SUBCATEGORIES_CONVERT'],
+      ['a name with |', 'pipe', 'TAG_NAME_INVALID'],
+    ])('rejects %s with 422, changing nothing', async (_case, kind, code) => {
+      const food = await top('Víveres');
+      const odd = await child('Pan|Leche', food.id);
+      const id = kind === 'top' ? food.id : odd.id;
+      const spent = await spend(id);
+
+      const response = await toTag(id).expect(422);
+
+      expect(codeOf(response)).toBe(problemType(code));
+      await expect(categoryOf(spent)).resolves.toBe(id);
+      await expect(stored(id)).resolves.toMatchObject({ archivedAt: null });
+    });
+
+    it('answers 404 for a subcategory of another account', async () => {
+      const hers = await top('Víveres', 'VARIABLE_EXPENSE', bruno);
+      const breakfast = await category({ name: 'Desayuno', parentId: hers.id }, bruno);
+
+      const response = await toTag(breakfast.id).expect(404);
+
+      expect(codeOf(response)).toBe(problemType('CATEGORY_NOT_FOUND'));
+      await expect(stored(breakfast.id)).resolves.toMatchObject({ archivedAt: null });
+    });
+  });
+
   describe('access', () => {
     const path = `${CATEGORIES}/${MISSING_ID}/merge`;
+    const toTagPath = `${CATEGORIES}/${MISSING_ID}/convert-to-tag`;
     const body = { intoCategoryId: MISSING_ID };
 
     it('requires a session', async () => {
       await request(server).post(path).send(body).expect(401);
+      await request(server).post(toTagPath).expect(401);
     });
 
     it('refuses a personal access token', async () => {
@@ -295,6 +390,7 @@ describe('merging categories', () => {
       process.env.FEATURE_CATALOG = 'false';
 
       await request(server).post(path).set('Authorization', `Bearer ${ana}`).send(body).expect(404);
+      await request(server).post(toTagPath).set('Authorization', `Bearer ${ana}`).expect(404);
     });
   });
 });

@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { normalizeTagName } from '@sol-a-sol/domain';
 
 import {
   TRANSACTION_REPOSITORY,
@@ -20,11 +21,19 @@ export class ReassignCategory {
     userId,
     fromId,
     intoId,
+    tag,
   }: {
     userId: string;
     fromId: string;
     intoId: string;
+    /** Al convertir una subcategoría en etiqueta: la que reciben sus transacciones. */
+    tag?: string;
   }): Promise<number> {
-    return this.transactions.reassignCategory(userId, fromId, intoId);
+    return this.transactions.reassignCategory(
+      userId,
+      fromId,
+      intoId,
+      tag === undefined ? undefined : normalizeTagName(tag),
+    );
   }
 }

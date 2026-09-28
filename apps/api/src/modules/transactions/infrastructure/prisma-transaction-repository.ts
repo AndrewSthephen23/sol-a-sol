@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import {
   type Currency,
   LocalDate,
+  MAX_TAGS_PER_TRANSACTION,
   Money,
   type NormalizedTag,
   type TypedAmount,
@@ -63,6 +64,7 @@ async function linkTags(
   userId: string,
   transactionId: string,
   tags: readonly NormalizedTag[],
+  keepExisting = false,
 ): Promise<void> {
   if (tags.length === 0) return;
 
@@ -74,8 +76,10 @@ async function linkTags(
     where: { userId, nameKey: { in: tags.map((tag) => tag.key) } },
     select: { id: true },
   });
+  // `keepExisting`: una transacción que ya la tenía no la repite (la clave primaria la salta).
   await client.transactionTag.createMany({
     data: ids.map(({ id }) => ({ transactionId, tagId: id, userId })),
+    skipDuplicates: keepExisting,
   });
 }
 
@@ -222,16 +226,32 @@ export class PrismaTransactionRepository implements TransactionRepository {
     }));
   }
 
-  async reassignCategory(userId: string, fromId: string, intoId: string): Promise<number> {
-    // Todas, borradas incluidas: una restaurada después no debe volver a la categoría fusionada.
-    // `userId` en el propio UPDATE, y la clave foránea compuesta exige que la destino sea de la
-    // misma cuenta y del mismo tipo.
-    const { count } = await this.prisma.transaction.updateMany({
-      where: { userId, categoryId: fromId },
-      data: { categoryId: intoId },
-    });
+  async reassignCategory(
+    userId: string,
+    fromId: string,
+    intoId: string,
+    tag?: NormalizedTag,
+  ): Promise<number> {
+    return this.prisma.$transaction(async (client) => {
+      const moved = await client.transaction.findMany({
+        where: { userId, categoryId: fromId },
+        select: { id: true, _count: { select: { tags: true } } },
+      });
+      // Todas, borradas incluidas: una restaurada después no debe volver a la categoría
+      // fusionada. `userId` en el propio UPDATE, y la clave foránea compuesta exige que la
+      // destino sea de la misma cuenta y del mismo tipo.
+      await client.transaction.updateMany({
+        where: { userId, id: { in: moved.map((row) => row.id) } },
+        data: { categoryId: intoId },
+      });
+      if (tag !== undefined) {
+        // Las que ya tienen el máximo se quedan sin ella: el tope de etiquetas no se rompe.
+        const room = moved.filter((row) => row._count.tags < MAX_TAGS_PER_TRANSACTION);
+        for (const { id } of room) await linkTags(client, userId, id, [tag], true);
+      }
 
-    return count;
+      return moved.length;
+    });
   }
 
   async restore(userId: string, id: string): Promise<boolean> {

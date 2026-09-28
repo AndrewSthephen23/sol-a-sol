@@ -109,7 +109,7 @@ Se publican **después de guardar**, esperando a los oyentes, y llevan solo ids 
 
 Restaurar también se anuncia, para que quien lleve una cuenta con los otros tres no se desincronice. Borrar una ya borrada responde 404 y restaurar una vigente no hace nada: ninguno anuncia dos veces.
 
-- **Escucha:** `catalog.category.merged`, para pasar **todas** las transacciones de la categoría fusionada (borradas incluidas) a la destino ([ADR-0005](../adr/0005-fusionar-categorias-por-evento.md)).
+- **Escucha:** `catalog.category.merged`, para pasar **todas** las transacciones de la categoría fusionada (borradas incluidas) a la destino; si trae `tag`, además les agrega esa etiqueta (salvo a las que ya tienen 10) ([ADR-0005](../adr/0005-fusionar-categorias-por-evento.md)).
 
 ## Dependencias
 
