@@ -37,3 +37,17 @@ export interface TransferCreated {
   userId: string;
   transferId: string;
 }
+
+/** Se corrigió una transferencia. */
+export const TRANSFER_UPDATED = 'transactions.transfer.updated';
+
+/** Se borró una transferencia (borrado lógico). */
+export const TRANSFER_DELETED = 'transactions.transfer.deleted';
+
+/** Se deshizo el borrado de una transferencia. */
+export const TRANSFER_RESTORED = 'transactions.transfer.restored';
+
+/** Los cuatro eventos de transferencias llevan lo mismo: de quién y cuál. */
+export type TransferUpdated = TransferCreated;
+export type TransferDeleted = TransferCreated;
+export type TransferRestored = TransferCreated;

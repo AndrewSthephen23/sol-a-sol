@@ -56,3 +56,25 @@ Característica: Transferencias entre mis cuentas
       Dado que archivé "Lemon"
       Cuando intento transferir a "Lemon"
       Entonces se rechaza porque la cuenta está archivada
+
+  Regla: Una transferencia se corrige, se borra y se restaura como una transacción
+
+    Escenario: Corregir un cambio de moneda pide los dos montos
+      Dado que cambié "S/ 37.50" por "US$ 10.00"
+      Cuando corrijo solo el monto enviado a "S/ 38.00"
+      Entonces se rechaza pidiendo también el monto recibido
+
+    Escenario: Corrijo los dos montos de un cambio de moneda
+      Dado que cambié "S/ 37.50" por "US$ 10.00"
+      Cuando corrijo a "S/ 38.00" y "US$ 10.10"
+      Entonces quedan guardados los dos montos nuevos
+
+    Escenario: Una cuenta archivada después no impide corregir
+      Dado que transferí a "Lemon" y después archivé "Lemon"
+      Cuando corrijo el monto de esa transferencia
+      Entonces queda corregida
+
+    Escenario: Deshago el borrado de una transferencia
+      Dado que borré una transferencia
+      Cuando deshago el borrado
+      Entonces vuelve a aparecer tal como estaba

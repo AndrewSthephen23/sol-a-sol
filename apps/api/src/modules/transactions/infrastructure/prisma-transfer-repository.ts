@@ -2,7 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { type Currency, Money } from '@sol-a-sol/domain';
 
 import { PrismaService } from '../../../shared/prisma/prisma.service.js';
-import type { NewTransfer, Transfer, TransferRepository } from '../ports/transfer-repository.js';
+import type {
+  NewTransfer,
+  Transfer,
+  TransferChanges,
+  TransferRepository,
+} from '../ports/transfer-repository.js';
 import { fromDatabaseDate, toDatabaseDate } from './database-date.js';
 
 /** `select` explícito: ni `userId` ni `deletedAt` salen de aquí. */
@@ -65,6 +70,47 @@ export class PrismaTransferRepository implements TransferRepository {
     });
 
     return row === null ? null : toTransfer(row);
+  }
+
+  async update(userId: string, id: string, changes: TransferChanges): Promise<Transfer | null> {
+    const { amount, receivedAmount, date, ...fields } = changes;
+    // `userId` y `deletedAt` van en el propio UPDATE. Las claves foráneas compuestas impiden
+    // además apuntar a la cuenta de otro usuario, y los CHECK, dejar montos incoherentes.
+    const { count } = await this.prisma.transfer.updateMany({
+      where: { id, userId, deletedAt: null },
+      data: {
+        ...fields,
+        ...(date === undefined ? {} : { date: toDatabaseDate(date) }),
+        ...(amount === undefined ? {} : { amount: amount.toFixed(), currency: amount.currency }),
+        ...(receivedAmount === undefined
+          ? {}
+          : {
+              receivedAmount: receivedAmount.toFixed(),
+              receivedCurrency: receivedAmount.currency,
+            }),
+      },
+    });
+    if (count === 0) return null;
+
+    return this.find(userId, id);
+  }
+
+  async softDelete(userId: string, id: string, deletedAt: Date): Promise<boolean> {
+    const { count } = await this.prisma.transfer.updateMany({
+      where: { id, userId, deletedAt: null },
+      data: { deletedAt },
+    });
+
+    return count > 0;
+  }
+
+  async restore(userId: string, id: string): Promise<boolean> {
+    const { count } = await this.prisma.transfer.updateMany({
+      where: { id, userId, deletedAt: { not: null } },
+      data: { deletedAt: null },
+    });
+
+    return count > 0;
   }
 }
 

@@ -71,4 +71,6 @@ export {
 export {
   type CreateTransferRequest,
   createTransferRequestSchema,
+  type UpdateTransferRequest,
+  updateTransferRequestSchema,
 } from './transactions/transfers.js';
