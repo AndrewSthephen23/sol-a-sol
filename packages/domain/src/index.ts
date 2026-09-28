@@ -165,3 +165,11 @@ export {
   normalizeTags,
   TooManyTagsError,
 } from './transactions/tag-policy.js';
+export {
+  CategoryMergeIntoOwnChildError,
+  type CategoryMergePlan,
+  CategoryMergeSameError,
+  CategoryMergeTypeMismatchError,
+  type MergeableCategory,
+  planCategoryMerge,
+} from './catalog/category-merge.js';

@@ -12,6 +12,7 @@ import {
   RestoreTransaction,
   UpdateTransaction,
 } from './application/transactions.js';
+import { ReassignCategory } from './application/reassign-category.js';
 import { DeleteTag, ListTags, RenameTag } from './application/tags.js';
 import {
   CreateTransfer,
@@ -23,6 +24,7 @@ import {
 import { TagsController } from './http/tags.controller.js';
 import { TransactionsController } from './http/transactions.controller.js';
 import { TransfersController } from './http/transfers.controller.js';
+import { CategoryMergedListener } from './infrastructure/category-merged.listener.js';
 import { PrismaTagRepository } from './infrastructure/prisma-tag-repository.js';
 import { PrismaTransactionRepository } from './infrastructure/prisma-transaction-repository.js';
 import { PrismaTransferRepository } from './infrastructure/prisma-transfer-repository.js';
@@ -58,6 +60,8 @@ import { TRANSFER_REPOSITORY } from './ports/transfer-repository.js';
     ListTags,
     RenameTag,
     DeleteTag,
+    ReassignCategory,
+    CategoryMergedListener,
     { provide: TAG_REPOSITORY, useClass: PrismaTagRepository },
     { provide: CATALOG_READER, useExisting: CatalogLookup },
   ],

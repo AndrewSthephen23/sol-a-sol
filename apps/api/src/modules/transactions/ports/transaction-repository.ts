@@ -128,6 +128,12 @@ export interface TransactionRepository {
   /** La suma por tipo y moneda de **todo** lo que cumple el filtro, no solo de una página. */
   totals(userId: string, filter: TransactionFilter): Promise<TypedAmount[]>;
 
+  /**
+   * Pasa **todas** las transacciones de una categoría a otra, borradas incluidas. Devuelve
+   * cuántas movió.
+   */
+  reassignCategory(userId: string, fromId: string, intoId: string): Promise<number>;
+
   /** Deshace el borrado. `false` si no estaba borrada, no existe o es de otra cuenta. */
   restore(userId: string, id: string): Promise<boolean>;
 }

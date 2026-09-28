@@ -6,6 +6,7 @@ import {
   CATEGORY_NAME_MAX_LENGTH,
   createCategoryRequestSchema,
   listCategoriesQuerySchema,
+  mergeCategoryRequestSchema,
   updateCategoryRequestSchema,
 } from './categories.js';
 
@@ -94,6 +95,21 @@ describe('update category request', () => {
   it.each(['comida', null])('rejects the parent %j', (parentId) => {
     expect(updateCategoryRequestSchema.safeParse({ parentId }).success).toBe(false);
   });
+});
+
+describe('merge category request', () => {
+  it('accepts the destination', () => {
+    expect(mergeCategoryRequestSchema.parse({ intoCategoryId: PARENT_ID })).toEqual({
+      intoCategoryId: PARENT_ID,
+    });
+  });
+
+  it.each([{}, { intoCategoryId: 'bebidas' }, { intoCategoryId: PARENT_ID, userId: PARENT_ID }])(
+    'rejects %j',
+    (body) => {
+      expect(mergeCategoryRequestSchema.safeParse(body).success).toBe(false);
+    },
+  );
 });
 
 describe('list categories query', () => {

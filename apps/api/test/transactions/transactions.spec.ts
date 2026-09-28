@@ -894,6 +894,7 @@ describe('transactions', () => {
           saving: '0.00',
           debt: '0.00',
           balance: '974.00',
+          count: 3,
         },
         {
           currency: 'USD',
@@ -902,6 +903,7 @@ describe('transactions', () => {
           saving: '0.00',
           debt: '0.00',
           balance: '-5.00',
+          count: 1,
         },
       ]);
     });

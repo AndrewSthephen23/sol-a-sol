@@ -21,6 +21,7 @@ import {
   updateTransactionRequestSchema,
   updateTransferRequestSchema,
   loginRequestSchema,
+  mergeCategoryRequestSchema,
   problemDetailsSchema,
   PROBLEM_CONTENT_TYPE,
   registerRequestSchema,
@@ -236,6 +237,9 @@ const TRANSACTION_LIST_SCHEMA = schemaOf(
           saving: decimal('Ahorro + inversión.'),
           debt: decimal('Pagos de deuda.'),
           balance: decimal('Ingresos menos todo lo demás. Puede ser negativo.'),
+          count: z
+            .int()
+            .describe('Cuántas transacciones suman. Sirve de vista previa al fusionar categorías.'),
         }),
       )
       .describe(
@@ -649,6 +653,36 @@ function catalogPaths(): Record<string, unknown> {
             'El cuerpo está vacío, intenta cambiar el tipo, el color no es #RRGGBB, la madre de ' +
               'la subcategoría sigue archivada, o no se puede mudar: es de primer nivel, la madre ' +
               'nueva es una subcategoría, es de otro tipo o está archivada.',
+          ),
+        },
+      },
+    },
+    [`/${API_PREFIX}/categories/{id}/merge`]: {
+      post: {
+        tags: ['catalog'],
+        summary: 'Fusiona una categoría en otra.',
+        description:
+          'Sus transacciones pasan a la destino, sus hijas se mudan con ella (las del mismo ' +
+          'nombre que una hija de la destino se fusionan también) y la categoría se archiva. ' +
+          '**No se deshace**: el listado de movimientos filtrado por esta categoría dice antes ' +
+          'cuántos se moverán (`count` de sus totales). Deben ser del mismo tipo; la destino, ' +
+          'activa. Volver a fusionar ' +
+          'una ya archivada mueve lo que haya quedado.',
+        security: [{ accessToken: [] }],
+        parameters: [CATEGORY_ID_PARAMETER],
+        requestBody: jsonBody(mergeCategoryRequestSchema),
+        responses: {
+          '200': {
+            description: 'La categoría destino.',
+            content: { 'application/json': { schema: CATEGORY_SCHEMA } },
+          },
+          '401': problem('Falta el token de acceso o no vale.'),
+          '403': problem('Llegó un token personal: el catálogo solo se gestiona desde una sesión.'),
+          '404': problem('Alguna de las dos no existe o es de otra cuenta.'),
+          '409': problem('Mudar una hija chocaría con otra del mismo nombre.'),
+          '422': problem(
+            'Es la misma categoría, son de tipos distintos, la destino está archivada o es una ' +
+              'hija de la origen, o una categoría con hijas iría a una subcategoría.',
           ),
         },
       },

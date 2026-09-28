@@ -66,6 +66,8 @@ export interface TotalsResponse {
   saving: string;
   debt: string;
   balance: string;
+  /** Cuántas transacciones suman estos totales. */
+  count: number;
 }
 
 /** Una transferencia en el listado, con sus montos como strings decimales. */
@@ -137,6 +139,7 @@ export class TransactionsController {
         saving: totals.saving.toFixed(),
         debt: totals.debt.toFixed(),
         balance: totals.balance.toFixed(),
+        count: totals.count,
       })),
     };
   }

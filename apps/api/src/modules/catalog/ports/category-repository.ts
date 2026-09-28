@@ -44,6 +44,15 @@ export interface CategoryArchiving {
  * Todo método **exige el `userId`**, y va dentro del `WHERE`: no existe forma de leer o cambiar
  * una categoría sin decir de quién es.
  */
+/** Lo que cambia en el catálogo al fusionar: ver `planCategoryMerge`. */
+export interface CategoryMergeChanges {
+  /** Hijas que se mudan a otra madre. */
+  moves: readonly { id: string; parentId: string }[];
+  /** Orígenes que se archivan con esta fecha; las ya archivadas conservan la suya. */
+  archivedIds: readonly string[];
+  archivedAt: Date;
+}
+
 export interface CategoryRepository {
   /** Lanza `CategoryNameTakenError` si una hermana del mismo tipo ya tiene ese nombre. */
   create(category: NewCategory): Promise<Category>;
@@ -73,6 +82,9 @@ export interface CategoryRepository {
     changes: CategoryChanges,
     archiving?: CategoryArchiving,
   ): Promise<Category | null>;
+
+  /** Muda las hijas y archiva los orígenes **en una sola transacción**: o cambia todo, o nada. */
+  applyMerge(userId: string, changes: CategoryMergeChanges): Promise<void>;
 }
 
 /** Una categoría de la semilla con sus subcategorías, ya con todos sus datos resueltos. */
