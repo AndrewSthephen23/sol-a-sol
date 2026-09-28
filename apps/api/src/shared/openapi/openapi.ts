@@ -7,6 +7,7 @@ import {
   createTransferRequestSchema,
   currencySchema,
   CURSOR_MAX_LENGTH,
+  movementKindSchema,
   SEARCH_MAX_LENGTH,
   TRANSACTIONS_DEFAULT_LIMIT,
   TRANSACTIONS_MAX_LIMIT,
@@ -189,9 +190,36 @@ const TRANSACTION_SCHEMA = schemaOf(TRANSACTION);
 
 const decimal = (description: string) => z.string().describe(`String decimal. ${description}`);
 
+const TRANSFER = z.object({
+  id: z.uuid(),
+  date: z.iso.date().describe('Día en que pasó, sin hora.'),
+  fromPaymentMethodId: z.uuid().describe('Cuenta de la que salió la plata.'),
+  toPaymentMethodId: z.uuid().describe('Cuenta a la que llegó.'),
+  amount: decimal('Lo que salió, en la moneda de la cuenta de origen.'),
+  currency: currencySchema,
+  receivedAmount: decimal('Lo que llegó. Igual a `amount` si la moneda no cambia.'),
+  receivedCurrency: currencySchema,
+  description: z.string(),
+  source: transactionSourceSchema,
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+
+const TRANSFER_SCHEMA = schemaOf(TRANSFER);
+
 const TRANSACTION_LIST_SCHEMA = schemaOf(
   z.object({
-    items: z.array(TRANSACTION).describe('La página, de la fecha más reciente a la más antigua.'),
+    items: z
+      .array(
+        z.union([
+          TRANSACTION.extend({ kind: z.literal('transaction') }),
+          TRANSFER.extend({ kind: z.literal('transfer') }),
+        ]),
+      )
+      .describe(
+        'La página, de la fecha más reciente a la más antigua: transacciones y transferencias ' +
+          'mezcladas, cada una marcada con `kind`.',
+      ),
     nextCursor: z
       .string()
       .nullable()
@@ -211,23 +239,6 @@ const TRANSACTION_LIST_SCHEMA = schemaOf(
         'De **todo** lo filtrado, no solo de esta página. Una entrada por moneda con ' +
           'movimientos, primero soles; nunca se convierte.',
       ),
-  }),
-);
-
-const TRANSFER_SCHEMA = schemaOf(
-  z.object({
-    id: z.uuid(),
-    date: z.iso.date().describe('Día en que pasó, sin hora.'),
-    fromPaymentMethodId: z.uuid().describe('Cuenta de la que salió la plata.'),
-    toPaymentMethodId: z.uuid().describe('Cuenta a la que llegó.'),
-    amount: decimal('Lo que salió, en la moneda de la cuenta de origen.'),
-    currency: currencySchema,
-    receivedAmount: decimal('Lo que llegó. Igual a `amount` si la moneda no cambia.'),
-    receivedCurrency: currencySchema,
-    description: z.string(),
-    source: transactionSourceSchema,
-    createdAt: z.iso.datetime(),
-    updatedAt: z.iso.datetime(),
   }),
 );
 
@@ -714,12 +725,15 @@ function transactionsPaths(): Record<string, unknown> {
     [`/${API_PREFIX}/transactions`]: {
       get: {
         tags: ['transactions'],
-        summary: 'Lista las transacciones, con filtros, búsqueda y totales.',
+        summary: 'Lista las transacciones y transferencias, con filtros, búsqueda y totales.',
         description:
-          'De la fecha más reciente a la más antigua y, en el mismo día, de la última ' +
-          'registrada a la primera. Sin fechas trae todo. Las borradas no aparecen; las de ' +
-          'categorías o métodos archivados, sí. Paginación por cursor: lo que se registre o se ' +
-          'borre entre dos páginas no hace repetir ni saltar filas.',
+          'Transacciones y transferencias mezcladas, cada fila marcada con `kind`, de la fecha ' +
+          'más reciente a la más antigua y, en el mismo día, de la última registrada a la ' +
+          'primera. Sin fechas trae todo. Las borradas no aparecen; las de categorías o métodos ' +
+          'archivados, sí. Filtrar por `type` o `categoryId` deja fuera las transferencias; por ' +
+          '`paymentMethodId` o `currency` trae las que salen o llegan. Los totales son solo de ' +
+          'las transacciones. Paginación por cursor: lo que se registre o se borre entre dos ' +
+          'páginas no hace repetir ni saltar filas.',
         security: [{ accessToken: [] }],
         parameters: [
           queryParameter(
@@ -737,6 +751,11 @@ function transactionsPaths(): Record<string, unknown> {
           ),
           queryParameter('paymentMethodId', { type: 'string', format: 'uuid' }),
           queryParameter('currency', schemaOf(currencySchema)),
+          queryParameter(
+            'kind',
+            schemaOf(movementKindSchema),
+            'Solo transacciones o solo transferencias. Sin él, las dos.',
+          ),
           queryParameter(
             'q',
             { type: 'string', maxLength: SEARCH_MAX_LENGTH },
@@ -763,7 +782,7 @@ function transactionsPaths(): Record<string, unknown> {
           '422': problem(
             'Un filtro no tiene un valor válido, se mandaron `month` y `from`/`to` a la vez, ' +
               '`from` es posterior a `to`, o el cursor no es uno que haya dado la API ' +
-              '(`INVALID_CURSOR`).',
+              '(`INVALID_CURSOR`), o se pidió `kind=transfer` junto con `type` o `categoryId`.',
           ),
         },
       },

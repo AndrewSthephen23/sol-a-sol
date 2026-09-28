@@ -29,6 +29,7 @@ import {
   DeleteTransaction,
   GetTransaction,
   ListTransactions,
+  type Movement,
   RestoreTransaction,
   UpdateTransaction,
 } from '../application/transactions.js';
@@ -65,8 +66,28 @@ export interface TotalsResponse {
   balance: string;
 }
 
+/** Una transferencia en el listado, con sus montos como strings decimales. */
+export interface TransferItemResponse {
+  kind: 'transfer';
+  id: string;
+  date: string;
+  fromPaymentMethodId: string;
+  toPaymentMethodId: string;
+  amount: string;
+  currency: string;
+  receivedAmount: string;
+  receivedCurrency: string;
+  description: string;
+  source: Transaction['source'];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type MovementResponse =
+  ({ kind: 'transaction' } & TransactionResponse) | TransferItemResponse;
+
 export interface TransactionListResponse {
-  items: TransactionResponse[];
+  items: MovementResponse[];
   /** Para pedir la página siguiente con `?cursor=`; `null` si no hay más. */
   nextCursor: string | null;
   totals: TotalsResponse[];
@@ -105,7 +126,7 @@ export class TransactionsController {
     });
 
     return {
-      items: page.items.map(toResponse),
+      items: page.items.map(toMovementResponse),
       nextCursor: page.next === null ? null : encodeCursor(page.next),
       totals: page.totals.map((totals) => ({
         currency: totals.currency,
@@ -177,6 +198,24 @@ export class TransactionsController {
  */
 function assertTransactionId(id: string): void {
   if (!transactionIdSchema.safeParse(id).success) throw new TransactionNotFoundError();
+}
+
+function toMovementResponse(movement: Movement): MovementResponse {
+  if (movement.kind === 'transaction') {
+    const { kind, ...transaction } = movement;
+
+    return { kind, ...toResponse(transaction) };
+  }
+  const { amount, receivedAmount, date, ...fields } = movement;
+
+  return {
+    ...fields,
+    date: date.toString(),
+    amount: amount.toFixed(),
+    currency: amount.currency,
+    receivedAmount: receivedAmount.toFixed(),
+    receivedCurrency: receivedAmount.currency,
+  };
 }
 
 function toResponse({ amount, date, ...fields }: Transaction): TransactionResponse {

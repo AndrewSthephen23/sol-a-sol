@@ -36,12 +36,19 @@ import {
 } from '../domain/events.js';
 import { CATALOG_READER, type CatalogReader } from '../ports/catalog-reader.js';
 import {
+  newestFirst,
   type PagePosition,
   type Transaction,
   type TransactionFilter,
   TRANSACTION_REPOSITORY,
   type TransactionRepository,
 } from '../ports/transaction-repository.js';
+import {
+  type Transfer,
+  type TransferFilter,
+  TRANSFER_REPOSITORY,
+  type TransferRepository,
+} from '../ports/transfer-repository.js';
 
 export interface CreateTransactionInput {
   userId: string;
@@ -323,30 +330,43 @@ export interface ListTransactionsInput {
   categoryId?: string;
   paymentMethodId?: string;
   currency?: Currency;
+  /** Solo transacciones o solo transferencias. Sin él, las dos. */
+  kind?: MovementKind;
   /** Texto a buscar en la descripción o el comercio. */
   q?: string;
   after: PagePosition | null;
   limit: number;
 }
 
+export type MovementKind = 'transaction' | 'transfer';
+
+/** Una fila del listado: una transacción o una transferencia, marcada con `kind`. */
+export type Movement = ({ kind: 'transaction' } & Transaction) | ({ kind: 'transfer' } & Transfer);
+
 export interface TransactionPage {
-  items: Transaction[];
+  items: Movement[];
   /** Dónde sigue la próxima página, o `null` si esta es la última. */
   next: PagePosition | null;
-  /** De **todo** lo filtrado, no solo de esta página, por moneda. */
+  /** De las **transacciones** filtradas (no solo de esta página), por moneda. Las transferencias no cuentan. */
   totals: TransactionTotals[];
 }
 
 const EMPTY_PAGE: TransactionPage = { items: [], next: null, totals: [] };
 
 /**
- * El listado de la cuenta, con filtros y paginación por cursor. Las borradas no aparecen (no hay
+ * El listado de la cuenta: transacciones y transferencias mezcladas por fecha, con filtros y
+ * paginación por cursor (decidido con el autor el 2026-09-28). Las borradas no aparecen (no hay
  * papelera). Las que están en una categoría o un método archivados, sí: siguen siendo historia.
+ *
+ * Cada tabla se pagina por su lado con el mismo cursor y el mismo orden, y las dos páginas se
+ * mezclan aquí: como cada una trae sus primeras filas después del cursor, las primeras de la
+ * mezcla son las primeras de todo.
  */
 @Injectable()
 export class ListTransactions {
   constructor(
     @Inject(TRANSACTION_REPOSITORY) private readonly transactions: TransactionRepository,
+    @Inject(TRANSFER_REPOSITORY) private readonly transfers: TransferRepository,
     @Inject(CATALOG_READER) private readonly catalog: CatalogReader,
   ) {}
 
@@ -367,18 +387,32 @@ export class ListTransactions {
         search: input.q === undefined ? undefined : searchKey(input.q),
       }),
     };
+    const withTransactions = input.kind !== 'transfer';
+    // Una transferencia no tiene tipo ni categoría: filtrar por ellos las deja fuera.
+    const withTransfers =
+      input.kind !== 'transaction' && input.type === undefined && input.categoryId === undefined;
     // Una fila de más dice si hay otra página sin contar todas.
-    const rows = await this.transactions.list(userId, filter, {
-      after: input.after,
-      limit: limit + 1,
-    });
+    const page = { after: input.after, limit: limit + 1 };
+
+    const rows: Movement[] = [
+      ...(withTransactions ? await this.transactions.list(userId, filter, page) : []).map(
+        (transaction): Movement => ({ kind: 'transaction', ...transaction }),
+      ),
+      ...(withTransfers ? await this.transfers.list(userId, transferFilter(filter), page) : []).map(
+        (transfer): Movement => ({ kind: 'transfer', ...transfer }),
+      ),
+    ]
+      .toSorted(newestFirst)
+      .slice(0, limit + 1);
     const items = rows.slice(0, limit);
     const last = items.at(-1);
 
     return {
       items,
       next: rows.length > limit && last !== undefined ? { date: last.date, id: last.id } : null,
-      totals: totalsByCurrency(await this.transactions.totals(userId, filter)),
+      totals: withTransactions
+        ? totalsByCurrency(await this.transactions.totals(userId, filter))
+        : [],
     };
   }
 
@@ -388,6 +422,17 @@ export class ListTransactions {
 
     return this.catalog.categoryFamily(input.userId, input.categoryId);
   }
+}
+
+/** Lo que de un filtro de transacciones aplica a las transferencias. */
+function transferFilter(filter: TransactionFilter): TransferFilter {
+  return definedOnly({
+    from: filter.from,
+    to: filter.to,
+    paymentMethodId: filter.paymentMethodId,
+    currency: filter.currency,
+    search: filter.search,
+  });
 }
 
 /** Un mes va del día 1 a su último día; si no, `from` y `to` tal como llegan. */

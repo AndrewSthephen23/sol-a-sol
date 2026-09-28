@@ -1,4 +1,6 @@
-import type { LocalDate, Money, TransactionSource } from '@sol-a-sol/domain';
+import type { Currency, LocalDate, Money, TransactionSource } from '@sol-a-sol/domain';
+
+import type { PagePosition } from './transaction-repository.js';
 
 /** Una transferencia vigente entre dos cuentas propias. */
 export interface Transfer {
@@ -37,6 +39,20 @@ export interface TransferChanges {
   description?: string;
 }
 
+/** Qué transferencias listar. Todo opcional; sin nada, todas las vigentes de la cuenta. */
+export interface TransferFilter {
+  /** Inclusivo. */
+  from?: LocalDate;
+  /** Inclusivo. */
+  to?: LocalDate;
+  /** Las que salen de esta cuenta **o** llegan a ella. */
+  paymentMethodId?: string;
+  /** Las que mueven esta moneda, al salir **o** al llegar. */
+  currency?: Currency;
+  /** Ya normalizado con `searchKey`: se busca dentro de la descripción. */
+  search?: string;
+}
+
 /**
  * Todo método **exige el `userId`**, y va dentro del `WHERE`. Las borradas no aparecen en las
  * consultas normales.
@@ -55,6 +71,13 @@ export interface TransferRepository {
 
   /** Deshace el borrado. `false` si no estaba borrada, no existe o es de otra cuenta. */
   restore(userId: string, id: string): Promise<boolean>;
+
+  /** Una página de vigentes en el orden del listado (`newestFirst`), después de `after`. */
+  list(
+    userId: string,
+    filter: TransferFilter,
+    page: { after: PagePosition | null; limit: number },
+  ): Promise<Transfer[]>;
 }
 
 export const TRANSFER_REPOSITORY = Symbol('TransferRepository');

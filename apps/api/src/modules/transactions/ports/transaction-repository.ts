@@ -74,6 +74,14 @@ export interface PagePosition {
 }
 
 /**
+ * El orden del listado, igual para transacciones y transferencias: negativo si `a` va antes que
+ * `b`. Por eso dos páginas de tablas distintas se pueden mezclar en una sola.
+ */
+export function newestFirst(a: PagePosition, b: PagePosition): number {
+  return b.date.compareTo(a.date) || b.id.localeCompare(a.id);
+}
+
+/**
  * Todo método **exige el `userId`**, y va dentro del `WHERE`: no existe forma de leer una
  * transacción sin decir de quién es. Las borradas no aparecen en las consultas normales.
  */

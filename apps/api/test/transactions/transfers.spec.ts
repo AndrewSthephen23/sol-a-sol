@@ -210,15 +210,19 @@ describe('transfers', () => {
     });
 
     // No es ingreso ni gasto: el listado de transacciones y sus totales no cambian.
-    it('leaves the totals of the transactions as they were', async () => {
-      await register();
+    it('shows up in the list as a transfer, out of the totals', async () => {
+      const created = await register();
 
       const response = await request(server)
         .get(TRANSACTIONS)
         .set('Authorization', `Bearer ${ana}`)
         .expect(200);
 
-      expect(response.body).toEqual({ items: [], nextCursor: null, totals: [] });
+      expect(response.body).toEqual({
+        items: [{ kind: 'transfer', ...created }],
+        nextCursor: null,
+        totals: [],
+      });
     });
 
     describe('is rejected with 422', () => {
@@ -289,6 +293,129 @@ describe('transfers', () => {
         expect(codeOf(response)).toBe(problemType('PAYMENT_METHOD_NOT_FOUND'));
       },
     );
+  });
+
+  describe('in the list of movements', () => {
+    function list(query: Record<string, string> = {}, session = ana): request.Test {
+      return request(server)
+        .get(TRANSACTIONS)
+        .query(query)
+        .set('Authorization', `Bearer ${session}`);
+    }
+
+    async function kindsAndIds(query: Record<string, string> = {}): Promise<string[][]> {
+      const response = await list(query).expect(200);
+
+      return (response.body as { items: { kind: string; id: string }[] }).items.map((item) => [
+        item.kind,
+        item.id,
+      ]);
+    }
+
+    /** Una categoría y un gasto en la cuenta Digital, en la fecha dada. */
+    async function expense(date: string): Promise<string> {
+      const categories = await request(server)
+        .post(`/${API_PREFIX}/categories`)
+        .set('Authorization', `Bearer ${ana}`)
+        .send({ name: `Gasto ${date}`, type: 'VARIABLE_EXPENSE' })
+        .expect(201);
+      const response = await request(server)
+        .post(TRANSACTIONS)
+        .set('Authorization', `Bearer ${ana}`)
+        .send({
+          date,
+          type: 'VARIABLE_EXPENSE',
+          categoryId: (categories.body as { id: string }).id,
+          amount: '25.90',
+          description: 'Almuerzo',
+          paymentMethodId: accounts.digital,
+        })
+        .expect(201);
+
+      return (response.body as { id: string }).id;
+    }
+
+    it('mixes transactions and transfers by date', async () => {
+      const older = await expense('2026-09-01');
+      const moved = (await register({ ...toYape(), date: '2026-09-05' })).id;
+      const newer = await expense('2026-09-10');
+
+      await expect(kindsAndIds()).resolves.toEqual([
+        ['transaction', newer],
+        ['transfer', moved],
+        ['transaction', older],
+      ]);
+    });
+
+    it('pages across both tables without repeating or skipping', async () => {
+      const ids = [
+        await expense('2026-09-01'),
+        (await register({ ...toYape(), date: '2026-09-02' })).id,
+        await expense('2026-09-03'),
+        (await register({ ...toYape(), date: '2026-09-03' })).id,
+        (await register({ ...toYape(), date: '2026-09-04' })).id,
+      ];
+      const seen: string[] = [];
+      let cursor: string | null = null;
+
+      do {
+        const response = await list({ limit: '2', ...(cursor === null ? {} : { cursor }) }).expect(
+          200,
+        );
+        const page = response.body as { items: { id: string }[]; nextCursor: string | null };
+        seen.push(...page.items.map((item) => item.id));
+        cursor = page.nextCursor;
+      } while (cursor !== null);
+
+      expect(seen).toHaveLength(ids.length);
+      expect(seen.toSorted()).toEqual(ids.toSorted());
+    });
+
+    it('filters by kind', async () => {
+      const spent = await expense('2026-09-01');
+      const moved = (await register()).id;
+
+      await expect(kindsAndIds({ kind: 'transfer' })).resolves.toEqual([['transfer', moved]]);
+      await expect(kindsAndIds({ kind: 'transaction' })).resolves.toEqual([['transaction', spent]]);
+    });
+
+    it('leaves them out when filtering by type', async () => {
+      await register();
+
+      await expect(kindsAndIds({ type: 'VARIABLE_EXPENSE' })).resolves.toEqual([]);
+    });
+
+    it('finds them by either account, by the currency received and by text', async () => {
+      const moved = (
+        await register({
+          ...toYape(),
+          toPaymentMethodId: accounts.dollars,
+          amount: '37.51',
+          receivedAmount: '10.03',
+          description: 'Cambió para Netflix',
+        })
+      ).id;
+
+      await expect(kindsAndIds({ paymentMethodId: accounts.dollars })).resolves.toEqual([
+        ['transfer', moved],
+      ]);
+      await expect(kindsAndIds({ currency: 'USD' })).resolves.toEqual([['transfer', moved]]);
+      await expect(kindsAndIds({ q: 'CAMBIO' })).resolves.toEqual([['transfer', moved]]);
+    });
+
+    it('rejects asking only for transfers of a type with 422', async () => {
+      const response = await list({ kind: 'transfer', type: 'INCOME' }).expect(422);
+
+      expect(codeOf(response)).toBe(problemType('VALIDATION_FAILED'));
+    });
+
+    it('never shows the transfers of another account', async () => {
+      await register();
+
+      const response = await list({}, bruno).expect(200);
+
+      expect(response.body).toEqual({ items: [], nextCursor: null, totals: [] });
+    });
   });
 
   describe('reading one', () => {

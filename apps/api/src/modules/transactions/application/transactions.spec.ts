@@ -5,6 +5,7 @@ import {
   FixedClock,
   FutureTransactionDateError,
   InvalidAmountError,
+  LocalDate,
   Money,
   NonPositiveTransactionAmountError,
   TransactionCurrencyRequiredError,
@@ -25,6 +26,7 @@ import {
 } from '../domain/events.js';
 import { FakeCatalogReader } from '../ports/catalog-reader.fake.js';
 import { FakeTransactionRepository } from '../ports/transaction-repository.fake.js';
+import { FakeTransferRepository } from '../ports/transfer-repository.fake.js';
 import {
   type CreateTransactionInput,
   CreateTransaction,
@@ -76,6 +78,7 @@ describe('transactions', () => {
   let remove: DeleteTransaction;
   let restore: RestoreTransaction;
   let list: ListTransactions;
+  let transfers: FakeTransferRepository;
 
   beforeEach(() => {
     transactions = new FakeTransactionRepository();
@@ -100,7 +103,8 @@ describe('transactions', () => {
     update = new UpdateTransaction(transactions, catalog, events, clock);
     remove = new DeleteTransaction(transactions, events, clock);
     restore = new RestoreTransaction(transactions, events);
-    list = new ListTransactions(transactions, catalog);
+    transfers = new FakeTransferRepository();
+    list = new ListTransactions(transactions, transfers, catalog);
   });
 
   describe('registering one', () => {
@@ -784,6 +788,100 @@ describe('transactions', () => {
           ['PEN', '25.90'],
           ['USD', '10.00'],
         ]);
+      });
+    });
+
+    describe('with transfers', () => {
+      /** Una transferencia de la cuenta sueldo a otra, guardada directo en el repositorio. */
+      async function transfer(change: Partial<{ date: string; description: string }> = {}) {
+        const created = await transfers.create({
+          userId: ANA,
+          date: LocalDate.parse(change.date ?? '2026-09-05'),
+          fromPaymentMethodId: PAYROLL,
+          toPaymentMethodId: USD_ACCOUNT,
+          amount: Money.of('37.50', 'PEN'),
+          receivedAmount: Money.of('10.00', 'USD'),
+          description: change.description ?? 'Cambio a dólares',
+          source: 'MANUAL',
+        });
+
+        return created.id;
+      }
+
+      it('mixes both by date, each marked with its kind', async () => {
+        const [older, newer] = await registerAll({ date: '2026-09-01' }, { date: '2026-09-10' });
+        const moved = await transfer({ date: '2026-09-05' });
+
+        const { items } = await page();
+
+        expect(items.map((item) => [item.kind, item.id])).toEqual([
+          ['transaction', newer],
+          ['transfer', moved],
+          ['transaction', older],
+        ]);
+      });
+
+      it('pages across both without repeating or skipping', async () => {
+        const ids = [
+          ...(await registerAll({ date: '2026-09-01' }, { date: '2026-09-03' })),
+          await transfer({ date: '2026-09-02' }),
+          await transfer({ date: '2026-09-04' }),
+        ];
+        const seen: string[] = [];
+        let after = null;
+
+        for (;;) {
+          const current = await page({ after, limit: 1 });
+          seen.push(...current.items.map((item) => item.id));
+          if (current.next === null) break;
+          after = current.next;
+        }
+
+        expect(seen).toHaveLength(ids.length);
+        expect(seen.toSorted()).toEqual(ids.toSorted());
+      });
+
+      it('leaves them out of the totals', async () => {
+        await registerAll({ amount: '25.90' });
+        await transfer();
+
+        const { totals } = await page();
+
+        expect(totals.map((total) => [total.currency, total.balance.toFixed()])).toEqual([
+          ['PEN', '-25.90'],
+        ]);
+      });
+
+      it.each([
+        ['kind transaction', { kind: 'transaction' as const }],
+        ['a type', { type: 'VARIABLE_EXPENSE' as const }],
+        ['a category', { categoryId: FOOD }],
+      ])('leaves them out when filtering by %s', async (_case, filter) => {
+        await registerAll({});
+        await transfer();
+
+        const { items } = await page(filter);
+
+        expect(items.map((item) => item.kind)).toEqual(['transaction']);
+      });
+
+      it('shows only them with kind transfer, without totals', async () => {
+        await registerAll({});
+        const moved = await transfer();
+
+        await expect(page({ kind: 'transfer' })).resolves.toMatchObject({
+          items: [{ kind: 'transfer', id: moved }],
+          totals: [],
+        });
+      });
+
+      it('finds them by either account, by either currency and by text', async () => {
+        const moved = await transfer({ description: 'Cambió para Netflix' });
+
+        await expect(idsOf({ paymentMethodId: USD_ACCOUNT })).resolves.toEqual([moved]);
+        await expect(idsOf({ currency: 'USD' })).resolves.toEqual([moved]);
+        await expect(idsOf({ q: 'CAMBIO' })).resolves.toEqual([moved]);
+        await expect(idsOf({ q: 'tambo' })).resolves.toEqual([]);
       });
     });
   });

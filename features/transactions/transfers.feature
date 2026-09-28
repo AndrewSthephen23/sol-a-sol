@@ -78,3 +78,21 @@ Característica: Transferencias entre mis cuentas
       Dado que borré una transferencia
       Cuando deshago el borrado
       Entonces vuelve a aparecer tal como estaba
+
+  Regla: Las transferencias aparecen en mis movimientos, fuera de los totales
+
+    Escenario: Veo transacciones y transferencias juntas por fecha
+      Dado que el 01/09 gasté "S/ 25.90", el 05/09 pasé "S/ 50.00" a Yape y el 10/09 gasté otra vez
+      Cuando veo mis movimientos
+      Entonces veo el gasto del 10/09, la transferencia del 05/09 y el gasto del 01/09, en ese orden
+      Y la transferencia no suma en mis totales
+
+    Escenario: Filtrar por una cuenta trae lo que sale y lo que llega
+      Dado que pasé plata de "Interbank Simple Soles" a "Interbank Simple Dólares"
+      Cuando filtro por "Interbank Simple Dólares"
+      Entonces veo esa transferencia
+
+    Escenario: Filtrar por categoría deja fuera las transferencias
+      Dado que tengo gastos en "Comida" y una transferencia a Yape
+      Cuando filtro por "Comida"
+      Entonces solo veo los gastos

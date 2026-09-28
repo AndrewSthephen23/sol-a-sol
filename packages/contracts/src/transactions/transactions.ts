@@ -94,11 +94,16 @@ export const updateTransactionRequestSchema = z
 
 export type UpdateTransactionRequest = z.infer<typeof updateTransactionRequestSchema>;
 
+/** Qué es cada fila del listado: una transacción o una transferencia entre cuentas propias. */
+export const movementKindSchema = z.enum(['transaction', 'transfer']);
+
 /**
  * Filtros del listado. Todos opcionales y combinables; sin fechas, trae todo lo registrado.
  *
  * - `month` (`YYYY-MM`) o `from`/`to` (inclusivos), no los dos a la vez.
  * - `categoryId` trae también las transacciones de sus subcategorías.
+ * - `kind` deja solo transacciones o solo transferencias. Sin él vienen las dos, salvo que se
+ *   filtre por `type` o `categoryId`, que una transferencia no tiene.
  * - `q` busca en la descripción y el comercio, sin distinguir mayúsculas ni tildes.
  * - `limit` por defecto 50; más de 100 se recorta a 100.
  * - `cursor` es el `nextCursor` de la página anterior, tal cual: su contenido no es contrato.
@@ -115,6 +120,7 @@ export const listTransactionsQuerySchema = z
     categoryId: z.uuid().optional(),
     paymentMethodId: z.uuid().optional(),
     currency: currencySchema.optional(),
+    kind: movementKindSchema.optional(),
     q: z.string().trim().min(1).max(SEARCH_MAX_LENGTH).optional(),
     cursor: z.string().min(1).max(CURSOR_MAX_LENGTH).optional(),
     limit: z
@@ -129,6 +135,11 @@ export const listTransactionsQuerySchema = z
     message: 'Use either month or from/to, not both.',
     path: ['month'],
   })
+  .refine(
+    (query) =>
+      query.kind !== 'transfer' || (query.type === undefined && query.categoryId === undefined),
+    { message: 'A transfer has no type nor category.', path: ['kind'] },
+  )
   .refine((query) => query.from === undefined || query.to === undefined || query.from <= query.to, {
     message: 'from cannot be after to.',
     path: ['from'],
