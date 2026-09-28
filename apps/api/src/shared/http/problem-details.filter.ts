@@ -50,6 +50,8 @@ const STATUS_BY_DOMAIN_CODE = new Map<string, number>([
   // El archivo está bien formado, pero pasa los límites de la importación.
   ['IMPORT_FILE_TOO_LARGE', HttpStatus.PAYLOAD_TOO_LARGE],
   ['IMPORT_TOO_MANY_ROWS', HttpStatus.PAYLOAD_TOO_LARGE],
+  // Otra importación del mismo archivo se cruzó: no se guardó nada.
+  ['IMPORT_CONFLICT', HttpStatus.CONFLICT],
   // Otra petición creó al mismo tiempo una etiqueta con ese nombre: volver a intentar la fusiona.
   ['TAG_NAME_TAKEN', HttpStatus.CONFLICT],
 ]);

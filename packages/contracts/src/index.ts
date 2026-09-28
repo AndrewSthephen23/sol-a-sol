@@ -83,6 +83,12 @@ export { type RenameTagRequest, renameTagRequestSchema } from './transactions/ta
 export {
   IMPORT_MAX_BYTES,
   IMPORT_MAX_ROWS,
+  type CategoryDecision,
+  categoryDecisionSchema,
   type ImportPreviewRequest,
   importPreviewRequestSchema,
+  type ImportRequest,
+  importRequestSchema,
+  type PaymentMethodDecision,
+  paymentMethodDecisionSchema,
 } from './transactions/import.js';

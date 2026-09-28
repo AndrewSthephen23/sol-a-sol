@@ -12,6 +12,7 @@ import {
   RestoreTransaction,
   UpdateTransaction,
 } from './application/transactions.js';
+import { ConfirmImport } from './application/import-confirm.js';
 import { PreviewImport } from './application/import-preview.js';
 import { ReassignCategory } from './application/reassign-category.js';
 import { DeleteTag, ListTags, RenameTag } from './application/tags.js';
@@ -26,10 +27,14 @@ import { TagsController } from './http/tags.controller.js';
 import { TransactionsController } from './http/transactions.controller.js';
 import { TransfersController } from './http/transfers.controller.js';
 import { CategoryMergedListener } from './infrastructure/category-merged.listener.js';
+import { CatalogUseCasesWriter } from './infrastructure/catalog-writer.js';
+import { PrismaImportWriter } from './infrastructure/prisma-import-writer.js';
 import { PrismaTagRepository } from './infrastructure/prisma-tag-repository.js';
 import { PrismaTransactionRepository } from './infrastructure/prisma-transaction-repository.js';
 import { PrismaTransferRepository } from './infrastructure/prisma-transfer-repository.js';
 import { CATALOG_READER } from './ports/catalog-reader.js';
+import { CATALOG_WRITER } from './ports/catalog-writer.js';
+import { IMPORT_WRITER } from './ports/import-writer.js';
 import { TAG_REPOSITORY } from './ports/tag-repository.js';
 import { TRANSACTION_REPOSITORY } from './ports/transaction-repository.js';
 import { TRANSFER_REPOSITORY } from './ports/transfer-repository.js';
@@ -63,6 +68,9 @@ import { TRANSFER_REPOSITORY } from './ports/transfer-repository.js';
     DeleteTag,
     ReassignCategory,
     PreviewImport,
+    ConfirmImport,
+    { provide: CATALOG_WRITER, useClass: CatalogUseCasesWriter },
+    { provide: IMPORT_WRITER, useClass: PrismaImportWriter },
     CategoryMergedListener,
     { provide: TAG_REPOSITORY, useClass: PrismaTagRepository },
     { provide: CATALOG_READER, useExisting: CatalogLookup },
