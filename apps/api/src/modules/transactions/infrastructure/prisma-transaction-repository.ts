@@ -10,6 +10,7 @@ import {
 
 import { Prisma } from '../../../generated/prisma/client.js';
 import { PrismaService } from '../../../shared/prisma/prisma.service.js';
+import { fromDatabaseDate, toDatabaseDate } from './database-date.js';
 import type {
   NewTransaction,
   PagePosition,
@@ -226,18 +227,6 @@ function fromRawRow({ date, amount, currency, ...fields }: RawRow): Transaction 
     date: LocalDate.parse(date),
     amount: Money.of(amount, currency),
   };
-}
-
-/**
- * Una columna `DATE` llega y sale como la medianoche **UTC** de ese día. Se arma y se lee en UTC
- * para que la zona del servidor no la corra un día.
- */
-function toDatabaseDate(date: LocalDate): Date {
-  return new Date(`${date.toString()}T00:00:00.000Z`);
-}
-
-function fromDatabaseDate(date: Date): LocalDate {
-  return LocalDate.parse(date.toISOString().slice(0, 10));
 }
 
 function toTransaction({ amount, currency, date, ...fields }: Row): Transaction {

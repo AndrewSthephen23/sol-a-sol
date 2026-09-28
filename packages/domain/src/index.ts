@@ -143,3 +143,15 @@ export {
   type TransactionTotals,
   type TypedAmount,
 } from './transactions/transaction-totals.js';
+export {
+  assertDistinctAccounts,
+  NonPositiveTransferAmountError,
+  resolveTransferAmounts,
+  SameTransferAccountError,
+  type TransferAccount,
+  type TransferAmounts,
+  type TransferAmountsRequest,
+  TransferCurrencyMismatchError,
+  TransferReceivedAmountMismatchError,
+  TransferReceivedAmountRequiredError,
+} from './transactions/transfer-policy.js';

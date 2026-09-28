@@ -6,8 +6,10 @@ export {
   TRANSACTION_DELETED,
   TRANSACTION_RESTORED,
   TRANSACTION_UPDATED,
+  TRANSFER_CREATED,
   type TransactionCreated,
   type TransactionDeleted,
   type TransactionRestored,
   type TransactionUpdated,
+  type TransferCreated,
 } from './domain/events.js';

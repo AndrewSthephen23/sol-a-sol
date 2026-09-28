@@ -12,6 +12,15 @@ export class TransactionNotFoundError extends DomainError {
   }
 }
 
+/** No existe, **es de otra cuenta o está borrada**, igual que una transacción. */
+export class TransferNotFoundError extends DomainError {
+  readonly code = 'TRANSFER_NOT_FOUND';
+
+  constructor() {
+    super('Transfer not found.');
+  }
+}
+
 /**
  * La categoría elegida no existe o es de otra cuenta. Mismo código que el de `catalog`: para quien
  * llama es el mismo error, venga de un módulo o del otro.

@@ -68,3 +68,7 @@ export {
   type UpdateTransactionRequest,
   updateTransactionRequestSchema,
 } from './transactions/transactions.js';
+export {
+  type CreateTransferRequest,
+  createTransferRequestSchema,
+} from './transactions/transfers.js';
