@@ -150,6 +150,48 @@ describe('ProblemDetailsFilter', () => {
     });
   });
 
+  // El parser de Express lanza errores de `http-errors`: `status` de cliente y `expose: true`.
+  describe('client errors of the request itself', () => {
+    function httpError(status: number, message: string): Error {
+      return Object.assign(new Error(message), { status, statusCode: status, expose: true });
+    }
+
+    it('answers 413 for a body larger than the limit', () => {
+      const { status, body } = handle(httpError(413, 'request entity too large'));
+
+      expect(status).toBe(HttpStatus.PAYLOAD_TOO_LARGE);
+      expect(body).toEqual({
+        type: 'urn:sol-a-sol:error:payload-too-large',
+        title: 'Payload too large',
+        status: 413,
+        detail: 'The request could not be read.',
+      });
+    });
+
+    // El mensaje del parser puede traer un pedazo del cuerpo: no se repite.
+    it('answers 400 for a body that is not valid JSON, without echoing it', () => {
+      const { status, body } = handle(
+        httpError(400, 'Unexpected token } in JSON at position 12: {"password":"secreto"}'),
+      );
+
+      expect(status).toBe(HttpStatus.BAD_REQUEST);
+      expect(body.detail).toBe('The request could not be read.');
+      expect(JSON.stringify(body)).not.toContain('secreto');
+    });
+
+    it.each([
+      ['a server status', { status: 503, expose: true }],
+      ['a hidden client error', { status: 400, expose: false }],
+      ['a status that is not a number', { status: '400', expose: true }],
+    ])('keeps answering 500 for %s', (_case, fields) => {
+      vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+
+      expect(handle(Object.assign(new Error('x'), fields)).status).toBe(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    });
+  });
+
   describe('unexpected errors', () => {
     it('answers a generic 500 without leaking anything internal', () => {
       vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);

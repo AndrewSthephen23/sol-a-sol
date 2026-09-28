@@ -94,7 +94,14 @@ Una segunda forma de mirar las transacciones, además de la categoría: por mome
 
 ## Importación CSV
 
-El formato oficial está en [`transactions-import-format.md`](transactions-import-format.md). En el dominio viven el lector (`readCsv`, `packages/domain/src/text/csv.ts`) y la interpretación de cada fila con su huella (`interpretImportRow` e `importFingerprints`, `packages/domain/src/transactions/import-row.ts`). Los endpoints de previsualizar y confirmar llegan en los siguientes PR de la tarea 07b.
+El formato oficial está en [`transactions-import-format.md`](transactions-import-format.md). En el dominio viven el lector (`readCsv`, `packages/domain/src/text/csv.ts`) y la interpretación de cada fila con su huella (`interpretImportRow` e `importFingerprints`, `packages/domain/src/transactions/import-row.ts`). **Vista previa** (`POST /api/v1/transactions/import/preview`, `PreviewImport`): el archivo viaja como texto en JSON y **no se guarda nada**. Aplica los límites (1 MB en bytes, 5 000 filas → **413**), interpreta cada fila con el dominio y responde:
+
+- cuántas transacciones y transferencias entrarían, y **cada problema** con su línea, columna y código;
+- las líneas **ya importadas**, por la huella de su fila (`import_key`: SHA-256 de la huella del dominio, con índice único `(user_id, import_key)` en `transactions` y `transfers`), aunque se hayan corregido después;
+- las **categorías** y los **métodos de pago** (o cuentas de destino) que no existen o están archivados, con las líneas que los usan, para resolverlos al confirmar;
+- las columnas ignoradas y las etiquetas nuevas.
+
+Lo que depende de la cuenta se juzga aquí: las monedas y montos de una transferencia cuyas dos cuentas existen, y los largos máximos. El **cuerpo JSON** de toda la API admite hasta **2 MB** (`JSON_BODY_LIMIT`), para que quepa un CSV de 1 MB escapado en JSON. La confirmación llega en el siguiente PR de la tarea 07b.
 
 ## Eventos de dominio
 
@@ -123,22 +130,23 @@ Comprueba la categoría y el método de pago, y obtiene las subcategorías para 
 
 Exigen una sesión (`Authorization: Bearer <token de acceso>`): un token personal recibe **403**, porque el celular registra por `/captures` (H7). Filtran por el `userId` del token y responden **404** con el flag apagado. Detalle en `/api/v1/openapi.json`.
 
-| Método   | Ruta                                | Qué hace                                                                                                                                       |
-| -------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET`    | `/api/v1/transactions`              | Lista transacciones y transferencias con filtros, búsqueda, cursor y totales por moneda: `{ items, nextCursor, totals }`, cada fila con `kind` |
-| `POST`   | `/api/v1/transactions`              | Registra una transacción con `source: MANUAL`. **201** con la transacción                                                                      |
-| `GET`    | `/api/v1/transactions/{id}`         | Devuelve una. **404** si no existe, es de otra cuenta o está borrada                                                                           |
-| `PATCH`  | `/api/v1/transactions/{id}`         | Corrige lo que se mande, menos el origen. **404** si no existe, es ajena o está borrada                                                        |
-| `DELETE` | `/api/v1/transactions/{id}`         | Borrado lógico. **204**; **404** si no existe, es ajena o ya estaba borrada                                                                    |
-| `POST`   | `/api/v1/transactions/{id}/restore` | Deshace el borrado, sin plazo. **200** con la transacción; con una vigente, la devuelve igual                                                  |
-| `POST`   | `/api/v1/transfers`                 | Registra una transferencia entre cuentas propias con `source: MANUAL`. **201**                                                                 |
-| `GET`    | `/api/v1/transfers/{id}`            | Devuelve una. **404** si no existe, es de otra cuenta o está borrada                                                                           |
-| `PATCH`  | `/api/v1/transfers/{id}`            | Corrige lo que se mande, menos el origen. **404** si no existe, es ajena o está borrada                                                        |
-| `DELETE` | `/api/v1/transfers/{id}`            | Borrado lógico. **204**; **404** si no existe, es ajena o ya estaba borrada                                                                    |
-| `POST`   | `/api/v1/transfers/{id}/restore`    | Deshace el borrado, sin plazo. **200** con la transferencia                                                                                    |
-| `GET`    | `/api/v1/tags`                      | Etiquetas de la cuenta por nombre, con cuántas transacciones vigentes las llevan                                                               |
-| `PATCH`  | `/api/v1/tags/{id}`                 | Renombra; con el nombre de otra etiqueta, las fusiona. **200** con la que queda                                                                |
-| `DELETE` | `/api/v1/tags/{id}`                 | La quita de todas las transacciones. **204**                                                                                                   |
+| Método   | Ruta                                  | Qué hace                                                                                                                                       |
+| -------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/api/v1/transactions`                | Lista transacciones y transferencias con filtros, búsqueda, cursor y totales por moneda: `{ items, nextCursor, totals }`, cada fila con `kind` |
+| `POST`   | `/api/v1/transactions/import/preview` | Qué pasaría al importar un CSV, sin guardar nada. **200**                                                                                      |
+| `POST`   | `/api/v1/transactions`                | Registra una transacción con `source: MANUAL`. **201** con la transacción                                                                      |
+| `GET`    | `/api/v1/transactions/{id}`           | Devuelve una. **404** si no existe, es de otra cuenta o está borrada                                                                           |
+| `PATCH`  | `/api/v1/transactions/{id}`           | Corrige lo que se mande, menos el origen. **404** si no existe, es ajena o está borrada                                                        |
+| `DELETE` | `/api/v1/transactions/{id}`           | Borrado lógico. **204**; **404** si no existe, es ajena o ya estaba borrada                                                                    |
+| `POST`   | `/api/v1/transactions/{id}/restore`   | Deshace el borrado, sin plazo. **200** con la transacción; con una vigente, la devuelve igual                                                  |
+| `POST`   | `/api/v1/transfers`                   | Registra una transferencia entre cuentas propias con `source: MANUAL`. **201**                                                                 |
+| `GET`    | `/api/v1/transfers/{id}`              | Devuelve una. **404** si no existe, es de otra cuenta o está borrada                                                                           |
+| `PATCH`  | `/api/v1/transfers/{id}`              | Corrige lo que se mande, menos el origen. **404** si no existe, es ajena o está borrada                                                        |
+| `DELETE` | `/api/v1/transfers/{id}`              | Borrado lógico. **204**; **404** si no existe, es ajena o ya estaba borrada                                                                    |
+| `POST`   | `/api/v1/transfers/{id}/restore`      | Deshace el borrado, sin plazo. **200** con la transferencia                                                                                    |
+| `GET`    | `/api/v1/tags`                        | Etiquetas de la cuenta por nombre, con cuántas transacciones vigentes las llevan                                                               |
+| `PATCH`  | `/api/v1/tags/{id}`                   | Renombra; con el nombre de otra etiqueta, las fusiona. **200** con la que queda                                                                |
+| `DELETE` | `/api/v1/tags/{id}`                   | La quita de todas las transacciones. **204**                                                                                                   |
 
 El monto viaja como **string decimal** (`"25.90"`) y la fecha como `YYYY-MM-DD`. Un monto como número JSON se rechaza con `VALIDATION_FAILED`: ya perdió precisión antes de llegar.
 
@@ -157,6 +165,10 @@ El monto viaja como **string decimal** (`"25.90"`) y la fecha como `YYYY-MM-DD`.
 | `PAYMENT_METHOD_NOT_FOUND`          | 404    | El método de pago no existe o es de otra cuenta                                              |
 | `TRANSACTION_NOT_FOUND`             | 404    | La transacción no existe, es de otra cuenta o está borrada                                   |
 | `INVALID_CURSOR`                    | 422    | El cursor no es uno que haya dado la API: se pide la primera página                          |
+| `IMPORT_FILE_TOO_LARGE`             | 413    | El CSV pesa más de 1 MB                                                                      |
+| `IMPORT_TOO_MANY_ROWS`              | 413    | El CSV tiene más de 5 000 filas                                                              |
+| `MALFORMED_CSV`                     | 422    | El CSV no está bien formado (una comilla sin cerrar)                                         |
+| `IMPORT_COLUMNS_MISSING`            | 422    | Al CSV le faltan columnas obligatorias                                                       |
 | `TAG_NAME_INVALID`                  | 422    | Una etiqueta vacía o con `\|`                                                                |
 | `TOO_MANY_TAGS`                     | 422    | Más de 10 etiquetas distintas en una transacción                                             |
 | `TAG_NOT_FOUND`                     | 404    | La etiqueta no existe o es de otra cuenta                                                    |

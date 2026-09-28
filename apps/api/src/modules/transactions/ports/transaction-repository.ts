@@ -40,6 +40,8 @@ export interface NewTransaction {
   source: TransactionSource;
   /** Las que no existen en la cuenta se crean; las que existen se reutilizan por su clave. */
   tags: readonly NormalizedTag[];
+  /** Solo al importar: la huella de su fila del CSV, única por cuenta. */
+  importKey?: string;
 }
 
 /** Lo que se puede corregir. El origen (`source`) no está: no cambia al editar. */
@@ -139,6 +141,9 @@ export interface TransactionRepository {
     intoId: string,
     tag?: NormalizedTag,
   ): Promise<number>;
+
+  /** De estas huellas, las que ya tiene alguna transacción de la cuenta (borradas incluidas). */
+  importedKeys(userId: string, keys: readonly string[]): Promise<string[]>;
 
   /** Deshace el borrado. `false` si no estaba borrada, no existe o es de otra cuenta. */
   restore(userId: string, id: string): Promise<boolean>;

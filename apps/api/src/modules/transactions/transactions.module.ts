@@ -12,6 +12,7 @@ import {
   RestoreTransaction,
   UpdateTransaction,
 } from './application/transactions.js';
+import { PreviewImport } from './application/import-preview.js';
 import { ReassignCategory } from './application/reassign-category.js';
 import { DeleteTag, ListTags, RenameTag } from './application/tags.js';
 import {
@@ -61,6 +62,7 @@ import { TRANSFER_REPOSITORY } from './ports/transfer-repository.js';
     RenameTag,
     DeleteTag,
     ReassignCategory,
+    PreviewImport,
     CategoryMergedListener,
     { provide: TAG_REPOSITORY, useClass: PrismaTagRepository },
     { provide: CATALOG_READER, useExisting: CatalogLookup },

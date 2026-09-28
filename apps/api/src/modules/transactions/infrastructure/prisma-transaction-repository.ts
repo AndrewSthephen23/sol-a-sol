@@ -226,6 +226,15 @@ export class PrismaTransactionRepository implements TransactionRepository {
     }));
   }
 
+  async importedKeys(userId: string, keys: readonly string[]): Promise<string[]> {
+    const rows = await this.prisma.transaction.findMany({
+      where: { userId, importKey: { in: [...keys] } },
+      select: { importKey: true },
+    });
+
+    return rows.flatMap((row) => (row.importKey === null ? [] : [row.importKey]));
+  }
+
   async reassignCategory(
     userId: string,
     fromId: string,

@@ -19,6 +19,27 @@ export interface CatalogReader {
     userId: string,
     id: string,
   ): Promise<{ currency: Currency | null; archived: boolean } | null>;
+
+  /** Todas las categorías de la cuenta, archivadas incluidas: la importación las busca por nombre. */
+  allCategories(userId: string): Promise<CatalogCategory[]>;
+
+  /** Todos los métodos de pago de la cuenta, archivados incluidos: la importación los busca por alias. */
+  allPaymentMethods(userId: string): Promise<CatalogPaymentMethod[]>;
+}
+
+export interface CatalogCategory {
+  id: string;
+  name: string;
+  type: TransactionType;
+  parentId: string | null;
+  archived: boolean;
+}
+
+export interface CatalogPaymentMethod {
+  id: string;
+  alias: string;
+  currency: Currency | null;
+  archived: boolean;
 }
 
 export const CATALOG_READER = Symbol('CatalogReader');

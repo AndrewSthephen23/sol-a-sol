@@ -74,3 +74,21 @@ export class TagNameTakenError extends DomainError {
     super('Another tag with that name was just created. Try again to merge them.');
   }
 }
+
+/** El archivo de importación pesa más de 1 MB (decidido con el autor el 2026-09-28). */
+export class ImportFileTooLargeError extends DomainError {
+  readonly code = 'IMPORT_FILE_TOO_LARGE';
+
+  constructor() {
+    super('The file is larger than 1 MB: split it and import it in parts.');
+  }
+}
+
+/** El archivo de importación tiene más de 5 000 filas (decidido con el autor el 2026-09-28). */
+export class ImportTooManyRowsError extends DomainError {
+  readonly code = 'IMPORT_TOO_MANY_ROWS';
+
+  constructor() {
+    super('The file has more than 5000 rows: split it and import it in parts.');
+  }
+}

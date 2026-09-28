@@ -76,6 +76,15 @@ export class PrismaTransferRepository implements TransferRepository {
     return row === null ? null : toTransfer(row);
   }
 
+  async importedKeys(userId: string, keys: readonly string[]): Promise<string[]> {
+    const rows = await this.prisma.transfer.findMany({
+      where: { userId, importKey: { in: [...keys] } },
+      select: { importKey: true },
+    });
+
+    return rows.flatMap((row) => (row.importKey === null ? [] : [row.importKey]));
+  }
+
   /** En SQL parametrizado, como el de transacciones: la búsqueda sin tildes lo necesita. */
   async list(
     userId: string,

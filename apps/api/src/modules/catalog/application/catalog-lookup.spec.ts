@@ -97,6 +97,35 @@ describe('catalog lookup', () => {
     });
   });
 
+  describe('everything in the account, for the import', () => {
+    it('lists the categories with their names, archived ones included', async () => {
+      const id = await food();
+      await categories.update(ANA, id, {}, { ids: [id], archivedAt: ARCHIVED_AT });
+      await categories.create({
+        userId: BRUNO,
+        type: 'INCOME',
+        name: 'Sueldo',
+        parentId: null,
+        color: '#1E88E5',
+        icon: 'wallet',
+      });
+
+      await expect(lookup.allCategories(ANA)).resolves.toEqual([
+        { id, name: 'Comida', type: 'VARIABLE_EXPENSE', parentId: null, archived: true },
+      ]);
+    });
+
+    it('lists the payment methods with their aliases, archived ones included', async () => {
+      const id = await payroll();
+      await methods.update(ANA, id, { archivedAt: ARCHIVED_AT });
+
+      await expect(lookup.allPaymentMethods(ANA)).resolves.toEqual([
+        { id, alias: 'Sueldo BCP', currency: 'PEN', archived: true },
+      ]);
+      await expect(lookup.allPaymentMethods(BRUNO)).resolves.toEqual([]);
+    });
+  });
+
   describe('a payment method', () => {
     it('tells its currency and that it is active', async () => {
       await expect(lookup.paymentMethod(ANA, await payroll())).resolves.toEqual({

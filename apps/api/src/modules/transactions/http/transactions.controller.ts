@@ -14,6 +14,8 @@ import {
 import {
   type CreateTransactionRequest,
   createTransactionRequestSchema,
+  type ImportPreviewRequest,
+  importPreviewRequestSchema,
   type ListTransactionsQuery,
   listTransactionsQuerySchema,
   type UpdateTransactionRequest,
@@ -36,6 +38,7 @@ import {
 import { TransactionNotFoundError } from '../domain/errors.js';
 import type { Transaction } from '../ports/transaction-repository.js';
 import { decodeCursor, encodeCursor } from './cursor.js';
+import { type ImportPreview, PreviewImport } from '../application/import-preview.js';
 
 const transactionIdSchema = z.uuid();
 
@@ -111,6 +114,7 @@ export class TransactionsController {
     private readonly createTransaction: CreateTransaction,
     private readonly getTransaction: GetTransaction,
     private readonly listTransactions: ListTransactions,
+    private readonly previewImport: PreviewImport,
     private readonly updateTransaction: UpdateTransaction,
     private readonly deleteTransaction: DeleteTransaction,
     private readonly restoreTransaction: RestoreTransaction,
@@ -142,6 +146,19 @@ export class TransactionsController {
         count: totals.count,
       })),
     };
+  }
+
+  /**
+   * Qué pasaría al importar un CSV del formato oficial, **sin guardar nada**: filas que entran,
+   * problemas por línea y columna, lo ya importado, y las categorías y métodos por resolver.
+   */
+  @Post('import/preview')
+  @HttpCode(HttpStatus.OK)
+  async importPreview(
+    @CurrentUser() userId: string,
+    @Body(new ZodValidationPipe(importPreviewRequestSchema)) body: ImportPreviewRequest,
+  ): Promise<ImportPreview> {
+    return this.previewImport.execute({ userId, csv: body.csv });
   }
 
   /** Lo que llega desde la web es `MANUAL`: quien llama no elige de dónde vino. */
