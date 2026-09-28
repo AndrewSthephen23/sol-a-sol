@@ -36,6 +36,14 @@ export class CategoryMergeIntoOwnChildError extends DomainError {
   }
 }
 
+export class OnlySubcategoriesConvertError extends DomainError {
+  readonly code = 'ONLY_SUBCATEGORIES_CONVERT';
+
+  constructor() {
+    super('Only a subcategory becomes a tag: its transactions move to its parent.');
+  }
+}
+
 /** Lo que el plan mira de cada categoría. */
 export interface MergeableCategory {
   id: string;
@@ -89,4 +97,13 @@ export function planCategoryMerge(
   }
 
   return plan;
+}
+
+/**
+ * **Convertir una subcategoría en etiqueta** (decidido con el autor el 2026-09-28): "Comida >
+ * Desayuno" se fusiona en su madre "Comida", y sus transacciones quedan con la etiqueta
+ * "Desayuno". Solo una subcategoría: una de primer nivel no tiene madre a donde ir.
+ */
+export function assertCanConvertToTag(category: { parentId: string | null }): void {
+  if (category.parentId === null) throw new OnlySubcategoriesConvertError();
 }

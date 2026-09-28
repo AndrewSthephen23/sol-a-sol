@@ -166,10 +166,12 @@ export {
   TooManyTagsError,
 } from './transactions/tag-policy.js';
 export {
+  assertCanConvertToTag,
   CategoryMergeIntoOwnChildError,
   type CategoryMergePlan,
   CategoryMergeSameError,
   CategoryMergeTypeMismatchError,
   type MergeableCategory,
+  OnlySubcategoriesConvertError,
   planCategoryMerge,
 } from './catalog/category-merge.js';

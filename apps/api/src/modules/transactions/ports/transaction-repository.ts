@@ -129,10 +129,16 @@ export interface TransactionRepository {
   totals(userId: string, filter: TransactionFilter): Promise<TypedAmount[]>;
 
   /**
-   * Pasa **todas** las transacciones de una categoría a otra, borradas incluidas. Devuelve
-   * cuántas movió.
+   * Pasa **todas** las transacciones de una categoría a otra, borradas incluidas, en una sola
+   * transacción de la base. Con `tag`, además se la agrega a cada una (crea la etiqueta si no
+   * existe), salvo a las que ya tienen el máximo. Devuelve cuántas movió.
    */
-  reassignCategory(userId: string, fromId: string, intoId: string): Promise<number>;
+  reassignCategory(
+    userId: string,
+    fromId: string,
+    intoId: string,
+    tag?: NormalizedTag,
+  ): Promise<number>;
 
   /** Deshace el borrado. `false` si no estaba borrada, no existe o es de otra cuenta. */
   restore(userId: string, id: string): Promise<boolean>;
