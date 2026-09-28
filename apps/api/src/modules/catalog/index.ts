@@ -5,6 +5,8 @@ export { SeedAccountsWithoutCategories } from './application/default-categories.
 export { CATEGORY_MERGED, type CategoryMerged } from './domain/events.js';
 export {
   CatalogLookup,
+  type CategoryEntry,
   type CategoryReference,
+  type PaymentMethodEntry,
   type PaymentMethodReference,
 } from './application/catalog-lookup.js';

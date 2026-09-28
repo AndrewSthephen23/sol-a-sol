@@ -1,32 +1,35 @@
 import type { Currency, TransactionType } from '@sol-a-sol/domain';
 
-import type { CatalogReader } from './catalog-reader.js';
+import type { CatalogCategory, CatalogPaymentMethod, CatalogReader } from './catalog-reader.js';
 
-interface Owned<T> {
+interface FakeCategory extends CatalogCategory {
   userId: string;
-  value: T;
 }
 
-/** Catálogo en memoria: cada categoría y método pertenece a una cuenta, como en la base. */
+interface FakePaymentMethod extends CatalogPaymentMethod {
+  userId: string;
+}
+
+/**
+ * Catálogo en memoria: cada categoría y método pertenece a una cuenta, como en la base. Sin nombre
+ * o alias, se usa el id.
+ */
 export class FakeCatalogReader implements CatalogReader {
-  private readonly categories = new Map<
-    string,
-    Owned<{ type: TransactionType; archived: boolean }> & { parentId: string | null }
-  >();
-  private readonly methods = new Map<
-    string,
-    Owned<{ currency: Currency | null; archived: boolean }>
-  >();
+  private readonly categories = new Map<string, FakeCategory>();
+  private readonly methods = new Map<string, FakePaymentMethod>();
 
   withCategory(
     userId: string,
     id: string,
-    category: { type: TransactionType; archived?: boolean; parentId?: string },
+    category: { type: TransactionType; archived?: boolean; parentId?: string; name?: string },
   ): this {
     this.categories.set(id, {
+      id,
       userId,
+      name: category.name ?? id,
+      type: category.type,
       parentId: category.parentId ?? null,
-      value: { type: category.type, archived: category.archived ?? false },
+      archived: category.archived ?? false,
     });
 
     return this;
@@ -35,9 +38,15 @@ export class FakeCatalogReader implements CatalogReader {
   withPaymentMethod(
     userId: string,
     id: string,
-    value: { currency: Currency | null; archived?: boolean },
+    method: { currency: Currency | null; archived?: boolean; alias?: string },
   ): this {
-    this.methods.set(id, { userId, value: { archived: false, ...value } });
+    this.methods.set(id, {
+      id,
+      userId,
+      alias: method.alias ?? id,
+      currency: method.currency,
+      archived: method.archived ?? false,
+    });
 
     return this;
   }
@@ -46,14 +55,18 @@ export class FakeCatalogReader implements CatalogReader {
     userId: string,
     id: string,
   ): Promise<{ type: TransactionType; archived: boolean } | null> {
-    return Promise.resolve(ownedBy(this.categories.get(id), userId));
+    const found = this.ownCategory(userId, id);
+
+    return Promise.resolve(
+      found === undefined ? null : { type: found.type, archived: found.archived },
+    );
   }
 
   categoryFamily(userId: string, id: string): Promise<string[] | null> {
-    if (ownedBy(this.categories.get(id), userId) === null) return Promise.resolve(null);
-    const children = [...this.categories.entries()]
-      .filter(([, entry]) => entry.parentId === id)
-      .map(([childId]) => childId);
+    if (this.ownCategory(userId, id) === undefined) return Promise.resolve(null);
+    const children = [...this.categories.values()]
+      .filter((category) => category.parentId === id)
+      .map((category) => category.id);
 
     return Promise.resolve([id, ...children]);
   }
@@ -62,10 +75,32 @@ export class FakeCatalogReader implements CatalogReader {
     userId: string,
     id: string,
   ): Promise<{ currency: Currency | null; archived: boolean } | null> {
-    return Promise.resolve(ownedBy(this.methods.get(id), userId));
-  }
-}
+    const found = this.methods.get(id);
 
-function ownedBy<T>(entry: Owned<T> | undefined, userId: string): T | null {
-  return entry?.userId === userId ? entry.value : null;
+    return Promise.resolve(
+      found?.userId === userId ? { currency: found.currency, archived: found.archived } : null,
+    );
+  }
+
+  allCategories(userId: string): Promise<CatalogCategory[]> {
+    return Promise.resolve(
+      [...this.categories.values()]
+        .filter((category) => category.userId === userId)
+        .map(({ id, name, type, parentId, archived }) => ({ id, name, type, parentId, archived })),
+    );
+  }
+
+  allPaymentMethods(userId: string): Promise<CatalogPaymentMethod[]> {
+    return Promise.resolve(
+      [...this.methods.values()]
+        .filter((method) => method.userId === userId)
+        .map(({ id, alias, currency, archived }) => ({ id, alias, currency, archived })),
+    );
+  }
+
+  private ownCategory(userId: string, id: string): FakeCategory | undefined {
+    const found = this.categories.get(id);
+
+    return found?.userId === userId ? found : undefined;
+  }
 }

@@ -47,6 +47,9 @@ const STATUS_BY_DOMAIN_CODE = new Map<string, number>([
   ['TRANSACTION_NOT_FOUND', HttpStatus.NOT_FOUND],
   ['TRANSFER_NOT_FOUND', HttpStatus.NOT_FOUND],
   ['TAG_NOT_FOUND', HttpStatus.NOT_FOUND],
+  // El archivo está bien formado, pero pasa los límites de la importación.
+  ['IMPORT_FILE_TOO_LARGE', HttpStatus.PAYLOAD_TOO_LARGE],
+  ['IMPORT_TOO_MANY_ROWS', HttpStatus.PAYLOAD_TOO_LARGE],
   // Otra petición creó al mismo tiempo una etiqueta con ese nombre: volver a intentar la fusiona.
   ['TAG_NAME_TAKEN', HttpStatus.CONFLICT],
 ]);
@@ -89,6 +92,7 @@ export class ProblemDetailsFilter implements ExceptionFilter {
     if (exception instanceof ZodError) return validationProblem(exception);
     if (exception instanceof DomainError) return domainProblem(exception);
     if (exception instanceof HttpException) return httpProblem(exception);
+    if (isRequestClientError(exception)) return requestProblem(exception.status);
 
     // Cualquier otra cosa es un fallo nuestro: se registra entero y se responde en genérico.
     this.logger.error('Excepción no controlada', exception);
@@ -165,4 +169,26 @@ function detailOf(exception: HttpException): string {
   }
 
   return exception.message;
+}
+
+/**
+ * Errores de la petición misma, antes de llegar a una ruta: el parser de Express rechaza un cuerpo
+ * más grande que el límite (413) o un JSON mal escrito (400). Siguen la convención de
+ * `http-errors`: un `status` de cliente y `expose: true`. Sin esto, salían como 500.
+ */
+function isRequestClientError(exception: unknown): exception is { status: number } {
+  if (typeof exception !== 'object' || exception === null) return false;
+  const { status, expose } = exception as { status?: unknown; expose?: unknown };
+
+  return typeof status === 'number' && status >= 400 && status < 500 && expose === true;
+}
+
+/** El detalle es genérico: el mensaje del parser puede traer un pedazo del cuerpo. */
+function requestProblem(status: number): ProblemDetails {
+  return buildProblem({
+    status,
+    code: codeForStatus(status),
+    title: titleForStatus(status),
+    detail: 'The request could not be read.',
+  });
 }

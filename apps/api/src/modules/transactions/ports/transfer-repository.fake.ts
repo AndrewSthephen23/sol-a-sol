@@ -12,6 +12,7 @@ import type {
 interface Row extends Transfer {
   userId: string;
   deletedAt: Date | null;
+  importKey?: string;
 }
 
 /** Repositorio en memoria para probar los casos de uso sin base de datos. */
@@ -39,6 +40,12 @@ export class FakeTransferRepository implements TransferRepository {
     const row = this.liveRow(userId, id);
 
     return Promise.resolve(row === undefined ? null : publicOf(row));
+  }
+
+  importedKeys(userId: string, keys: readonly string[]): Promise<string[]> {
+    return Promise.resolve(
+      keys.filter((key) => this.rows.some((row) => row.userId === userId && row.importKey === key)),
+    );
   }
 
   list(

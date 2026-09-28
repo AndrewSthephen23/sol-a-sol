@@ -7,6 +7,8 @@ import {
   createTransferRequestSchema,
   currencySchema,
   CURSOR_MAX_LENGTH,
+  IMPORT_MAX_ROWS,
+  importPreviewRequestSchema,
   movementKindSchema,
   renameTagRequestSchema,
   TAG_NAME_MAX_LENGTH,
@@ -257,6 +259,46 @@ const TAG = z.object({
 
 const TAG_SCHEMA = schemaOf(TAG);
 const TAG_LIST_SCHEMA = schemaOf(z.array(TAG));
+
+const UNRESOLVED = z
+  .enum(['missing', 'archived'])
+  .describe('No existe en la cuenta, o existe pero está archivada.');
+const LINES = z.array(z.int()).describe('Líneas del archivo (la cabecera es la 1).');
+
+const IMPORT_PREVIEW_SCHEMA = schemaOf(
+  z.object({
+    rows: z.int().describe('Filas de datos leídas, sin la cabecera ni las vacías.'),
+    transactions: z.int().describe('Transacciones que entrarían, una vez resuelto lo pendiente.'),
+    transfers: z.int().describe('Transferencias que entrarían, una vez resuelto lo pendiente.'),
+    alreadyImported: LINES.describe('Líneas ya importadas antes: se omiten.'),
+    problems: z
+      .array(
+        z.object({
+          line: z.int(),
+          field: z.string().describe('Columna del formato (`fecha`, `monto`…).'),
+          code: z.string(),
+          message: z.string(),
+        }),
+      )
+      .describe('Cada problema, por línea y columna. Una fila con problemas no entra.'),
+    ignoredColumns: z.array(z.string()).describe('Columnas que no son del formato.'),
+    categories: z
+      .array(
+        z.object({
+          type: transactionTypeSchema,
+          category: z.string(),
+          subcategory: z.string().nullable(),
+          status: UNRESOLVED,
+          lines: LINES,
+        }),
+      )
+      .describe('Categorías por resolver: crearlas o usar una existente al confirmar.'),
+    paymentMethods: z
+      .array(z.object({ alias: z.string(), status: UNRESOLVED, lines: LINES }))
+      .describe('Métodos (o cuentas de destino) por resolver: usar uno existente o crearlo.'),
+    newTags: z.array(z.string()).describe('Etiquetas que se crearían.'),
+  }),
+);
 
 const TRANSACTION_ID_PARAMETER = {
   name: 'id',
@@ -883,6 +925,36 @@ function transactionsPaths(): Record<string, unknown> {
             'El cuerpo no tiene la forma esperada, o rompe una regla: monto no positivo o con ' +
               'más de 2 decimales, fecha futura, categoría de otro tipo o archivada, método ' +
               'archivado, o falta la moneda.',
+          ),
+        },
+      },
+    },
+    [`/${API_PREFIX}/transactions/import/preview`]: {
+      post: {
+        tags: ['transactions'],
+        summary: 'Dice qué pasaría al importar un CSV, sin guardar nada.',
+        description:
+          'El archivo viaja como texto (`csv`), en el formato oficial ' +
+          '(`docs/modules/transactions-import-format.md`). Responde cuántas filas entrarían, ' +
+          'cada problema con su línea y columna, las ya importadas antes (por la huella de su ' +
+          'fila), las categorías y métodos de pago que no existen o están archivados, las ' +
+          'columnas ignoradas y las etiquetas nuevas. ' +
+          `Hasta 1 MB y ${String(IMPORT_MAX_ROWS)} filas.`,
+        security: [{ accessToken: [] }],
+        requestBody: jsonBody(importPreviewRequestSchema),
+        responses: {
+          '200': {
+            description: 'Lo que pasaría al importar.',
+            content: { 'application/json': { schema: IMPORT_PREVIEW_SCHEMA } },
+          },
+          '401': unauthorized,
+          '403': forbidden,
+          '413': problem(
+            'El archivo pesa más de 1 MB (`IMPORT_FILE_TOO_LARGE`) o tiene demasiadas filas (`IMPORT_TOO_MANY_ROWS`).',
+          ),
+          '422': problem(
+            'El cuerpo no tiene la forma esperada, el CSV está mal formado (`MALFORMED_CSV`) o ' +
+              'le faltan columnas obligatorias (`IMPORT_COLUMNS_MISSING`).',
           ),
         },
       },

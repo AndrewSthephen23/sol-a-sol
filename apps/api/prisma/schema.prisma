@@ -323,6 +323,9 @@ model Transaction {
   /// Captura del celular de la que salió. Sin relación todavía: la tabla `captures` llega en
   /// H7, y entonces una migración agrega la clave foránea.
   captureId       String?           @map("capture_id") @db.Uuid
+  /// Huella (SHA-256) de la fila del CSV de la que salió, si se importó. Única por cuenta: la
+  /// misma fila no se importa dos veces, aunque la transacción se corrija después.
+  importKey       String?           @map("import_key")
   createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
   /// Borrado lógico. Nulo = vigente.
@@ -340,6 +343,8 @@ model Transaction {
   /// Destino de la clave foránea compuesta de `TransactionTag`: `id` ya es único; esto solo le da
   /// a PostgreSQL el índice que exige para referenciar las dos columnas juntas.
   @@unique([id, userId])
+  /// Una fila del CSV entra una sola vez por cuenta; las que no se importaron (nulas) no chocan.
+  @@unique([userId, importKey])
   @@map("transactions")
 }
 
@@ -360,6 +365,8 @@ model Transfer {
   receivedCurrency    Currency          @map("received_currency")
   description         String
   source              TransactionSource
+  /// Huella (SHA-256) de la fila del CSV de la que salió, si se importó. Única por cuenta.
+  importKey           String?           @map("import_key")
   createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt           DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
   /// Borrado lógico. Nulo = vigente.
@@ -373,6 +380,8 @@ model Transfer {
   /// Para que comprobar "¿este método tiene movimientos?" no recorra la tabla.
   @@index([fromPaymentMethodId])
   @@index([toPaymentMethodId])
+  /// Una fila del CSV entra una sola vez por cuenta; las que no se importaron (nulas) no chocan.
+  @@unique([userId, importKey])
   @@map("transfers")
 }
 

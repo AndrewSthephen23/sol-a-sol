@@ -21,6 +21,7 @@ export interface FakeTransactionRow extends Omit<Transaction, 'tags'> {
   deletedAt: Date | null;
   /** Ids de sus etiquetas: el nombre se lee de la etiqueta, como en la base. */
   tagIds: string[];
+  importKey?: string;
 }
 
 /** Una etiqueta guardada, como la fila de `tags`. */
@@ -120,6 +121,12 @@ export class FakeTransactionRepository implements TransactionRepository {
         amount: row.amount,
         count: 1,
       })),
+    );
+  }
+
+  importedKeys(userId: string, keys: readonly string[]): Promise<string[]> {
+    return Promise.resolve(
+      keys.filter((key) => this.rows.some((row) => row.userId === userId && row.importKey === key)),
     );
   }
 

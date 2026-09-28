@@ -27,6 +27,8 @@ export interface NewTransfer {
   receivedAmount: Money;
   description: string;
   source: TransactionSource;
+  /** Solo al importar: la huella de su fila del CSV, única por cuenta. */
+  importKey?: string;
 }
 
 /** Lo que se puede corregir. El origen (`source`) no está: no cambia al editar. */
@@ -71,6 +73,9 @@ export interface TransferRepository {
 
   /** Deshace el borrado. `false` si no estaba borrada, no existe o es de otra cuenta. */
   restore(userId: string, id: string): Promise<boolean>;
+
+  /** De estas huellas, las que ya tiene alguna transferencia de la cuenta (borradas incluidas). */
+  importedKeys(userId: string, keys: readonly string[]): Promise<string[]>;
 
   /** Una página de vigentes en el orden del listado (`newestFirst`), después de `after`. */
   list(

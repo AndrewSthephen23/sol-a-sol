@@ -1,10 +1,19 @@
 import type { INestApplication } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 
 import { ALLOWED_HEADERS, ALLOWED_METHODS, webOriginsFrom } from './shared/http/cors.js';
 import { ProblemDetailsFilter } from './shared/http/problem-details.filter.js';
 
 export const API_PREFIX = 'api/v1';
+
+/**
+ * Tope de un cuerpo JSON. Express trae 100 KB; la importación manda un CSV de hasta 1 MB como
+ * texto, y escaparlo en JSON lo agranda un poco (decidido con el autor el 2026-09-28). Cada ruta
+ * sigue validando la forma de su cuerpo, y uno grande solo llega con sesión y bajo el tope de
+ * peticiones.
+ */
+export const JSON_BODY_LIMIT = '2mb';
 
 /** Lo mínimo de Express para decirle en quién confiar, sin atar la API entera a él. */
 interface ProxyAwareAdapter {
@@ -18,6 +27,8 @@ interface ProxyAwareAdapter {
 export function configureApp(app: INestApplication): void {
   // Los health checks quedan fuera del prefijo: los consultan Docker y el balanceador, no los clientes.
   app.setGlobalPrefix(API_PREFIX, { exclude: ['health', 'health/ready'] });
+  // Antes de `init`: Nest ve este parser y no registra el suyo de 100 KB.
+  (app as NestExpressApplication).useBodyParser('json', { limit: JSON_BODY_LIMIT });
   // Todo error sale en Problem Details (RFC 9457), incluidos los 404 de rutas que no existen.
   app.useGlobalFilters(new ProblemDetailsFilter());
   trustProxy(app);
