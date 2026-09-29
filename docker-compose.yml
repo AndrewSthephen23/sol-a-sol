@@ -64,7 +64,7 @@ services:
       dockerfile: docker/web.Dockerfile
       target: dev
     environment:
-      # URL interna de la API para llamadas desde el servidor de Next.js (se usará desde H2).
+      # La web reenvía `/api/*` aquí (`apps/web/src/proxy.ts`); se lee al arrancar, no al construir.
       API_URL: http://api:3001
     # Los mismos feature flags que la API, para que la navegación coincida.
     env_file:

@@ -19,7 +19,9 @@
     ".next/dev/types/**/*.ts",
     "next.config.ts",
     "vitest.config.ts",
-    "vitest.setup.ts"
+    "vitest.setup.ts",
+    "playwright.config.ts",
+    "e2e"
   ],
   "exclude": ["node_modules"]
 }

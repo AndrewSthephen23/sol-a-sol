@@ -71,6 +71,7 @@ Ejemplos válidos: `feat(credit-cards): compute payment due date`, `chore(deps):
 | `pnpm typecheck`                    | Verificación de tipos en todos los paquetes                                                                                                         |
 | `pnpm test`                         | Pruebas unitarias                                                                                                                                   |
 | `pnpm test:integration`             | Pruebas de integración de la API con PostgreSQL real (Testcontainers; requiere Docker)                                                              |
+| `pnpm test:e2e`                     | E2E con Playwright en móvil y escritorio: web y API compiladas contra PostgreSQL efímero (requiere Docker y `playwright install chromium`)          |
 | `pnpm test:mutation`                | Mutation testing con Stryker sobre `@sol-a-sol/domain` (falla bajo 80 %)                                                                            |
 | `pnpm db:generate`                  | Genera el cliente de Prisma (`apps/api/src/generated`, no versionado)                                                                               |
 | `pnpm db:migrate`                   | Crea/aplica migraciones en desarrollo (`prisma migrate dev`)                                                                                        |

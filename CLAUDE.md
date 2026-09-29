@@ -71,6 +71,7 @@ Módulos de la fase 1: `identity`, `catalog`, `transactions`, `budgeting`, `cred
 
 - **OpenAPI** en `/api/v1/openapi.json`, generado desde los mismos esquemas Zod con los que la API valida, así que no puede desincronizarse. Un módulo con su feature flag apagado **no aparece** en el documento: describirlo confirmaría justo lo que su 404 oculta. Una prueba comprueba que toda ruta registrada esté documentada y que no se documente ninguna que no exista.
 - **La web habla con la API por un cliente generado** desde ese documento (`openapi-typescript` + `openapi-fetch`). `pnpm api:client` lo genera **con todos los módulos encendidos**, flags aparte, para que la web pueda prepararse antes de encenderlos. `schema.gen.ts` **no se edita a mano**: si hace falta, el contrato está mal. Si cambias una ruta o un esquema, regenera y versiona; CI falla si el cliente quedó desactualizado.
+- **Sesión en la web:** el token de acceso vive **solo en memoria** (nunca `localStorage`) y la web llama a la API por su propio origen (`proxy.ts` reenvía `/api/*`). Las renovaciones van **de a una, también entre pestañas**: dos `/auth/refresh` a la vez con la misma cookie son, para la API, un robo, y cierran todas las sesiones. Detalle en [`docs/modules/identity.md`](docs/modules/identity.md).
 
 **Agregar un error nuevo:**
 

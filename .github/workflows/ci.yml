@@ -129,6 +129,32 @@ jobs:
       - name: Vitest + Testcontainers (PostgreSQL real)
         run: pnpm test:integration
 
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      # Solo Chromium: los proyectos móvil y escritorio lo usan los dos.
+      - name: Instalar Chromium y sus dependencias del sistema
+        working-directory: apps/web
+        run: pnpm exec playwright install --with-deps chromium
+      # Levanta PostgreSQL (Testcontainers), la API y la web compiladas: ver e2e/global-setup.ts.
+      - name: Playwright en móvil y escritorio
+        run: pnpm test:e2e
+      - name: Publicar reporte y trazas
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report
+          path: |
+            apps/web/playwright-report/
+            apps/web/test-results/
+          retention-days: 14
+
   build:
     name: Build
     runs-on: ubuntu-24.04
@@ -243,7 +269,18 @@ jobs:
     # Check único para la protección de rama: falla si algún job falló o se canceló.
     if: always()
     needs:
-      [commitlint, changeset, quality, unit, api-client, integration, build, docker, sonarcloud]
+      [
+        commitlint,
+        changeset,
+        quality,
+        unit,
+        api-client,
+        integration,
+        e2e,
+        build,
+        docker,
+        sonarcloud,
+      ]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
