@@ -96,6 +96,20 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+  bdd:
+    name: Escenarios Gherkin (Cucumber)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      # Contra el dominio y los casos de uso con fakes: sin base de datos ni navegador. Un paso sin
+      # implementar falla; lo que aún no tiene pasos va etiquetado @pendiente (ver cucumber.mjs).
+      - name: Cucumber
+        run: pnpm test:bdd
+
   api-client:
     name: Cliente de API al día
     runs-on: ubuntu-24.04
@@ -274,6 +288,7 @@ jobs:
         changeset,
         quality,
         unit,
+        bdd,
         api-client,
         integration,
         e2e,

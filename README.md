@@ -61,27 +61,28 @@ Ejemplos válidos: `feat(credit-cards): compute payment due date`, `chore(deps):
 
 ## Comandos
 
-| Comando                             | Qué hace                                                                                                                                            |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm build`                        | Compila todos los paquetes (Turborepo)                                                                                                              |
-| `pnpm dev`                          | Levanta todo con Docker Compose (db, api, web) con hot reload                                                                                       |
-| `pnpm dev:local`                    | Levanta las apps sin Docker (necesita un PostgreSQL accesible)                                                                                      |
-| `pnpm docker:test`                  | Levanta las imágenes de producción (`docker-compose.test.yml`) y espera a que estén sanas                                                           |
-| `pnpm lint`                         | ESLint en todos los paquetes                                                                                                                        |
-| `pnpm typecheck`                    | Verificación de tipos en todos los paquetes                                                                                                         |
-| `pnpm test`                         | Pruebas unitarias                                                                                                                                   |
-| `pnpm test:integration`             | Pruebas de integración de la API con PostgreSQL real (Testcontainers; requiere Docker)                                                              |
-| `pnpm test:e2e`                     | E2E con Playwright en móvil y escritorio: web y API compiladas contra PostgreSQL efímero (requiere Docker y `playwright install chromium`)          |
-| `pnpm test:mutation`                | Mutation testing con Stryker sobre `@sol-a-sol/domain` (falla bajo 80 %)                                                                            |
-| `pnpm db:generate`                  | Genera el cliente de Prisma (`apps/api/src/generated`, no versionado)                                                                               |
-| `pnpm db:migrate`                   | Crea/aplica migraciones en desarrollo (`prisma migrate dev`)                                                                                        |
-| `pnpm db:studio`                    | Abre Prisma Studio                                                                                                                                  |
-| `pnpm db:seed`                      | Da las categorías iniciales a las cuentas que no tienen ninguna. Idempotente; en producción, `node dist/seed.js`                                    |
-| `pnpm api:client`                   | Regenera los tipos del cliente de la web (`apps/web/src/shared/api/schema.gen.ts`) desde el OpenAPI de la API. CI falla si quedaron desactualizados |
-| `pnpm gen:module <nombre>`          | Crea un módulo nuevo y lo registra en la navegación, el AppModule, `.env.example` y commitlint                                                      |
-| `pnpm format` / `pnpm format:check` | Formatea / verifica formato con Prettier                                                                                                            |
-| `pnpm changeset`                    | Describe el cambio del PR y cuánto sube la versión (ver `CONTRIBUTING.md`)                                                                          |
-| `pnpm version-packages`             | Consume los changesets: sube la versión y escribe los `CHANGELOG.md` (PR de release)                                                                |
+| Comando                             | Qué hace                                                                                                                                             |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm build`                        | Compila todos los paquetes (Turborepo)                                                                                                               |
+| `pnpm dev`                          | Levanta todo con Docker Compose (db, api, web) con hot reload                                                                                        |
+| `pnpm dev:local`                    | Levanta las apps sin Docker (necesita un PostgreSQL accesible)                                                                                       |
+| `pnpm docker:test`                  | Levanta las imágenes de producción (`docker-compose.test.yml`) y espera a que estén sanas                                                            |
+| `pnpm lint`                         | ESLint en todos los paquetes                                                                                                                         |
+| `pnpm typecheck`                    | Verificación de tipos en todos los paquetes                                                                                                          |
+| `pnpm test`                         | Pruebas unitarias                                                                                                                                    |
+| `pnpm test:integration`             | Pruebas de integración de la API con PostgreSQL real (Testcontainers; requiere Docker)                                                               |
+| `pnpm test:bdd`                     | Escenarios Gherkin de `features/` con Cucumber, contra el dominio y los casos de uso (sin base ni navegador). Los etiquetados `@pendiente` se omiten |
+| `pnpm test:e2e`                     | E2E con Playwright en móvil y escritorio: web y API compiladas contra PostgreSQL efímero (requiere Docker y `playwright install chromium`)           |
+| `pnpm test:mutation`                | Mutation testing con Stryker sobre `@sol-a-sol/domain` (falla bajo 80 %)                                                                             |
+| `pnpm db:generate`                  | Genera el cliente de Prisma (`apps/api/src/generated`, no versionado)                                                                                |
+| `pnpm db:migrate`                   | Crea/aplica migraciones en desarrollo (`prisma migrate dev`)                                                                                         |
+| `pnpm db:studio`                    | Abre Prisma Studio                                                                                                                                   |
+| `pnpm db:seed`                      | Da las categorías iniciales a las cuentas que no tienen ninguna. Idempotente; en producción, `node dist/seed.js`                                     |
+| `pnpm api:client`                   | Regenera los tipos del cliente de la web (`apps/web/src/shared/api/schema.gen.ts`) desde el OpenAPI de la API. CI falla si quedaron desactualizados  |
+| `pnpm gen:module <nombre>`          | Crea un módulo nuevo y lo registra en la navegación, el AppModule, `.env.example` y commitlint                                                       |
+| `pnpm format` / `pnpm format:check` | Formatea / verifica formato con Prettier                                                                                                             |
+| `pnpm changeset`                    | Describe el cambio del PR y cuánto sube la versión (ver `CONTRIBUTING.md`)                                                                           |
+| `pnpm version-packages`             | Consume los changesets: sube la versión y escribe los `CHANGELOG.md` (PR de release)                                                                 |
 
 Más comandos (`test:e2e`, `db:seed`, `gen:module`, etc.) se irán agregando en los hitos siguientes.
 

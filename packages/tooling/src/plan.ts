@@ -130,7 +130,11 @@ export const ${names.manifestName}: FeatureManifest = {
 }
 
 function gherkinSkeleton(title: string): string {
+  // `@pendiente`: sin pasos todavía. `pnpm test:bdd` es estricto y fallaría con un escenario sin
+  // implementar; la etiqueta se quita cuando la tarea escribe sus pasos.
   return `# language: es
+# @pendiente: sin pasos todavía. Quitar la etiqueta al escribirlos (\`pnpm test:bdd\`).
+@pendiente
 Característica: ${title}
 
   # Criterios de aceptación del issue, en lenguaje de negocio.
