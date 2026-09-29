@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 
+import { QueryProvider } from '@/shared/api/query-provider';
 import { SessionProvider } from '@/shared/session/session-provider';
 import type { ReactNode } from 'react';
 
@@ -19,7 +20,9 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
   return (
     <html lang="es-PE">
       <body className="min-h-dvh bg-stone-50 text-stone-900 antialiased">
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          <QueryProvider>{children}</QueryProvider>
+        </SessionProvider>
       </body>
     </html>
   );

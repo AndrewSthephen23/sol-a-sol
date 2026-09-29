@@ -16,6 +16,8 @@
     "api:client": "openapi-typescript ../api/dist/openapi.json --output src/shared/api/schema.gen.ts"
   },
   "dependencies": {
+    "@sol-a-sol/domain": "workspace:*",
+    "@tanstack/react-query": "5.104.0",
     "next": "16.3.5",
     "openapi-fetch": "0.17.0",
     "react": "19.3.0",
