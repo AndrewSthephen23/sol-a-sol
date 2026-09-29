@@ -26,15 +26,16 @@
 
 ## V3 · Gestión de sesiones
 
-| Control                                  | Cómo se cubre                                                                                  | Estado |
-| ---------------------------------------- | ---------------------------------------------------------------------------------------------- | ------ |
-| Token de sesión aleatorio y fuerte       | Refresco de 256 bits de `randomBytes`; guardado solo su SHA-256                                | ✅     |
-| Vida corta del token de acceso           | JWT HS256 de **15 minutos**, con `iat`/`exp` calculados con el puerto `Clock`                  | ✅     |
-| Renovación con rotación                  | Cada refresco se canjea una vez; el reuso cierra **todas** las sesiones y queda en la bitácora | ✅     |
-| Cierre de sesión efectivo                | `POST /auth/logout` revoca ese refresco y borra la cookie                                      | ✅     |
-| Cookie con atributos seguros             | `HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/api/v1/auth`                                   | ✅     |
-| Cambio de credenciales cierra sesiones   | Cambiar la contraseña o activar 2FA revoca las demás sesiones                                  | ✅     |
-| Revocación inmediata del token de acceso | Los JWT ya emitidos valen hasta 15 min; no hay lista de revocados. **Limitación documentada**  | 🟡     |
+| Control                                     | Cómo se cubre                                                                                                 | Estado |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------ |
+| Token de sesión aleatorio y fuerte          | Refresco de 256 bits de `randomBytes`; guardado solo su SHA-256                                               | ✅     |
+| Vida corta del token de acceso              | JWT HS256 de **15 minutos**, con `iat`/`exp` calculados con el puerto `Clock`                                 | ✅     |
+| Renovación con rotación                     | Cada refresco se canjea una vez; el reuso cierra **todas** las sesiones y queda en la bitácora                | ✅     |
+| Cierre de sesión efectivo                   | `POST /auth/logout` revoca ese refresco y borra la cookie                                                     | ✅     |
+| Cookie con atributos seguros                | `HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/api/v1/auth`                                                  | ✅     |
+| Cambio de credenciales cierra sesiones      | Cambiar la contraseña o activar 2FA revoca las demás sesiones                                                 | ✅     |
+| Revocación inmediata del token de acceso    | Los JWT ya emitidos valen hasta 15 min; no hay lista de revocados. **Limitación documentada**                 | 🟡     |
+| Token de acceso fuera del alcance de un XSS | En la web vive **solo en memoria**, nunca en `localStorage`; se recupera con la cookie `HttpOnly` al recargar | ✅     |
 
 ## V4 · Control de acceso
 
@@ -90,17 +91,18 @@
 
 ## V14 · Configuración
 
-| Control                         | Cómo se cubre                                                                                                                                                   | Estado |
-| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| Cabeceras de seguridad          | `helmet`: `nosniff`, `X-Frame-Options`, HSTS, sin `X-Powered-By` y una CSP **cerrada entera** (`default-src 'none'`), que es lo exacto para algo que sirve JSON | ✅     |
-| Dependencias vigiladas          | Dependabot, `pnpm audit` y Trivy sobre las imágenes, en CI                                                                                                      | ✅     |
-| Análisis estático               | CodeQL (JS/TS y workflows) y SonarQube Cloud, obligatorios para fusionar                                                                                        | ✅     |
-| Superficie mínima en producción | `pnpm deploy --prod --no-optional`; la CLI de Prisma no viaja en la imagen                                                                                      | ✅     |
-| Módulos apagados no se anuncian | Un flag apagado responde 404 y **no aparece** en OpenAPI                                                                                                        | ✅     |
+| Control                          | Cómo se cubre                                                                                                                                                                                                   | Estado |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| Cabeceras de seguridad           | `helmet`: `nosniff`, `X-Frame-Options`, HSTS, sin `X-Powered-By` y una CSP **cerrada entera** (`default-src 'none'`), que es lo exacto para algo que sirve JSON                                                 | ✅     |
+| Dependencias vigiladas           | Dependabot, `pnpm audit` y Trivy sobre las imágenes, en CI                                                                                                                                                      | ✅     |
+| Análisis estático                | CodeQL (JS/TS y workflows) y SonarQube Cloud, obligatorios para fusionar                                                                                                                                        | ✅     |
+| Superficie mínima en producción  | `pnpm deploy --prod --no-optional`; la CLI de Prisma no viaja en la imagen                                                                                                                                      | ✅     |
+| Módulos apagados no se anuncian  | Un flag apagado responde 404 y **no aparece** en OpenAPI                                                                                                                                                        | ✅     |
+| Política de contenido en la web  | CSP con **nonce por petición** en `proxy.ts`: `script-src 'self' 'nonce-…' 'strict-dynamic'`, sin `'unsafe-inline'`, `frame-ancestors 'none'`, `object-src 'none'`. Los E2E fallan si el navegador bloquea algo | ✅     |
+| Cabeceras de seguridad en la web | `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy` y sin `X-Powered-By` (`next.config.ts`)                                                                                             | ✅     |
 
 ## Lo que falta para el nivel 1 completo
 
 - **TLS de verdad** delante de la API (H8, despliegue). Hoy la cookie ya pide `Secure`.
 - **Verificación de correo y recuperación de contraseña** (H2 las pospuso; obligatorias si el registro se abre).
 - **Revocar un token de acceso al instante**, hoy acotado a sus 15 minutos de vida.
-- **Pantallas de la web** con sus propias protecciones (CSP, manejo del token en el navegador): la identidad de H2 es solo API.

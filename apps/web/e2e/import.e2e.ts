@@ -1,5 +1,4 @@
-import { expect, test } from '@playwright/test';
-
+import { expect, test } from './support/test';
 import { createAccount } from './support/accounts';
 import { limaDates, seedMovements } from './support/movements';
 
