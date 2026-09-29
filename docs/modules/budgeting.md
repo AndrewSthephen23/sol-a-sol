@@ -1,6 +1,6 @@
 # Módulo Presupuesto (`budgeting`)
 
-> Ficha del módulo. Estado: **en construcción** (hito H4). Hoy existen el módulo y sus tablas; las reglas, los endpoints y la pantalla llegan con las tareas siguientes. Flag **apagado**.
+> Ficha del módulo. Estado: **en construcción** (hito H4). Hoy existen el módulo, sus tablas y sus reglas en el dominio; los endpoints y la pantalla llegan con las tareas siguientes. Flag **apagado**.
 
 ## Qué resuelve
 
@@ -21,6 +21,21 @@ Decididas con el autor el **2026-09-29**:
 | Sin presupuesto         | Lo real de las categorías sin partida va en una fila **«Sin presupuesto»** por tipo, y **cuenta** en el total real del tipo                                                                                        |
 | Copiar del mes anterior | **Solo completa lo que falta**, nunca pisa una partida. Si el mes anterior está vacío, usa el **último mes con presupuesto**. Las categorías archivadas **no se copian** y la respuesta dice cuáles quedaron fuera |
 | Qué meses               | **Cualquiera**, pasado o futuro, como las transacciones: no hay mes cerrado                                                                                                                                        |
+
+**En el dominio** (`packages/domain/src/budgeting/`, mutation testing al 100 %):
+
+- `budgetKind(type)`: `LIMIT` (gasto fijo, gasto variable, deuda) o `GOAL` (ingreso, ahorro, inversión).
+- `computeBudgetVariance(type, planeado, real)`: diferencia con «lo bueno es positivo» (límite: planeado − real; meta: real − planeado), `executed` = real sobre planeado **sin redondear** (`null` con planeado en cero) y el estado: `WITHIN`/`EXCEEDED` para un límite, `PENDING`/`MET` para una meta. Monedas distintas lanzan error.
+- `summarizeBudget(partidas, real)`: por tipo y moneda, cada partida con lo real de su categoría, la fila «Sin presupuesto» (de mayor a menor) y el total del tipo, que incluye lo sin presupuesto.
+- Reglas de una partida: `assertPlannedAmount` (cero o más), `assertBudgetableCategory` (madre y activa), `assertBudgetLines` (una por categoría y moneda), `assertBudgetMonth` (mes 1–12, años 2000–2100).
+
+| Código                          | Cuándo                                                                      |
+| ------------------------------- | --------------------------------------------------------------------------- |
+| `BUDGET_AMOUNT_NEGATIVE`        | Un monto planeado negativo                                                  |
+| `BUDGET_CATEGORY_NOT_TOP_LEVEL` | Una partida en una subcategoría                                             |
+| `BUDGET_LINE_DUPLICATED`        | Dos partidas de la misma categoría y moneda                                 |
+| `BUDGET_MONTH_INVALID`          | Un mes fuera de 1–12 o un año fuera de 2000–2100                            |
+| `CATEGORY_ARCHIVED`             | Una partida en una categoría archivada (el mismo error que una transacción) |
 
 **Qué es gasto y qué es ahorro** no se redefine aquí: gasto es fijo + variable y ahorro es ahorro + inversión (`countsAsExpense` y `countsAsSaving` del dominio, decididos en H3). Las **transferencias no cuentan**.
 

@@ -190,3 +190,27 @@ export {
   type RowInterpretation,
   type RowProblem,
 } from './transactions/import-row.js';
+export {
+  assertBudgetableCategory,
+  assertBudgetLines,
+  assertBudgetMonth,
+  assertPlannedAmount,
+  BudgetCategoryNotTopLevelError,
+  type BudgetKind,
+  budgetKind,
+  type BudgetStatus,
+  type BudgetVariance,
+  computeBudgetVariance,
+  DuplicatedBudgetLineError,
+  InvalidBudgetMonthError,
+  NegativeBudgetAmountError,
+  type PlannedLine,
+} from './budgeting/budget-policy.js';
+export {
+  type BudgetedAmount,
+  type BudgetLineReport,
+  type BudgetTypeReport,
+  type RealAmount,
+  summarizeBudget,
+  type UnbudgetedAmount,
+} from './budgeting/budget-summary.js';
