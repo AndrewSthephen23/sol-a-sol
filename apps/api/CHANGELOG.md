@@ -1,5 +1,94 @@
 # @sol-a-sol/api
 
+## 0.4.0
+
+### Minor Changes
+
+- fe48c6f: Cierra el hito **H3 — Catálogo y transacciones**: ya se registran gastos de verdad. Los módulos `catalog` y `transactions` quedan **encendidos** (`FEATURE_CATALOG=true`, `FEATURE_TRANSACTIONS=true`): categorías con su semilla, jerarquía, fusión y conversión en etiqueta; métodos de pago; transacciones con corrección, borrado que se deshace y listado con filtros, búsqueda, cursor y totales; transferencias entre cuentas propias; etiquetas; e importación CSV en dos pasos, todo o nada.
+
+  Es el primer hito con **interfaz**: inicio de sesión con segundo factor, la lista del mes, el formulario rápido pensado para el teléfono y la importación, con una política de contenido estricta con nonce. El aislamiento por usuario está probado en los 24 endpoints nuevos con la sesión de otra cuenta, y la checklist de OWASP ASVS queda al día.
+
+  La web **no** muestra todavía la gestión del catálogo: su flag tiene que estar encendido para que las transacciones tengan categorías y métodos, pero la pantalla `/catalog` quedó para después de H3, así que su manifest no está en la navegación.
+
+### Patch Changes
+
+- 5d4d3d9: Escenarios Gherkin ejecutables: `pnpm test:bdd` corre los `.feature` de `features/` con Cucumber contra el dominio y los casos de uso, con los fakes de los puertos (sin base de datos, sin Nest y sin navegador), y tiene su job de CI. Es estricto: un paso sin implementar falla. `transactions.feature` tiene todos sus pasos; los demás archivos, el escenario de la tasa de ahorro (H6) y el esqueleto que crea `pnpm gen:module` van con `@pendiente` hasta que tengan los suyos.
+- 15cd2a4: Categorías en la API (`catalog`, todavía **apagado**): `GET`, `POST` y `PATCH` de `/api/v1/categories`, con las subcategorías anidadas. No hay `DELETE`: una categoría se archiva.
+
+  - **Un solo nivel de subcategorías.** La subcategoría hereda el tipo de su madre, y también su color e ícono si no se indican.
+  - **El nombre no se repite** entre hermanas del mismo tipo, sin distinguir mayúsculas **ni acentos** ("Café" = "cafe"). La ñ sí cuenta.
+  - **Archivar una categoría archiva sus subcategorías.** Al restaurarla vuelven solo las que se archivaron con ella, y una subcategoría no se restaura mientras su madre siga archivada.
+  - **El tipo y la madre no se cambian.** Archivar no reescribe las transacciones que ya usan la categoría.
+
+- 0ca2e50: **Cada cuenta nueva nace con sus categorías.** Son 22 categorías y 12 subcategorías, con la lista acordada con el autor: ingresos, vivienda, suscripciones, comida, transporte, ahorro (incluida la CTS), inversión y deuda. Se crean al registrarse y se editan como cualquier otra.
+
+  - **Primer evento de dominio:** `identity` avisa que se registró una cuenta y `catalog` la siembra, sin que `identity` sepa que `catalog` existe. Usa `@nestjs/event-emitter` detrás de un puerto propio, y cómo se publican y escuchan los eventos queda en el ADR-0004.
+  - **`pnpm db:seed`** siembra las cuentas creadas antes de la semilla, pero solo las que no tienen ninguna categoría. Se puede correr las veces que haga falta sin duplicar nada. En producción es `node dist/seed.js`, y nunca corre solo.
+
+- 6bb506d: Empieza el hito **H3**: nace el módulo `catalog` (apagado con `FEATURE_CATALOG=false`) con sus dos tablas, `categories` y `payment_methods`. Todavía no tiene endpoints.
+
+  Lo que la base ya exige por su cuenta, aunque alguien se salte la aplicación:
+
+  - Una subcategoría cuelga de una categoría **del mismo usuario y del mismo tipo**.
+  - No hay dos categorías hermanas con el mismo nombre en el mismo tipo, **sin distinguir mayúsculas** y contando las archivadas.
+  - De una tarjeta solo se guardan **alias, banco y últimos 4 dígitos**. La moneda es opcional, para las tarjetas bimoneda.
+
+  Es también la primera vez que el proyecto usa enums (`transaction_type`, `payment_method_kind`, `currency`), y van como `ENUM` nativo de PostgreSQL.
+
+- 0c7fd31: Métodos de pago en la API (`catalog`, todavía **apagado**): `GET`, `POST` y `PATCH` de `/api/v1/payment-methods` para cuentas, billeteras, tarjetas de crédito y efectivo. No hay `DELETE`: un método se archiva.
+
+  - **De una tarjeta solo se guardan alias, banco y últimos 4 dígitos.** Un número más largo se rechaza, no se recorta, y un campo como `cvv` o `cardNumber` también se rechaza.
+  - **Reglas por tipo:** una tarjeta de crédito lleva sus últimos 4 dígitos, una cuenta o billetera lleva moneda (una tarjeta bimoneda no), y el efectivo no tiene banco. Las aplica el dominio y las repite la base con restricciones `CHECK`.
+  - **El alias es único** por usuario, sin distinguir mayúsculas y contando los archivados.
+  - Todo cambia menos el tipo, y solo desde una sesión: un token personal recibe 403.
+
+  SonarQube Cloud recibe ahora también la cobertura de las pruebas de integración, que son las que ejercitan controllers y repositorios.
+
+- 18e41ed: Convertir una subcategoría en etiqueta (`POST /api/v1/categories/{id}/convert-to-tag`): se fusiona en su madre y sus transacciones quedan con la etiqueta de su nombre. El evento `catalog.category.merged` gana el campo opcional `tag`.
+- 089bf1b: Confirmación de la importación (`POST /api/v1/transactions/import`): con una decisión por cada categoría y método de pago que falta o está archivado (crearlo, usar uno propio o restaurarlo), guarda todas las filas con origen `IMPORT` en una sola transacción de base de datos, o ninguna. Omite lo ya importado y responde 409 si otra importación guardó a la vez las mismas filas.
+- 5ac731b: Vista previa de la importación (`POST /api/v1/transactions/import/preview`): sin guardar nada, dice qué filas entrarían, cada problema por línea y columna, lo ya importado (huella única por cuenta), y las categorías y métodos de pago por resolver. Límites de 1 MB y 5 000 filas. Además, un cuerpo demasiado grande o un JSON mal escrito ya no responden 500, sino 413 y 400.
+- 3f1d6ee: Gestión de etiquetas: `GET /api/v1/tags` (con cuántas transacciones vigentes usan cada una), `PATCH /api/v1/tags/{id}` para renombrar (con el nombre de otra etiqueta, las fusiona) y `DELETE /api/v1/tags/{id}`, que la quita de todas las transacciones.
+- c3c7f6e: Fusionar categorías (`POST /api/v1/categories/{id}/merge`): sus transacciones pasan a la destino, sus hijas se mudan con ella y la origen se archiva. `catalog` fusiona y publica `catalog.category.merged`; `transactions` lo escucha y mueve sus filas (ADR-0005). Los totales del listado traen `count`, que sirve de vista previa.
+- 7341761: Mudar una subcategoría a otra madre de primer nivel, del mismo tipo y activa, con todas sus transacciones (`parentId` en `PATCH /api/v1/categories/{id}`). Una categoría de primer nivel no se muda (`ONLY_SUBCATEGORIES_MOVE`).
+- bae3856: Etiquetas en las transacciones: `tags` al registrar o corregir (se crean al escribirlas; "Almuerzo" y "almuerzó" son la misma), en la respuesta y en el listado, y el filtro `?tag=` con totales de lo etiquetado. Hasta 10 distintas por transacción, sin `|`. Las transferencias no llevan etiquetas.
+- 7e40781: Registrar una transacción (`POST /api/v1/transactions`) y leerla por su id (`GET /api/v1/transactions/{id}`), con el evento `transactions.transaction.created`. El monto viaja como string decimal y se guarda sin pérdida en `NUMERIC(18,2)`. Nueva regla de dominio: un método de pago archivado no se usa en transacciones nuevas (`PAYMENT_METHOD_ARCHIVED`). `catalog` expone `CatalogLookup` para que otros módulos comprueben categorías y métodos de pago.
+- d0d4541: Nace el módulo `transactions` (apagado con `FEATURE_TRANSACTIONS=false`) con sus reglas de dominio y su tabla. Todavía no tiene endpoints.
+
+  - **El monto siempre es positivo**: el signo lo da el tipo. Para el saldo del mes solo el ingreso suma.
+  - **Gasto** es fijo más variable (la deuda va aparte), y **ahorro** es ahorro más inversión, para la tasa de ahorro.
+  - **La fecha llega hasta hoy** en la hora de Lima, sin fechas futuras.
+  - **La moneda** es la del método de pago si no se indica otra. Si no hay ninguna, se exige: nunca se supone soles ni se convierte.
+  - **La categoría** es del mismo tipo que la transacción y no puede estar archivada.
+
+  La tabla guarda la fecha como `DATE` y el monto como `NUMERIC(18,2)` positivo. Además, la base garantiza que la categoría y el método de pago sean del mismo usuario, y la categoría del mismo tipo.
+
+- dd95904: Corregir (`PATCH /api/v1/transactions/{id}`), borrar lógicamente (`DELETE`) y restaurar sin plazo (`POST /api/v1/transactions/{id}/restore`) una transacción, con los eventos `transactions.transaction.updated`, `…deleted` y `…restored`. El tipo cambia junto con una categoría de ese tipo, la moneda solo cambia si se indica, y el origen no se corrige.
+- e4e1a1b: Listado de transacciones (`GET /api/v1/transactions`): filtros por mes o rango, tipo, categoría (con sus subcategorías), método de pago y moneda; búsqueda sin mayúsculas ni tildes; paginación por cursor estable ante altas y bajas; y totales por moneda de todo lo filtrado. En el dominio, `totalsByCurrency` y `searchKey`, que ahora comparte `categoryNameKey`.
+- 7e21ac9: Corregir (`PATCH /api/v1/transfers/{id}`), borrar lógicamente (`DELETE`) y restaurar sin plazo (`POST /api/v1/transfers/{id}/restore`) una transferencia, con los eventos `transactions.transfer.updated`, `…deleted` y `…restored`. En un cambio de moneda, corregir el monto enviado exige mandar también el recibido.
+- 5a796fa: El listado `GET /api/v1/transactions` trae también las transferencias, mezcladas por fecha y marcadas con `kind` (`transaction` o `transfer`), con el filtro nuevo `?kind=`. Filtrar por tipo o categoría las deja fuera; por cuenta o moneda trae las que salen o llegan. Los totales siguen siendo solo de las transacciones.
+- 6043ec6: Transferencias entre cuentas propias (`POST /api/v1/transfers`, `GET /api/v1/transfers/{id}`): plata que cambia de lugar sin contar como ingreso ni gasto. Con un cambio de moneda guarda los dos montos, copiados del voucher, sin convertir nunca. Pagar la tarjeta de crédito pasa a ser una transferencia; **Deuda** queda para préstamos, intereses y comisiones. Completa también las tablas de endpoints y errores de la ficha de `transactions`.
+- a4eac34: Cliente de API para la web: `pnpm api:client` exporta el documento OpenAPI de la API con todos los módulos encendidos (sin arrancar Nest ni tocar la base) y genera con `openapi-typescript` los tipos de `apps/web/src/shared/api/schema.gen.ts`, que la web usa con `openapi-fetch`. El archivo se regenera, no se edita, y un job de CI falla si quedó desactualizado.
+- b44c3ba: Inicio y cierre de sesión en la web. `/login` pide correo y contraseña y, si la cuenta lo tiene, el código del segundo factor o uno de recuperación; los errores se muestran en español y un 429 dice cuánto esperar. El token de acceso vive solo en memoria y se recupera con la cookie de refresco al recargar; ante un 401 la sesión se renueva una vez (de a una, también entre pestañas) y se reintenta una vez. Las pantallas privadas llevan al login sin sesión y vuelven a donde se quería ir. La web llama a la API por su propio origen: `proxy.ts` reenvía `/api/*` a `API_URL`, leída al arrancar. E2E con Playwright en móvil y escritorio (`pnpm test:e2e`), con su job de CI. El OpenAPI del login documenta ahora el 429 con `Retry-After`.
+- Updated dependencies [15cd2a4]
+- Updated dependencies [0c7fd31]
+- Updated dependencies [18e41ed]
+- Updated dependencies [089bf1b]
+- Updated dependencies [5ac731b]
+- Updated dependencies [99cb32b]
+- Updated dependencies [3f1d6ee]
+- Updated dependencies [c3c7f6e]
+- Updated dependencies [7341761]
+- Updated dependencies [bae3856]
+- Updated dependencies [7e40781]
+- Updated dependencies [d0d4541]
+- Updated dependencies [dd95904]
+- Updated dependencies [e4e1a1b]
+- Updated dependencies [7e21ac9]
+- Updated dependencies [5a796fa]
+- Updated dependencies [6043ec6]
+  - @sol-a-sol/domain@0.4.0
+  - @sol-a-sol/contracts@0.4.0
+
 ## 0.3.0
 
 ### Minor Changes

@@ -1,5 +1,38 @@
 # @sol-a-sol/contracts
 
+## 0.4.0
+
+### Patch Changes
+
+- 15cd2a4: Categorías en la API (`catalog`, todavía **apagado**): `GET`, `POST` y `PATCH` de `/api/v1/categories`, con las subcategorías anidadas. No hay `DELETE`: una categoría se archiva.
+
+  - **Un solo nivel de subcategorías.** La subcategoría hereda el tipo de su madre, y también su color e ícono si no se indican.
+  - **El nombre no se repite** entre hermanas del mismo tipo, sin distinguir mayúsculas **ni acentos** ("Café" = "cafe"). La ñ sí cuenta.
+  - **Archivar una categoría archiva sus subcategorías.** Al restaurarla vuelven solo las que se archivaron con ella, y una subcategoría no se restaura mientras su madre siga archivada.
+  - **El tipo y la madre no se cambian.** Archivar no reescribe las transacciones que ya usan la categoría.
+
+- 0c7fd31: Métodos de pago en la API (`catalog`, todavía **apagado**): `GET`, `POST` y `PATCH` de `/api/v1/payment-methods` para cuentas, billeteras, tarjetas de crédito y efectivo. No hay `DELETE`: un método se archiva.
+
+  - **De una tarjeta solo se guardan alias, banco y últimos 4 dígitos.** Un número más largo se rechaza, no se recorta, y un campo como `cvv` o `cardNumber` también se rechaza.
+  - **Reglas por tipo:** una tarjeta de crédito lleva sus últimos 4 dígitos, una cuenta o billetera lleva moneda (una tarjeta bimoneda no), y el efectivo no tiene banco. Las aplica el dominio y las repite la base con restricciones `CHECK`.
+  - **El alias es único** por usuario, sin distinguir mayúsculas y contando los archivados.
+  - Todo cambia menos el tipo, y solo desde una sesión: un token personal recibe 403.
+
+  SonarQube Cloud recibe ahora también la cobertura de las pruebas de integración, que son las que ejercitan controllers y repositorios.
+
+- 089bf1b: Confirmación de la importación (`POST /api/v1/transactions/import`): con una decisión por cada categoría y método de pago que falta o está archivado (crearlo, usar uno propio o restaurarlo), guarda todas las filas con origen `IMPORT` en una sola transacción de base de datos, o ninguna. Omite lo ya importado y responde 409 si otra importación guardó a la vez las mismas filas.
+- 5ac731b: Vista previa de la importación (`POST /api/v1/transactions/import/preview`): sin guardar nada, dice qué filas entrarían, cada problema por línea y columna, lo ya importado (huella única por cuenta), y las categorías y métodos de pago por resolver. Límites de 1 MB y 5 000 filas. Además, un cuerpo demasiado grande o un JSON mal escrito ya no responden 500, sino 413 y 400.
+- 3f1d6ee: Gestión de etiquetas: `GET /api/v1/tags` (con cuántas transacciones vigentes usan cada una), `PATCH /api/v1/tags/{id}` para renombrar (con el nombre de otra etiqueta, las fusiona) y `DELETE /api/v1/tags/{id}`, que la quita de todas las transacciones.
+- c3c7f6e: Fusionar categorías (`POST /api/v1/categories/{id}/merge`): sus transacciones pasan a la destino, sus hijas se mudan con ella y la origen se archiva. `catalog` fusiona y publica `catalog.category.merged`; `transactions` lo escucha y mueve sus filas (ADR-0005). Los totales del listado traen `count`, que sirve de vista previa.
+- 7341761: Mudar una subcategoría a otra madre de primer nivel, del mismo tipo y activa, con todas sus transacciones (`parentId` en `PATCH /api/v1/categories/{id}`). Una categoría de primer nivel no se muda (`ONLY_SUBCATEGORIES_MOVE`).
+- bae3856: Etiquetas en las transacciones: `tags` al registrar o corregir (se crean al escribirlas; "Almuerzo" y "almuerzó" son la misma), en la respuesta y en el listado, y el filtro `?tag=` con totales de lo etiquetado. Hasta 10 distintas por transacción, sin `|`. Las transferencias no llevan etiquetas.
+- 7e40781: Registrar una transacción (`POST /api/v1/transactions`) y leerla por su id (`GET /api/v1/transactions/{id}`), con el evento `transactions.transaction.created`. El monto viaja como string decimal y se guarda sin pérdida en `NUMERIC(18,2)`. Nueva regla de dominio: un método de pago archivado no se usa en transacciones nuevas (`PAYMENT_METHOD_ARCHIVED`). `catalog` expone `CatalogLookup` para que otros módulos comprueben categorías y métodos de pago.
+- dd95904: Corregir (`PATCH /api/v1/transactions/{id}`), borrar lógicamente (`DELETE`) y restaurar sin plazo (`POST /api/v1/transactions/{id}/restore`) una transacción, con los eventos `transactions.transaction.updated`, `…deleted` y `…restored`. El tipo cambia junto con una categoría de ese tipo, la moneda solo cambia si se indica, y el origen no se corrige.
+- e4e1a1b: Listado de transacciones (`GET /api/v1/transactions`): filtros por mes o rango, tipo, categoría (con sus subcategorías), método de pago y moneda; búsqueda sin mayúsculas ni tildes; paginación por cursor estable ante altas y bajas; y totales por moneda de todo lo filtrado. En el dominio, `totalsByCurrency` y `searchKey`, que ahora comparte `categoryNameKey`.
+- 7e21ac9: Corregir (`PATCH /api/v1/transfers/{id}`), borrar lógicamente (`DELETE`) y restaurar sin plazo (`POST /api/v1/transfers/{id}/restore`) una transferencia, con los eventos `transactions.transfer.updated`, `…deleted` y `…restored`. En un cambio de moneda, corregir el monto enviado exige mandar también el recibido.
+- 5a796fa: El listado `GET /api/v1/transactions` trae también las transferencias, mezcladas por fecha y marcadas con `kind` (`transaction` o `transfer`), con el filtro nuevo `?kind=`. Filtrar por tipo o categoría las deja fuera; por cuenta o moneda trae las que salen o llegan. Los totales siguen siendo solo de las transacciones.
+- 6043ec6: Transferencias entre cuentas propias (`POST /api/v1/transfers`, `GET /api/v1/transfers/{id}`): plata que cambia de lugar sin contar como ingreso ni gasto. Con un cambio de moneda guarda los dos montos, copiados del voucher, sin convertir nunca. Pagar la tarjeta de crédito pasa a ser una transferencia; **Deuda** queda para préstamos, intereses y comisiones. Completa también las tablas de endpoints y errores de la ficha de `transactions`.
+
 ## 0.3.0
 
 ### Patch Changes

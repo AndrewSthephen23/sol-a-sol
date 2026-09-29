@@ -1,5 +1,12 @@
 # @sol-a-sol/tooling
 
+## 0.4.0
+
+### Patch Changes
+
+- 5d4d3d9: Escenarios Gherkin ejecutables: `pnpm test:bdd` corre los `.feature` de `features/` con Cucumber contra el dominio y los casos de uso, con los fakes de los puertos (sin base de datos, sin Nest y sin navegador), y tiene su job de CI. Es estricto: un paso sin implementar falla. `transactions.feature` tiene todos sus pasos; los demás archivos, el escenario de la tasa de ahorro (H6) y el esqueleto que crea `pnpm gen:module` van con `@pendiente` hasta que tengan los suyos.
+- fe94582: `pnpm gen:module` ya registra bien un módulo cuando la lista de destino ocupa varias líneas. Antes agregaba `, NuevoModule` después de la coma final, y el `AppModule` quedaba con un hueco (`[a, , b]`) que NestJS recibe como un import `undefined`. Es la forma que tiene el `AppModule` desde H2, así que el generador fallaba con cualquier módulo nuevo.
+
 ## 0.3.0
 
 No changes in this release.

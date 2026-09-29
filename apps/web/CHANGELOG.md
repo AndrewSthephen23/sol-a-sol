@@ -1,5 +1,57 @@
 # @sol-a-sol/web
 
+## 0.4.0
+
+### Minor Changes
+
+- fe48c6f: Cierra el hito **H3 — Catálogo y transacciones**: ya se registran gastos de verdad. Los módulos `catalog` y `transactions` quedan **encendidos** (`FEATURE_CATALOG=true`, `FEATURE_TRANSACTIONS=true`): categorías con su semilla, jerarquía, fusión y conversión en etiqueta; métodos de pago; transacciones con corrección, borrado que se deshace y listado con filtros, búsqueda, cursor y totales; transferencias entre cuentas propias; etiquetas; e importación CSV en dos pasos, todo o nada.
+
+  Es el primer hito con **interfaz**: inicio de sesión con segundo factor, la lista del mes, el formulario rápido pensado para el teléfono y la importación, con una política de contenido estricta con nonce. El aislamiento por usuario está probado en los 24 endpoints nuevos con la sesión de otra cuenta, y la checklist de OWASP ASVS queda al día.
+
+  La web **no** muestra todavía la gestión del catálogo: su flag tiene que estar encendido para que las transacciones tengan categorías y métodos, pero la pantalla `/catalog` quedó para después de H3, así que su manifest no está en la navegación.
+
+### Patch Changes
+
+- 6bb506d: Empieza el hito **H3**: nace el módulo `catalog` (apagado con `FEATURE_CATALOG=false`) con sus dos tablas, `categories` y `payment_methods`. Todavía no tiene endpoints.
+
+  Lo que la base ya exige por su cuenta, aunque alguien se salte la aplicación:
+
+  - Una subcategoría cuelga de una categoría **del mismo usuario y del mismo tipo**.
+  - No hay dos categorías hermanas con el mismo nombre en el mismo tipo, **sin distinguir mayúsculas** y contando las archivadas.
+  - De una tarjeta solo se guardan **alias, banco y últimos 4 dígitos**. La moneda es opcional, para las tarjetas bimoneda.
+
+  Es también la primera vez que el proyecto usa enums (`transaction_type`, `payment_method_kind`, `currency`), y van como `ENUM` nativo de PostgreSQL.
+
+- d0d4541: Nace el módulo `transactions` (apagado con `FEATURE_TRANSACTIONS=false`) con sus reglas de dominio y su tabla. Todavía no tiene endpoints.
+
+  - **El monto siempre es positivo**: el signo lo da el tipo. Para el saldo del mes solo el ingreso suma.
+  - **Gasto** es fijo más variable (la deuda va aparte), y **ahorro** es ahorro más inversión, para la tasa de ahorro.
+  - **La fecha llega hasta hoy** en la hora de Lima, sin fechas futuras.
+  - **La moneda** es la del método de pago si no se indica otra. Si no hay ninguna, se exige: nunca se supone soles ni se convierte.
+  - **La categoría** es del mismo tipo que la transacción y no puede estar archivada.
+
+  La tabla guarda la fecha como `DATE` y el monto como `NUMERIC(18,2)` positivo. Además, la base garantiza que la categoría y el método de pago sean del mismo usuario, y la categoría del mismo tipo.
+
+- a4eac34: Cliente de API para la web: `pnpm api:client` exporta el documento OpenAPI de la API con todos los módulos encendidos (sin arrancar Nest ni tocar la base) y genera con `openapi-typescript` los tipos de `apps/web/src/shared/api/schema.gen.ts`, que la web usa con `openapi-fetch`. El archivo se regenera, no se edita, y un job de CI falla si quedó desactualizado.
+- d8feaab: Importar un CSV desde la web (`/transactions/import`). El archivo se lee como texto y se previsualiza sin guardar nada: cuánto entraría, lo ya importado, las etiquetas nuevas, las columnas ignoradas y cada problema por línea y columna, en español. Por cada categoría y método de pago que falta o está archivado se propone crearlo o restaurarlo, o se elige otro existente; un método nuevo se revisa con las reglas del dominio antes de mandarlo. La confirmación entra todo o nada, y volver a importar el mismo archivo no duplica.
+- 714ed8f: La web manda sus cabeceras de seguridad. Cada página lleva una política de contenido con un nonce nuevo por petición (`script-src 'self' 'nonce-…' 'strict-dynamic'`, sin `'unsafe-inline'`, `frame-ancestors 'none'`), que Next aplica a sus propios scripts; por eso toda página se renderiza por petición. Además: `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy` y sin `X-Powered-By`. Los E2E fallan si el navegador bloquea algo por la política.
+- b44c3ba: Inicio y cierre de sesión en la web. `/login` pide correo y contraseña y, si la cuenta lo tiene, el código del segundo factor o uno de recuperación; los errores se muestran en español y un 429 dice cuánto esperar. El token de acceso vive solo en memoria y se recupera con la cookie de refresco al recargar; ante un 401 la sesión se renueva una vez (de a una, también entre pestañas) y se reintenta una vez. Las pantallas privadas llevan al login sin sesión y vuelven a donde se quería ir. La web llama a la API por su propio origen: `proxy.ts` reenvía `/api/*` a `API_URL`, leída al arrancar. E2E con Playwright en móvil y escritorio (`pnpm test:e2e`), con su job de CI. El OpenAPI del login documenta ahora el 429 con `Retry-After`.
+- 840064c: Registrar, corregir y borrar movimientos desde la web. El formulario rápido pide monto, categoría (de la que sale el tipo), método de pago y fecha; descripción, comercio y etiquetas van plegados, y si la descripción queda vacía se usa el nombre de la categoría. El monto se lee con `parseAmount` del dominio y viaja como texto. Se recuerda el último método de pago del navegador; sin método o con uno bimoneda hay que elegir la moneda, sin valor por defecto. Las transferencias piden el monto recibido cuando cambia la moneda. Borrar muestra «Deshacer» unos segundos en vez de pedir confirmación.
+- ce439cd: Lista de transacciones en `/transactions`: los movimientos de un mes agrupados por día, con los totales por moneda de todo lo filtrado y «Cargar más» por cursor. Filtros por tipo (o solo transferencias), categoría y etiqueta, búsqueda y cambio de mes, todo en la URL y sin recargar la página. El mes por defecto es el de hoy en Lima. Las pantallas privadas se renderizan en cada petición, así que la navegación y las pantallas leen los feature flags al arrancar y no los del build. `catalog` sale de la navegación hasta que exista su pantalla.
+- Updated dependencies [15cd2a4]
+- Updated dependencies [0c7fd31]
+- Updated dependencies [18e41ed]
+- Updated dependencies [99cb32b]
+- Updated dependencies [3f1d6ee]
+- Updated dependencies [c3c7f6e]
+- Updated dependencies [7341761]
+- Updated dependencies [bae3856]
+- Updated dependencies [7e40781]
+- Updated dependencies [d0d4541]
+- Updated dependencies [e4e1a1b]
+- Updated dependencies [6043ec6]
+  - @sol-a-sol/domain@0.4.0
+
 ## 0.3.0
 
 ### Minor Changes
