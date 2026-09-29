@@ -142,6 +142,13 @@ Responde **201** con `{ transactions, transfers, alreadyImported, createdCategor
 - **Errores junto a su campo** (`aria-describedby`), traducidos desde el código de la API. El botón se desactiva mientras se guarda: no se envía dos veces.
 - **Borrar no pide confirmación:** muestra «Deshacer» durante 6 segundos, que llama a `restore` (decisión 6 de H3). Se borra desde la lista o desde la corrección.
 
+**Importar un CSV** (`/transactions/import`, enlazada desde la lista):
+
+1. **Elegir el archivo.** La web lo lee como texto y lo manda en el JSON; no se guarda en ningún sitio. Un archivo de más de 1 MB o vacío se rechaza antes de enviarlo.
+2. **Vista previa.** Cuántas transacciones y transferencias entrarían, las filas ya importadas (se omiten), las etiquetas nuevas y las columnas ignoradas. **Si hay problemas**, se listan por línea y columna (los primeros 100), traducidos desde su código, y no se ofrece importar: entra todo o nada, así que hay que corregir el archivo.
+3. **Decisiones.** Por cada categoría o método pendiente se propone **crear lo que falta y restaurar lo archivado**, y se puede cambiar por «usar otro» (una categoría activa del mismo tipo, o un método activo). Un método nuevo exige elegir tipo y moneda, y se revisa con `assertValidPaymentMethod` del dominio antes de mandar (últimos 4 obligatorios en tarjeta y nunca más de 4; el efectivo no tiene banco; cuentas y billeteras guardan una sola moneda).
+4. **Confirmar.** Todo o nada. Tras importar se vuelven a pedir movimientos, categorías, métodos y etiquetas. Volver a importar el mismo archivo no duplica: la vista previa dice que ya se importó.
+
 ## Eventos de dominio
 
 Se publican **después de guardar**, esperando a los oyentes, y llevan solo ids (ADR-0004). Nadie los escucha todavía: existen para que el presupuesto (H4), las tarjetas (H5) y los resúmenes (H6) no tengan que tocar este módulo.
@@ -228,4 +235,4 @@ El monto viaja como **string decimal** (`"25.90"`) y la fecha como `YYYY-MM-DD`.
 
 - Feature flag: `FEATURE_TRANSACTIONS` (**apagado** hasta cumplir la Definition of Done)
 - Escenarios: [`features/transactions/`](../../features/transactions/)
-- Web: `/transactions` con la lista (tarea 09, PR A1) y el formulario para registrar, corregir y borrar con «Deshacer» (PR A2). La importación CSV llega en el PR B. Con el flag apagado la pantalla responde 404, igual que la API.
+- Web: `/transactions` con la lista (tarea 09, PR A1), el formulario para registrar, corregir y borrar con «Deshacer» (PR A2) y la importación CSV (PR B). Con el flag apagado la pantalla responde 404, igual que la API.
