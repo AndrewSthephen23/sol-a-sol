@@ -65,4 +65,22 @@ describe('TransactionsLookup', () => {
       lookup.totalsByCategory(ANA, LocalDate.parse('2026-09-01'), LocalDate.parse('2026-09-30')),
     ).resolves.toEqual([]);
   });
+
+  it('gives the totals of each day, and only of the range', async () => {
+    await spend(ANA, '2026-09-01', 'food', Money.of('10', 'PEN'));
+    await spend(ANA, '2026-09-01', 'rent', Money.of('5', 'PEN'));
+    await spend(ANA, '2026-10-01', 'food', Money.of('99', 'PEN'));
+    await spend(BRUNO, '2026-09-01', 'food', Money.of('99', 'PEN'));
+
+    const totals = await lookup.totalsByDay(
+      ANA,
+      LocalDate.parse('2026-09-01'),
+      LocalDate.parse('2026-09-30'),
+    );
+
+    expect(totals.map((total) => [total.date.toString(), total.amount.toFixed()])).toEqual([
+      ['2026-09-01', '10.00'],
+      ['2026-09-01', '5.00'],
+    ]);
+  });
 });

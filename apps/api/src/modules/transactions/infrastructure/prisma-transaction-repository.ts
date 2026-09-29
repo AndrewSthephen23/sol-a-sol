@@ -12,6 +12,7 @@ import { Prisma } from '../../../generated/prisma/client.js';
 import { PrismaService } from '../../../shared/prisma/prisma.service.js';
 import {
   type CategoryAmount,
+  type DayAmount,
   type NewTransaction,
   orderTags,
   type PagePosition,
@@ -247,6 +248,32 @@ export class PrismaTransactionRepository implements TransactionRepository {
 
     return rows.map((row) => ({
       categoryId: row.categoryId,
+      type: row.type,
+      amount: Money.of(row.amount, row.currency),
+      count: row.count,
+    }));
+  }
+  async totalsByDay(userId: string, filter: TransactionFilter): Promise<DayAmount[]> {
+    const rows = await this.prisma.$queryRaw<
+      {
+        date: string;
+        type: Transaction['type'];
+        currency: Currency;
+        amount: string;
+        count: number;
+      }[]
+    >`
+      SELECT date::text AS date,
+             type::text AS type,
+             currency::text AS currency,
+             sum(amount)::text AS amount,
+             count(*)::int AS count
+        FROM transactions
+       WHERE ${Prisma.join(filterConditions(userId, filter), ' AND ')}
+       GROUP BY date, type, currency`;
+
+    return rows.map((row) => ({
+      date: LocalDate.parse(row.date),
       type: row.type,
       amount: Money.of(row.amount, row.currency),
       count: row.count,

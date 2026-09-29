@@ -1,7 +1,11 @@
 // API pública del módulo transactions.
 // Otros módulos solo pueden importar desde aquí, nunca de sus carpetas internas.
 export { TransactionsModule } from './transactions.module.js';
-export { type CategoryTotal, TransactionsLookup } from './application/transactions-lookup.js';
+export {
+  type CategoryTotal,
+  type DayTotal,
+  TransactionsLookup,
+} from './application/transactions-lookup.js';
 export {
   TRANSACTION_CREATED,
   TRANSACTION_DELETED,

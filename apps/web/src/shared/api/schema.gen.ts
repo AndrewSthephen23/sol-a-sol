@@ -4016,6 +4016,132 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/monthly": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * El dashboard de un mes: KPIs, gasto diario, dona por categoría y tablas por tipo.
+         * @description Todo en una llamada, por moneda y sin convertir nunca. Sin transferencias ni transacciones borradas; lo de una subcategoría suma en su madre.
+         */
+        get: {
+            parameters: {
+                query: {
+                    year: string;
+                    /** @description 1 a 12. */
+                    month: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description El dashboard del mes. Sin movimientos, `currencies` viene vacío. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            year: number;
+                            month: number;
+                            /** @description Una entrada por moneda con movimientos, primero soles; nunca se convierte. */
+                            currencies: {
+                                /** @enum {string} */
+                                currency: "PEN" | "USD";
+                                /** @description Strings decimales. */
+                                kpis: {
+                                    income: string;
+                                    /** @description Gasto fijo + variable. */
+                                    expense: string;
+                                    /** @description Ahorro + inversión. */
+                                    saving: string;
+                                    debt: string;
+                                    /** @description Ingresos menos todo lo demás. Puede ser negativo. */
+                                    balance: string;
+                                };
+                                /** @description Gasto fijo + variable de cada día, **con los días sin gasto en cero**. El mes en curso llega hasta hoy (Lima); uno que no empezó no tiene días. */
+                                daily: {
+                                    /** Format: date */
+                                    date: string;
+                                    amount: string;
+                                }[];
+                                /** @description El gasto por categoría **madre** (con sus hijas), de mayor a menor: las 6 primeras y el resto en «Otras». */
+                                distribution: {
+                                    /**
+                                     * Format: uuid
+                                     * @description Nulo es «Otras».
+                                     */
+                                    categoryId: string | null;
+                                    amount: string;
+                                    /** @description % del gasto del mes, sin redondear. */
+                                    share: string | null;
+                                }[];
+                                /** @description Cada tipo con sus categorías madre, de mayor a menor. */
+                                byType: {
+                                    /** @enum {string} */
+                                    type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
+                                    total: string;
+                                    categories: {
+                                        /** Format: uuid */
+                                        categoryId: string;
+                                        amount: string;
+                                    }[];
+                                }[];
+                            }[];
+                        };
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: los reportes solo se ven desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Falta el año o el mes, no tienen la forma esperada, o el mes no existe. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {

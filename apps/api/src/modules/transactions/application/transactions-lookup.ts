@@ -16,6 +16,15 @@ export interface CategoryTotal {
   count: number;
 }
 
+/** Lo gastado (o ingresado) un día, en un tipo y una moneda. */
+export interface DayTotal {
+  date: LocalDate;
+  type: TransactionType;
+  amount: Money;
+  /** Cuántas transacciones suma `amount`. */
+  count: number;
+}
+
 /**
  * Lecturas que `transactions` ofrece a otros módulos por su API pública (`index.ts`), para que el
  * presupuesto, los reportes, las tarjetas (H5) o los resúmenes (H6) no lean sus tablas ni importen
@@ -33,5 +42,10 @@ export class TransactionsLookup {
   /** Totales por categoría, tipo y moneda entre dos fechas, las dos incluidas. */
   async totalsByCategory(userId: string, from: LocalDate, to: LocalDate): Promise<CategoryTotal[]> {
     return this.transactions.totalsByCategory(userId, { from, to });
+  }
+
+  /** Totales por día, tipo y moneda entre dos fechas, las dos incluidas: las barras del dashboard. */
+  async totalsByDay(userId: string, from: LocalDate, to: LocalDate): Promise<DayTotal[]> {
+    return this.transactions.totalsByDay(userId, { from, to });
   }
 }

@@ -12,6 +12,7 @@ import { IdentityModule } from './modules/identity/identity.module.js';
 import { CatalogModule } from './modules/catalog/catalog.module.js';
 import { TransactionsModule } from './modules/transactions/transactions.module.js';
 import { BudgetingModule } from './modules/budgeting/budgeting.module.js';
+import { ReportsModule } from './modules/reports/reports.module.js';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { BudgetingModule } from './modules/budgeting/budgeting.module.js';
     CatalogModule,
     TransactionsModule,
     BudgetingModule,
+    ReportsModule,
   ],
 })
 export class AppModule {}
