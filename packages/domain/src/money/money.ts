@@ -163,6 +163,14 @@ export function roundPercentage(value: Decimal): Decimal {
   return new DomainDecimal(value).toDecimalPlaces(PERCENTAGE_DECIMAL_PLACES);
 }
 
+/**
+ * Un porcentaje que viaja como texto exacto (`"36.666666…"`), listo para mostrar: 2 decimales con
+ * redondeo bancario (`"36.67"`). Sin pasar nunca por `number`.
+ */
+export function formatPercentage(text: string): string {
+  return roundPercentage(new DomainDecimal(text)).toFixed(PERCENTAGE_DECIMAL_PLACES);
+}
+
 function parseAmount(value: unknown): Decimal {
   if (Decimal.isDecimal(value)) {
     if (value.isFinite() && value.decimalPlaces() <= CENT_DECIMAL_PLACES) {

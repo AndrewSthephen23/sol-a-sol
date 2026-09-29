@@ -1,3 +1,4 @@
+import { readMonth } from '@/shared/time/dates';
 import type { paths } from '@/shared/api/schema.gen';
 
 type ListQuery = NonNullable<paths['/api/v1/transactions']['get']['parameters']['query']>;
@@ -24,7 +25,6 @@ export interface Filters {
   q: string | null;
 }
 
-const MONTH = /^\d{4}-(?:0[1-9]|1[0-2])$/u;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 
 function isShow(value: string | null): value is Show {
@@ -45,12 +45,11 @@ function nonBlank(value: string | null): string | null {
  * a la API a que lo rechace.
  */
 export function readFilters(params: URLSearchParams, defaultMonth: string): Filters {
-  const month = params.get('month');
   const show = params.get('show');
   const categoryId = params.get('categoryId');
 
   return {
-    month: month !== null && MONTH.test(month) ? month : defaultMonth,
+    month: readMonth(params.get('month'), defaultMonth),
     show: isShow(show) ? show : 'ALL',
     // Una transferencia no tiene categoría ni etiquetas: con `TRANSFER` esos filtros sobran.
     categoryId:

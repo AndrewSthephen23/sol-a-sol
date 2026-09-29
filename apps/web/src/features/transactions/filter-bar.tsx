@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-import { formatMonth, shiftMonth } from '@/shared/time/dates';
+import { MonthNavigator } from '@/shared/time/month-navigator';
 
 import { type Filters, type Show, TRANSACTION_TYPES } from './filters';
 import { type CategoryInfo, SHOW_LABELS } from './labels';
@@ -61,31 +61,12 @@ export function FilterBar({ filters, categories, tags, onChange }: Readonly<Filt
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-2">
-        <button
-          type="button"
-          aria-label="Mes anterior"
-          onClick={() => {
-            onChange({ ...filters, month: shiftMonth(filters.month, -1) });
-          }}
-          className="rounded-md px-3 py-2 text-xl hover:bg-stone-100"
-        >
-          ‹
-        </button>
-        <p aria-live="polite" className="font-semibold first-letter:uppercase">
-          {formatMonth(filters.month)}
-        </p>
-        <button
-          type="button"
-          aria-label="Mes siguiente"
-          onClick={() => {
-            onChange({ ...filters, month: shiftMonth(filters.month, 1) });
-          }}
-          className="rounded-md px-3 py-2 text-xl hover:bg-stone-100"
-        >
-          ›
-        </button>
-      </div>
+      <MonthNavigator
+        month={filters.month}
+        onChange={(month) => {
+          onChange({ ...filters, month });
+        }}
+      />
 
       <label className="flex flex-col gap-1 text-sm font-medium">
         <span>Buscar</span>
