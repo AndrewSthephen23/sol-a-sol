@@ -26,6 +26,18 @@ describe('Sidebar', () => {
     );
   });
 
+  it('shows its actions after the sections', () => {
+    render(
+      <Sidebar
+        manifests={manifests}
+        isEnabled={() => true}
+        actions={<button type="button">Cerrar sesión</button>}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Cerrar sesión' })).toBeInTheDocument();
+  });
+
   it('hides the features whose flag is off', () => {
     render(<Sidebar manifests={manifests} isEnabled={() => false} />);
 

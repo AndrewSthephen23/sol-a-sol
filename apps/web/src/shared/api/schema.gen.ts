@@ -252,7 +252,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description El correo o la contraseña no corresponden. */
+                /** @description El correo o la contraseña no corresponden (`INVALID_CREDENTIALS`), la cuenta pide el segundo factor y no llegó (`TOTP_REQUIRED`), o el código no vale (`INVALID_TOTP_CODE`). */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -273,6 +273,17 @@ export interface paths {
                 /** @description El cuerpo no tiene la forma esperada. */
                 422: {
                     headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Demasiados intentos fallidos (`TOO_MANY_LOGIN_ATTEMPTS`) o demasiadas peticiones. */
+                429: {
+                    headers: {
+                        /** @description Segundos que faltan para poder volver a intentarlo. */
+                        "Retry-After"?: number;
                         [name: string]: unknown;
                     };
                     content: {

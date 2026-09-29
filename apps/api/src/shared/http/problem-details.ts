@@ -2,7 +2,8 @@
  * Problem Details para respuestas HTTP (RFC 9457), el formato de error de toda la API.
  *
  * Los textos (`title`, `detail`) van en inglés y son para quien depura: la interfaz en español
- * la arma la web traduciendo `code`, que es estable. Por eso `code` nunca cambia sin pensarlo.
+ * la arma la web traduciendo el código que viaja dentro de `type`, que es estable. Por eso un
+ * código nunca cambia sin pensarlo.
  */
 
 export {
@@ -16,7 +17,8 @@ const PROBLEM_TYPE_PREFIX = 'urn:sol-a-sol:error:';
 /**
  * `type` identifica el tipo de error con un URN estable, no con una URL: no promete una página
  * que haya que mantener viva. El código se normaliza a minúsculas con guiones
- * (`INVALID_AMOUNT` → `urn:sol-a-sol:error:invalid-amount`); el valor canónico viaja en `code`.
+ * (`INVALID_AMOUNT` → `urn:sol-a-sol:error:invalid-amount`). No hay un campo `code` aparte: la web
+ * recupera el código deshaciendo esta normalización.
  */
 export function problemType(code: string): string {
   return `${PROBLEM_TYPE_PREFIX}${code.toLowerCase().replaceAll('_', '-')}`;

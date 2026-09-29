@@ -423,9 +423,24 @@ function identityPaths(): Record<string, unknown> {
             description: 'Token de acceso, válido 15 minutos.',
             content: { 'application/json': { schema: ACCESS_TOKEN_SCHEMA } },
           },
-          '401': problem('El correo o la contraseña no corresponden.'),
+          '401': problem(
+            'El correo o la contraseña no corresponden (`INVALID_CREDENTIALS`), la cuenta pide ' +
+              'el segundo factor y no llegó (`TOTP_REQUIRED`), o el código no vale ' +
+              '(`INVALID_TOTP_CODE`).',
+          ),
           '404': problem('El módulo está apagado.'),
           '422': problem('El cuerpo no tiene la forma esperada.'),
+          '429': {
+            ...problem(
+              'Demasiados intentos fallidos (`TOO_MANY_LOGIN_ATTEMPTS`) o demasiadas peticiones.',
+            ),
+            headers: {
+              'Retry-After': {
+                description: 'Segundos que faltan para poder volver a intentarlo.',
+                schema: { type: 'integer', minimum: 0 },
+              },
+            },
+          },
         },
       },
     },

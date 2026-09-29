@@ -1,6 +1,6 @@
 # Módulo Identidad (`identity`)
 
-> Ficha del módulo. Estado: **completo en la API** (hito H2, versión 0.3.0). Registro, inicio de sesión, renovación, cierre, segundo factor con códigos de recuperación, tokens personales, cambio de contraseña, límite de intentos y bitácora. **La web todavía no tiene pantallas de identidad**: por eso su manifest no está en la navegación (ver más abajo).
+> Ficha del módulo. Estado: **completo en la API** (hito H2, versión 0.3.0). Registro, inicio de sesión, renovación, cierre, segundo factor con códigos de recuperación, tokens personales, cambio de contraseña, límite de intentos y bitácora. En la web hay **inicio y cierre de sesión** (H3, tarea 08); la pantalla de cuenta (contraseña, segundo factor, tokens personales) todavía no, y por eso el manifest no está en la navegación (ver más abajo).
 
 ## Qué resuelve
 
@@ -90,6 +90,20 @@ El refresco viaja en una cookie con **`HttpOnly`** (JavaScript no la lee, así q
 Dos pestañas renovando a la vez con la misma cookie caen en este camino: desde fuera son indistinguibles de un robo. El `UPDATE` que marca el token como canjeado lleva la condición `used_at IS NULL` dentro, así que solo una petición gana la carrera.
 
 **Cerrar sesión nunca falla.** Responde 204 valga la cookie o no: quien cierra sesión quiere irse, y un error le diría a un tercero si un token que probó existe. Solo cierra esa sesión, no las demás de la cuenta.
+
+### La sesión en la web
+
+La web habla con la API **por su propio origen**: `apps/web/src/proxy.ts` reenvía `/api/*` a `API_URL`. Así la cookie de refresco (`SameSite=Strict`, `Path=/api/v1/auth`) viaja sin CORS y la API no necesita una dirección pública. `API_URL` se lee **en cada petición**, no al construir: la imagen publicada se construye una vez y recibe la dirección al arrancar, y los `rewrites` de `next.config` quedan fijados en el build.
+
+**El token de acceso vive solo en memoria** (decisión 3 de H3), nunca en `localStorage`, que es lo primero que se lleva un XSS. Al recargar se pierde y se recupera con `/auth/refresh`: mientras tanto la pantalla muestra «Cargando tu sesión…», el parpadeo que se aceptó. Por eso las pantallas privadas se dibujan en el navegador; el servidor no tiene con qué pedir datos.
+
+**Renovación.** Si una petición responde 401, la web renueva la sesión **una vez** y reintenta **una vez**; si la renovación falla o el reintento vuelve a dar 401, la sesión terminó y se va a `/login`, recordando a dónde se quería ir (`?next=`, que solo acepta rutas de la propia web para no ser una redirección abierta). Las rutas de `/auth` quedan fuera: un 401 del login es una contraseña equivocada, no una sesión vencida.
+
+**Las renovaciones van de a una, también entre pestañas.** Es obligatorio por la detección de reuso: dos pestañas que renuevan a la vez con la misma cookie son, para la API, un robo, y cierran **todas** las sesiones. Dentro de una pestaña, las peticiones que chocan con un 401 comparten una sola renovación; entre pestañas se serializan con un lock del navegador (Web Locks), y la segunda sale ya con la cookie que dejó la primera. Cerrar sesión en una pestaña la cierra en las demás (`BroadcastChannel`).
+
+**La web no cuenta intentos ni decide bloqueos**: muestra lo que responde la API, traducido. Un 429 se muestra con el tiempo que falta, leído de `Retry-After`, y no se reintenta solo.
+
+**La IP detrás del proxy de la web.** Next reenvía `X-Forwarded-For` tal como llega y solo pone la IP real si no viene ninguna, así que **no se puede fiar de esa cabecera** si la web está expuesta directamente: cualquiera mandaría una IP distinta en cada intento y esquivaría el bloqueo por IP. Con `TRUST_PROXY=0` (el valor por defecto) la API no se fía, y el costo es que todas las peticiones de la web cuentan como **una sola IP** —la del servidor web— para el bloqueo por IP y el tope de caudal. El bloqueo por correo no cambia. Para contar por IP real hace falta un proxy inverso delante de la web que **reescriba** la cabecera (Caddy, nginx con `$remote_addr`, Cloudflare) y `TRUST_PROXY=1`: Next no agrega su propio salto, así que es 1 aunque haya dos proxies.
 
 ### Por qué los refrescos se hashean con SHA-256 y no con argon2id
 
@@ -283,6 +297,7 @@ Las rutas protegidas solo aceptan el token de acceso de una sesión. Un token pe
 ## Estado
 
 - Feature flag: **`FEATURE_IDENTITY=true`** desde el cierre de H2 (0.3.0).
-- **La navegación de la web no muestra identidad**: el mismo flag enciende API y menú, y `/identity` no existe todavía. El manifest sigue en `apps/web/src/features/identity/` y vuelve al registro cuando haya pantalla.
+- **La web tiene `/login` y cierre de sesión** (H3, tarea 08), con E2E en móvil y escritorio (`pnpm test:e2e`).
+- **La navegación de la web no muestra identidad**: el mismo flag enciende API y menú, y `/identity` (la pantalla de cuenta) no existe todavía. El manifest sigue en `apps/web/src/features/identity/` y vuelve al registro cuando haya pantalla.
 - Escenarios: [`features/identity/`](../../features/identity/)
 - Controles de seguridad cubiertos: [`docs/quality/asvs-checklist.md`](../quality/asvs-checklist.md)
