@@ -131,6 +131,17 @@ Responde **201** con `{ transactions, transfers, alreadyImported, createdCategor
 - Los meses salen en español de Perú (`es-PE`): «setiembre», no «septiembre».
 - La caché de la web **se vacía al terminar la sesión**, para que quien entre después no vea ni por un instante los datos del anterior.
 
+**Registrar y corregir** (`/transactions/new`, `/transactions/{id}`, `/transactions/transfers/{id}`):
+
+- **Formulario rápido:** monto, categoría, método de pago y fecha (hoy en Lima, sin fechas futuras). Descripción, comercio y etiquetas van plegados en «Más detalles». Un gasto se registra con cinco toques la primera vez y cuatro después, porque el método de pago se recuerda.
+- **El tipo sale de la categoría**, agrupadas por tipo con el gasto variable primero y sus subcategorías debajo («Comida › Mercado»). Solo se ofrecen las activas; al corregir, la que ya tenía el movimiento sigue a la vista aunque esté archivada.
+- **El monto se lee con `parseAmount` del dominio** y se manda como texto (`"1234.50"`): acepta `1,234.50` o `S/ 25`, rechaza un tercer decimal (no redondea) y `1.234,50` por ambiguo.
+- **Descripción propuesta:** si queda vacía, se usa el nombre de la categoría, o «Transferencia <origen> → <destino>» (decidido con el autor el 2026-09-28).
+- **Moneda:** la da el método de pago. Se recuerda el último método usado **en ese navegador** (`localStorage`, solo una comodidad). Sin método, o con uno bimoneda, hay que elegir la moneda: **no hay valor por defecto**, nunca se suponen soles.
+- **Transferencias:** desde y hacia una cuenta propia. Si la moneda cambia, se pide el monto recibido, copiado del voucher: nunca se convierte.
+- **Errores junto a su campo** (`aria-describedby`), traducidos desde el código de la API. El botón se desactiva mientras se guarda: no se envía dos veces.
+- **Borrar no pide confirmación:** muestra «Deshacer» durante 6 segundos, que llama a `restore` (decisión 6 de H3). Se borra desde la lista o desde la corrección.
+
 ## Eventos de dominio
 
 Se publican **después de guardar**, esperando a los oyentes, y llevan solo ids (ADR-0004). Nadie los escucha todavía: existen para que el presupuesto (H4), las tarjetas (H5) y los resúmenes (H6) no tengan que tocar este módulo.
@@ -217,4 +228,4 @@ El monto viaja como **string decimal** (`"25.90"`) y la fecha como `YYYY-MM-DD`.
 
 - Feature flag: `FEATURE_TRANSACTIONS` (**apagado** hasta cumplir la Definition of Done)
 - Escenarios: [`features/transactions/`](../../features/transactions/)
-- Web: `/transactions` con la lista (tarea 09, PR A1). El formulario (crear, editar, transferencias, etiquetas) y borrar con «Deshacer» llegan en el PR A2; la importación CSV, en el PR B. Con el flag apagado la pantalla responde 404, igual que la API.
+- Web: `/transactions` con la lista (tarea 09, PR A1) y el formulario para registrar, corregir y borrar con «Deshacer» (PR A2). La importación CSV llega en el PR B. Con el flag apagado la pantalla responde 404, igual que la API.

@@ -1,7 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import type { Clock } from '@sol-a-sol/domain';
 
@@ -10,6 +11,7 @@ import { currentMonth, formatMonth, systemClock } from '@/shared/time/dates';
 import { FilterBar } from './filter-bar';
 import { type Filters, readFilters, writeFilters } from './filters';
 import { categoriesById } from './labels';
+import { useDeleteWithUndo } from './movement-editor';
 import { MovementList } from './movement-list';
 import { useCategories, useMovements, usePaymentMethods, useTags } from './queries';
 import { TotalsSummary } from './totals-summary';
@@ -42,6 +44,8 @@ export function TransactionsScreen({ clock = systemClock }: Readonly<{ clock?: C
   const categoryTree = useCategories();
   const paymentMethods = usePaymentMethods();
   const tags = useTags();
+  const deleteWithUndo = useDeleteWithUndo();
+  const [deleteFailed, setDeleteFailed] = useState(false);
 
   const categories = useMemo(() => categoriesById(categoryTree.data ?? []), [categoryTree.data]);
   const methods = useMemo(
@@ -58,7 +62,16 @@ export function TransactionsScreen({ clock = systemClock }: Readonly<{ clock?: C
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-6">
-      <h1 className="text-2xl font-bold tracking-tight">Transacciones</h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold tracking-tight">Transacciones</h1>
+        {/* En el teléfono queda fijo abajo, al alcance del pulgar. */}
+        <Link
+          href="/transactions/new"
+          className="fixed right-4 bottom-4 z-10 rounded-full bg-amber-500 px-5 py-3 font-semibold text-white shadow-lg hover:bg-amber-600 sm:static sm:rounded-md sm:px-4 sm:py-2 sm:shadow-none"
+        >
+          + Registrar
+        </Link>
+      </div>
 
       <FilterBar
         filters={filters}
@@ -82,6 +95,12 @@ export function TransactionsScreen({ clock = systemClock }: Readonly<{ clock?: C
         </div>
       )}
 
+      {deleteFailed && (
+        <p role="alert" className="text-sm text-red-700">
+          No se pudo borrar. Inténtalo de nuevo.
+        </p>
+      )}
+
       {movements.isSuccess && (
         <>
           <TotalsSummary totals={totals} />
@@ -98,6 +117,12 @@ export function TransactionsScreen({ clock = systemClock }: Readonly<{ clock?: C
               paymentMethods={methods}
               onTag={(tag) => {
                 setFilters({ ...filters, tag });
+              }}
+              onDelete={(kind, id) => {
+                setDeleteFailed(false);
+                void deleteWithUndo(kind, id).then((deleted) => {
+                  setDeleteFailed(!deleted);
+                });
               }}
             />
           )}

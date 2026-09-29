@@ -15,7 +15,7 @@ export function limaDates(): { today: string; lastMonth: string } {
 }
 
 /**
- * Deja en la cuenta un método de pago y tres gastos: dos de hoy (uno con etiqueta) y uno del mes
+ * Deja en la cuenta dos métodos de pago (una cuenta y efectivo) y tres gastos: dos de hoy (uno con etiqueta) y uno del mes
  * anterior. Usa la categoría «Comida», que llega con la semilla al registrarse.
  */
 export async function seedMovements({ email, password }: Account): Promise<void> {
@@ -32,6 +32,11 @@ export async function seedMovements({ email, password }: Account): Promise<void>
     body: { kind: 'ACCOUNT', alias: 'BCP Sueldo', institution: 'BCP', currency: 'PEN' },
   });
   if (!method.data) throw new Error(`Payment method answered ${String(method.response.status)}.`);
+  const cash = await api.POST('/api/v1/payment-methods', {
+    headers,
+    body: { kind: 'CASH', alias: 'Efectivo', currency: 'PEN' },
+  });
+  if (!cash.data) throw new Error(`Payment method answered ${String(cash.response.status)}.`);
 
   const dates = limaDates();
   const expenses = [
