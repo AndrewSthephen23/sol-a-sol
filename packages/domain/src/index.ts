@@ -226,3 +226,16 @@ export {
   type MonthlyDashboardInput,
   type TypeTable,
 } from './reports/monthly-dashboard.js';
+export {
+  assertPaymentDueRule,
+  assertStatementDay,
+  type BillingCycle,
+  computeBillingCycle,
+  computePaymentDueDate,
+  InvalidPaymentDueRuleError,
+  InvalidStatementDayError,
+  MAX_DAYS_AFTER_STATEMENT,
+  nextBillingCycle,
+  type PaymentDueRule,
+  previousBillingCycle,
+} from './credit-cards/billing-cycle.js';
