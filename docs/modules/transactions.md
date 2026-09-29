@@ -1,6 +1,6 @@
 # Módulo Transacciones (`transactions`)
 
-> Ficha del módulo. Estado: **en construcción** (hito H3). Hoy se registra, se lista con filtros, se lee, se corrige, se borra (lógicamente) y se restaura una transacción. Flag **apagado**.
+> Ficha del módulo. Estado: **completo** (hito H3, versión 0.4.0), en la API y en la web. Transacciones con alta, corrección, borrado lógico y restaurar; listado con filtros, búsqueda, cursor y totales; transferencias entre cuentas propias; etiquetas; importación CSV en dos pasos. Flag **encendido**.
 
 ## Qué resuelve
 
@@ -233,6 +233,6 @@ El monto viaja como **string decimal** (`"25.90"`) y la fecha como `YYYY-MM-DD`.
 
 ## Estado
 
-- Feature flag: `FEATURE_TRANSACTIONS` (**apagado** hasta cumplir la Definition of Done)
-- Escenarios: [`features/transactions/`](../../features/transactions/)
+- Feature flag: **`FEATURE_TRANSACTIONS=true`** desde el cierre de H3 (0.4.0).
+- Escenarios: [`features/transactions/`](../../features/transactions/). `transactions.feature` se ejecuta entero con `pnpm test:bdd` (salvo la tasa de ahorro, que es de H6); `transfers`, `tags` e `import` siguen **`@pendiente`**, sin pasos todavía (decisión 7 de H3, 2026-09-29). Sus reglas están cubiertas por las pruebas unitarias y de integración.
 - Web: `/transactions` con la lista (tarea 09, PR A1), el formulario para registrar, corregir y borrar con «Deshacer» (PR A2) y la importación CSV (PR B). Con el flag apagado la pantalla responde 404, igual que la API.
