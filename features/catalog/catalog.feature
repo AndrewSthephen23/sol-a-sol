@@ -1,4 +1,7 @@
 # language: es
+# @pendiente: los pasos de este archivo todavía no están escritos (decisión 7 de H3, 2026-09-29).
+# `pnpm test:bdd` lo deja fuera hasta que se implementen; quitar la etiqueta es la forma de sumarlo.
+@pendiente
 Característica: Catálogo
   Para saber en qué se va mi plata y con qué la pago
   Como dueño de mis finanzas

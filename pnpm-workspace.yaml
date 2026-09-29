@@ -40,6 +40,10 @@ allowBuilds:
   cpu-features: false
   ssh2: false
   protobufjs: false
+  # Llega con `tsx` (solo desarrollo, carga los pasos de Cucumber). Su script solo verifica el
+  # binario de la plataforma, que ya instala como dependencia opcional (`@esbuild/<plataforma>`):
+  # comprobado cargando los pasos con el script desactivado.
+  esbuild: false
 # Parches a dependencias. Cada uno debe quitarse cuando exista la corrección oficial.
 patchedDependencies:
   # Con Vitest 5, el runner de Stryker filtra las pruebas por nombre uniendo la cadena

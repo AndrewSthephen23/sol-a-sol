@@ -1,4 +1,7 @@
 # language: es
+# @pendiente: los pasos de este archivo todavía no están escritos (decisión 7 de H3, 2026-09-29).
+# `pnpm test:bdd` lo deja fuera hasta que se implementen; quitar la etiqueta es la forma de sumarlo.
+@pendiente
 Característica: Importar mis transacciones desde un CSV
   Para traer el historial que llevaba en mi hoja de cálculo
   Como dueño de mis finanzas

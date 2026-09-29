@@ -44,14 +44,14 @@ El hook `commit-msg` los valida localmente y CI los vuelve a validar en el PR.
 - **Un bug corregido = una prueba que lo reproduce primero.**
 - Nada de pruebas que dependan del reloj real, de la red externa o del orden de ejecución.
 
-| Nivel       | Herramienta             | Alcance                                              | Umbral                                        |
-| ----------- | ----------------------- | ---------------------------------------------------- | --------------------------------------------- |
-| Unitarias   | Vitest                  | dominio, parsers, casos de uso con puertos simulados | líneas ≥ 90 % en `domain` y `capture-parsers` |
-| Mutación    | Stryker                 | `packages/domain`                                    | mutation score ≥ 80 %                         |
-| Integración | Vitest + Testcontainers | repositorios Prisma, controllers, autorización       | cada endpoint: caso feliz + acceso denegado   |
-| BDD         | Cucumber.js             | reglas de negocio                                    | un `.feature` por módulo                      |
-| E2E         | Playwright              | login, registrar gasto, dashboard, confirmar captura | verde en escritorio y móvil                   |
-| Global      | —                       | todo el repositorio                                  | cobertura ≥ 80 %                              |
+| Nivel       | Herramienta             | Alcance                                              | Umbral                                                        |
+| ----------- | ----------------------- | ---------------------------------------------------- | ------------------------------------------------------------- |
+| Unitarias   | Vitest                  | dominio, parsers, casos de uso con puertos simulados | líneas ≥ 90 % en `domain` y `capture-parsers`                 |
+| Mutación    | Stryker                 | `packages/domain`                                    | mutation score ≥ 80 %                                         |
+| Integración | Vitest + Testcontainers | repositorios Prisma, controllers, autorización       | cada endpoint: caso feliz + acceso denegado                   |
+| BDD         | Cucumber.js             | reglas de negocio, contra dominio y casos de uso     | un `.feature` por módulo; sin `@pendiente` al cerrar su tarea |
+| E2E         | Playwright              | login, registrar gasto, dashboard, confirmar captura | verde en escritorio y móvil                                   |
+| Global      | —                       | todo el repositorio                                  | cobertura ≥ 80 %                                              |
 
 ## Antes de abrir el PR
 
@@ -61,6 +61,7 @@ pnpm test:integration   # si tocaste API, base de datos o migraciones
 pnpm test:mutation      # si tocaste packages/domain (también corre en CI)
 pnpm api:client         # si cambiaste rutas o esquemas de la API: versiona el resultado
 pnpm test:e2e           # si tocaste la web o la sesión (requiere Docker)
+pnpm test:bdd           # si tocaste reglas de negocio o un .feature
 ```
 
 ### Definition of Done

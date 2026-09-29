@@ -1,4 +1,7 @@
 # language: es
+# @pendiente: los pasos de este archivo todavía no están escritos (decisión 7 de H3, 2026-09-29).
+# `pnpm test:bdd` lo deja fuera hasta que se implementen; quitar la etiqueta es la forma de sumarlo.
+@pendiente
 Característica: Transferencias entre mis cuentas
   Para saber dónde está mi plata sin inflar mis ingresos ni mis gastos
   Como dueño de mis finanzas

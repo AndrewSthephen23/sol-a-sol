@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:bdd": "node --import tsx node_modules/@cucumber/cucumber/bin/cucumber.js",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
@@ -42,6 +43,7 @@
     "zod": "4.6.5"
   },
   "devDependencies": {
+    "@cucumber/cucumber": "13.2.1",
     "@nestjs/cli": "12.0.1",
     "@nestjs/testing": "12.0.2",
     "@sol-a-sol/config": "workspace:*",
@@ -53,6 +55,7 @@
     "eslint": "10.10.0",
     "prisma": "7.10.0",
     "supertest": "7.2.2",
+    "tsx": "4.23.15",
     "typescript": "6.0.3",
     "unplugin-swc": "1.6.0",
     "vitest": "5.0.0"

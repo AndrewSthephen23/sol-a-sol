@@ -53,6 +53,8 @@ describe('planModule', () => {
 
     expect(feature?.contents).toContain('# language: es');
     expect(feature?.contents).toContain('Característica:');
+    // Sin pasos todavía: `pnpm test:bdd` es estricto y lo dejaría en rojo sin la etiqueta.
+    expect(feature?.contents).toContain('@pendiente\nCaracterística:');
   });
 
   it('lists the files it has to edit', () => {

@@ -14,9 +14,14 @@ Característica: Transacciones
       Entonces queda guardado por "S/ 25.90"
       Y resta "S/ 25.90" al saldo del mes
 
-    Escenario: Un monto cero o negativo se rechaza
-      Cuando intento registrar un gasto de "S/ -25.90"
+    Esquema del escenario: Un monto cero o negativo se rechaza
+      Cuando intento registrar un gasto de "<monto>"
       Entonces se rechaza porque el monto debe ser mayor que cero
+
+      Ejemplos:
+        | monto      |
+        | S/ 0.00    |
+        | S/ -25.90  |
 
     Escenario: El ahorro también sale de lo disponible
       Cuando registro un ahorro de "S/ 500.00"
@@ -31,6 +36,8 @@ Característica: Transacciones
       Entonces ese pago no está incluido
       Pero sí resta del saldo del mes
 
+    # @pendiente: la tasa de ahorro llega con los resúmenes (H6); el dominio todavía no la calcula.
+    @pendiente
     Escenario: La inversión cuenta para la tasa de ahorro
       Dado que en el mes tuve ingresos por "S/ 4,000.00"
       Y ahorré "S/ 400.00" e invertí "S/ 200.00"
