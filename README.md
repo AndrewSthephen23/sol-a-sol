@@ -12,6 +12,8 @@ Plataforma personal para ordenar mis finanzas y avanzar hacia la libertad financ
 
 ✅ **H2 — Identidad** publicado en [v0.3.0](https://github.com/AndrewSthephen23/sol-a-sol/releases/tag/v0.3.0): el módulo `identity` encendido, con registro configurable, inicio de sesión, sesión renovable en cookie, segundo factor TOTP con códigos de recuperación, tokens personales por dispositivo, bloqueo progresivo por intentos, bitácora de seguridad, cabeceras con `helmet` y CORS restringido. La web todavía no tiene pantallas de identidad: es un hito de API.
 
+✅ **H3 — Catálogo y transacciones** publicado en [v0.4.0](https://github.com/AndrewSthephen23/sol-a-sol/releases/tag/v0.4.0): `catalog` y `transactions` encendidos, con categorías (semilla, jerarquía, fusión y conversión en etiqueta), métodos de pago, transacciones que se corrigen y se deshacen al borrar, listado con filtros, búsqueda y totales por moneda, transferencias entre cuentas propias, etiquetas e importación CSV en dos pasos. **Primer hito con interfaz**: inicio de sesión con segundo factor, la lista del mes, el formulario rápido para el teléfono y la importación, con una política de contenido estricta con nonce. Escenarios Gherkin ejecutables con Cucumber y E2E con Playwright en móvil y escritorio.
+
 ## Documentación
 
 | Documento                                                        | Para qué                                                               |
@@ -191,8 +193,8 @@ Las rutas de un módulo con su feature flag apagado **no aparecen** en el docume
 Cada versión publica en GHCR las mismas imágenes de producción que construye `docker-compose.test.yml`:
 
 ```bash
-docker pull ghcr.io/andrewsthephen23/sol-a-sol-api:0.3.0
-docker pull ghcr.io/andrewsthephen23/sol-a-sol-web:0.3.0
+docker pull ghcr.io/andrewsthephen23/sol-a-sol-api:0.4.0
+docker pull ghcr.io/andrewsthephen23/sol-a-sol-web:0.4.0
 ```
 
 Cada imagen lleva dos etiquetas: `X.Y.Z` y `sha-<commit>`. No hay `latest`: obliga a decir qué versión se despliega. El job solo corre cuando el push a `main` trae una versión nueva, tiene `packages: write` únicamente para él, y **no publica nada** hasta que las imágenes pasan el bloqueo de Trivy y un smoke test que las arranca.
