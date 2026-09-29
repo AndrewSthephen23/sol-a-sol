@@ -46,3 +46,17 @@ Montos como **string decimal**; la parte de la dona (`share`) como string **sin 
 
 - Feature flag: `FEATURE_REPORTS` (**apagado** hasta cumplir la Definition of Done).
 - Escenarios: [`features/reports/`](../../features/reports/), `@pendiente` hasta la tarea 09.
+- Web: el dashboard vive en `/` (manifest `dashboard`, decisión 10 de H4). Con el flag apagado, `/` muestra la bienvenida en vez de un 404, porque es a donde se llega al entrar. Encendido en las pruebas E2E.
+
+## Pantalla (web)
+
+`/?month=2026-09`: el mes vive en la URL, con el mismo selector que la lista de transacciones y el presupuesto. Un bloque por moneda, sin convertir nunca:
+
+- **KPIs:** ingresos, gastos, ahorro e inversión, deuda y saldo. **El saldo negativo va en rojo y con su signo**, no solo con color.
+- **Gasto por día:** una barra por día (gasto fijo + variable, con los días en cero). Debajo va una frase con el total, los días y el de más gasto, que es la **alternativa en texto** del gráfico. El gráfico va con `aria-hidden`.
+- **Gasto por categoría:** la dona con los colores del catálogo («Otras» en gris). Su leyenda es la versión en texto, con el % a 2 decimales (redondeo bancario). **Cada categoría enlaza a sus movimientos del mes** (`/transactions?month=…&categoryId=…`, con sus subcategorías); «Otras» no enlaza.
+- **Tablas por tipo:** cada categoría madre con su monto, y el total.
+
+**Recharts y la CSP.** La política no permite `'unsafe-inline'` en estilos, y Recharts pone estilos en línea. Por eso los gráficos se dibujan **solo en el navegador**, después de hidratar (`ClientOnly`): desde ahí los estilos van por CSSOM (`element.style`), que la CSP permite, y nunca llegan en el HTML del servidor. Los colores de las porciones y de la leyenda van como atributo `fill` del SVG, no como `style`. La E2E falla si el navegador bloquea algo.
+
+Los montos llegan como string y se muestran con `formatMoney`. Solo para dibujar la altura de una barra o el ángulo de una porción se pasan a número (`chartNumber`), nunca para mostrar ni para calcular. Como `/` cambia con cada movimiento registrado en otra pantalla, el resumen se vuelve a pedir cada vez que se entra.
