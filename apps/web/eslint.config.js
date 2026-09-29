@@ -7,7 +7,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 // No se usa `eslint-config-next`: arrastra eslint-plugin-react 7.x, incompatible con ESLint 10.
 // Se componen a mano los plugins que sí funcionan con ESLint 10.
 export default defineConfig(
-  globalIgnores(['.next/**', 'coverage/**', 'next-env.d.ts']),
+  globalIgnores(['.next/**', 'coverage/**', 'next-env.d.ts', 'src/shared/api/schema.gen.ts']),
   base,
   nextPlugin.configs['core-web-vitals'],
   reactHooks.configs.flat['recommended-latest'],
