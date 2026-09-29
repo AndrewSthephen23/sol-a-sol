@@ -38,6 +38,7 @@ model User {
   transfers            Transfer[]
   tags                 Tag[]
   budgets              Budget[]
+  budgetLines          BudgetLine[]
 
   @@map("users")
 }
@@ -337,16 +338,16 @@ model Transaction {
   paymentMethod   PaymentMethod?    @relation(fields: [paymentMethodId, userId], references: [id, userId], onDelete: NoAction, onUpdate: NoAction)
   tags            TransactionTag[]
 
-  /// Por donde se lista y se filtra siempre: las transacciones de un usuario en un rango de fechas.
-  @@index([userId, date])
-  /// Para que comprobar "¿esta categoría o este método tienen transacciones?" no recorra la tabla.
-  @@index([categoryId])
-  @@index([paymentMethodId])
   /// Destino de la clave foránea compuesta de `TransactionTag`: `id` ya es único; esto solo le da
   /// a PostgreSQL el índice que exige para referenciar las dos columnas juntas.
   @@unique([id, userId])
   /// Una fila del CSV entra una sola vez por cuenta; las que no se importaron (nulas) no chocan.
   @@unique([userId, importKey])
+  /// Por donde se lista y se filtra siempre: las transacciones de un usuario en un rango de fechas.
+  @@index([userId, date])
+  /// Para que comprobar "¿esta categoría o este método tienen transacciones?" no recorra la tabla.
+  @@index([categoryId])
+  @@index([paymentMethodId])
   @@map("transactions")
 }
 
@@ -377,13 +378,13 @@ model Transfer {
   from                PaymentMethod     @relation("TransferFrom", fields: [fromPaymentMethodId, userId], references: [id, userId], onDelete: NoAction, onUpdate: NoAction)
   to                  PaymentMethod     @relation("TransferTo", fields: [toPaymentMethodId, userId], references: [id, userId], onDelete: NoAction, onUpdate: NoAction)
 
+  /// Una fila del CSV entra una sola vez por cuenta; las que no se importaron (nulas) no chocan.
+  @@unique([userId, importKey])
   /// Por donde se lista, igual que las transacciones.
   @@index([userId, date])
   /// Para que comprobar "¿este método tiene movimientos?" no recorra la tabla.
   @@index([fromPaymentMethodId])
   @@index([toPaymentMethodId])
-  /// Una fila del CSV entra una sola vez por cuenta; las que no se importaron (nulas) no chocan.
-  @@unique([userId, importKey])
   @@map("transfers")
 }
 
@@ -459,6 +460,10 @@ model BudgetLine {
   currency      Currency
   createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  /// Directo al usuario, como `transactions`: al borrar la cuenta, la partida se va en el mismo
+  /// nivel que sus categorías. Colgando solo del presupuesto quedaba un nivel más abajo, y la
+  /// clave hacia `categories` se revisaba antes de borrarla.
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   budget        Budget          @relation(fields: [budgetId, userId], references: [id, userId], onDelete: Cascade)
   category      Category        @relation(fields: [categoryId, userId, type], references: [id, userId, type], onDelete: NoAction, onUpdate: NoAction)
 

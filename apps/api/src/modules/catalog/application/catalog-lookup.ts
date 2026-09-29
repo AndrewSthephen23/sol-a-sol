@@ -11,13 +11,14 @@ import {
 export interface CategoryReference {
   type: TransactionType;
   archived: boolean;
+  /** Nulo en una categoría de primer nivel: el presupuesto solo acepta esas. */
+  parentId: string | null;
 }
 
 /** Una categoría de la cuenta, para buscarla por nombre (la importación). */
 export interface CategoryEntry extends CategoryReference {
   id: string;
   name: string;
-  parentId: string | null;
 }
 
 /** Un método de pago de la cuenta, para buscarlo por alias (la importación). */
@@ -51,7 +52,11 @@ export class CatalogLookup {
     const category = await this.categories.find(userId, id);
     if (category === null) return null;
 
-    return { type: category.type, archived: category.archivedAt !== null };
+    return {
+      type: category.type,
+      archived: category.archivedAt !== null,
+      parentId: category.parentId,
+    };
   }
 
   /**

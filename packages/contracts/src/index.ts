@@ -92,3 +92,12 @@ export {
   type PaymentMethodDecision,
   paymentMethodDecisionSchema,
 } from './transactions/import.js';
+export {
+  BUDGET_LINES_MAX_ITEMS,
+  type BudgetLineRequest,
+  budgetLineRequestSchema,
+  type BudgetMonthParams,
+  budgetMonthParamsSchema,
+  type PutBudgetRequest,
+  putBudgetRequestSchema,
+} from './budgeting/budgets.js';
