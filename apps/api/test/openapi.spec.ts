@@ -49,6 +49,7 @@ describe('GET /openapi.json', () => {
     process.env.FEATURE_IDENTITY = 'true';
     process.env.FEATURE_CATALOG = 'true';
     process.env.FEATURE_TRANSACTIONS = 'true';
+    process.env.FEATURE_BUDGETING = 'true';
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     configureApp(app);
@@ -60,6 +61,7 @@ describe('GET /openapi.json', () => {
     delete process.env.FEATURE_IDENTITY;
     delete process.env.FEATURE_CATALOG;
     delete process.env.FEATURE_TRANSACTIONS;
+    delete process.env.FEATURE_BUDGETING;
     await app.close();
   });
 
@@ -137,6 +139,15 @@ describe('GET /openapi.json', () => {
 
       process.env.FEATURE_TRANSACTIONS = 'true';
       expect(JSON.stringify(response.body)).not.toContain('/transactions');
+    });
+
+    it('leaves the budget out too', async () => {
+      process.env.FEATURE_BUDGETING = 'false';
+
+      const response = await request(server).get(DOCUMENT).expect(200);
+
+      process.env.FEATURE_BUDGETING = 'true';
+      expect(JSON.stringify(response.body)).not.toContain('/budgets');
     });
   });
 });

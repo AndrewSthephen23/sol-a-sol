@@ -25,6 +25,7 @@ import {
   updateTransferRequestSchema,
   loginRequestSchema,
   mergeCategoryRequestSchema,
+  putBudgetRequestSchema,
   problemDetailsSchema,
   PROBLEM_CONTENT_TYPE,
   registerRequestSchema,
@@ -1246,11 +1247,99 @@ function transactionsPaths(): Record<string, unknown> {
   };
 }
 
+const BUDGET_SCHEMA = schemaOf(
+  z.object({
+    year: z.int(),
+    month: z.int().min(1).max(12),
+    lines: z
+      .array(
+        z.object({
+          categoryId: z.uuid().describe('Una categoría **madre**: suma lo real de sus hijas.'),
+          type: transactionTypeSchema.describe('El de su categoría.'),
+          plannedAmount: z
+            .string()
+            .describe('String decimal con 2 decimales (`"800.00"`), cero o más.'),
+          currency: currencySchema,
+        }),
+      )
+      .describe(
+        'Una por categoría y moneda, en el orden en que se guardaron. `[]` sin presupuesto.',
+      ),
+  }),
+);
+
+const BUDGET_MONTH_PARAMETERS = [
+  { name: 'year', in: 'path', required: true, schema: { type: 'string', pattern: '^\\d{4}$' } },
+  {
+    name: 'month',
+    in: 'path',
+    required: true,
+    schema: { type: 'string', pattern: '^\\d{1,2}$' },
+    description: '1 a 12.',
+  },
+];
+
+function budgetingPaths(): Record<string, unknown> {
+  const unauthorized = problem('Falta el token de acceso o no vale.');
+  const forbidden = problem(
+    'Llegó un token personal: el presupuesto solo se gestiona desde una sesión.',
+  );
+
+  return {
+    [`/${API_PREFIX}/budgets/{year}/{month}`]: {
+      get: {
+        tags: ['budgeting'],
+        summary: 'Devuelve el presupuesto de un mes.',
+        description:
+          'Un mes sin presupuesto responde **200 con `lines: []`**: no haberlo armado no es un error.',
+        security: [{ accessToken: [] }],
+        parameters: BUDGET_MONTH_PARAMETERS,
+        responses: {
+          '200': {
+            description: 'Las partidas del mes.',
+            content: { 'application/json': { schema: BUDGET_SCHEMA } },
+          },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem('El módulo está apagado.'),
+          '422': problem('El año o el mes no son válidos (`BUDGET_MONTH_INVALID`).'),
+        },
+      },
+      put: {
+        tags: ['budgeting'],
+        summary: 'Guarda el presupuesto de un mes entero.',
+        description:
+          'La lista **reemplaza** a la anterior (`[]` lo vacía) y entra toda o nada. Cualquier mes, ' +
+          'pasado o futuro. Cada partida va en una categoría **madre** y activa de la cuenta, una ' +
+          'por categoría y moneda, con un monto de cero o más. Una partida que el mes ya tenía se ' +
+          'puede volver a mandar aunque su categoría se haya archivado después.',
+        security: [{ accessToken: [] }],
+        parameters: BUDGET_MONTH_PARAMETERS,
+        requestBody: jsonBody(putBudgetRequestSchema),
+        responses: {
+          '200': {
+            description: 'El presupuesto como quedó.',
+            content: { 'application/json': { schema: BUDGET_SCHEMA } },
+          },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem('Una categoría no existe o es de otra cuenta; o el módulo está apagado.'),
+          '422': problem(
+            'El cuerpo no tiene la forma esperada, o una partida rompe una regla: monto negativo o ' +
+              'con más de 2 decimales, subcategoría, categoría archivada, repetida, o mes inválido.',
+          ),
+        },
+      },
+    },
+  };
+}
+
 /** Rutas que aporta cada módulo de negocio, para omitirlas cuando su flag está apagado. */
 const PATHS_BY_MODULE: Partial<Record<FeatureModule, () => Record<string, unknown>>> = {
   identity: identityPaths,
   catalog: catalogPaths,
   transactions: transactionsPaths,
+  budgeting: budgetingPaths,
 };
 
 export interface OpenApiOptions {

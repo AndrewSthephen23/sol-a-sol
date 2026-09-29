@@ -130,6 +130,16 @@ describe('budgeting tables', () => {
     ).resolves.not.toBeNull();
   });
 
+  it('goes away with its account, lines and all', async () => {
+    const owner = await createOwner('budget-cuenta@example.com');
+    await line(owner);
+
+    await prisma.user.delete({ where: { id: owner.user.id } });
+
+    await expect(prisma.budget.count({ where: { userId: owner.user.id } })).resolves.toBe(0);
+    await expect(prisma.budgetLine.count({ where: { userId: owner.user.id } })).resolves.toBe(0);
+  });
+
   it('does not let a category with lines be deleted', async () => {
     const owner = await createOwner('budget-categoria@example.com');
     await line(owner);

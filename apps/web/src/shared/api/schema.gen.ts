@@ -3572,6 +3572,200 @@ export interface paths {
         };
         trace?: never;
     };
+    "/api/v1/budgets/{year}/{month}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Devuelve el presupuesto de un mes.
+         * @description Un mes sin presupuesto responde **200 con `lines: []`**: no haberlo armado no es un error.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    year: string;
+                    /** @description 1 a 12. */
+                    month: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Las partidas del mes. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            year: number;
+                            month: number;
+                            /** @description Una por categoría y moneda, en el orden en que se guardaron. `[]` sin presupuesto. */
+                            lines: {
+                                /**
+                                 * Format: uuid
+                                 * @description Una categoría **madre**: suma lo real de sus hijas.
+                                 */
+                                categoryId: string;
+                                /**
+                                 * @description El de su categoría.
+                                 * @enum {string}
+                                 */
+                                type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
+                                /** @description String decimal con 2 decimales (`"800.00"`), cero o más. */
+                                plannedAmount: string;
+                                /** @enum {string} */
+                                currency: "PEN" | "USD";
+                            }[];
+                        };
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: el presupuesto solo se gestiona desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El año o el mes no son válidos (`BUDGET_MONTH_INVALID`). */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        /**
+         * Guarda el presupuesto de un mes entero.
+         * @description La lista **reemplaza** a la anterior (`[]` lo vacía) y entra toda o nada. Cualquier mes, pasado o futuro. Cada partida va en una categoría **madre** y activa de la cuenta, una por categoría y moneda, con un monto de cero o más. Una partida que el mes ya tenía se puede volver a mandar aunque su categoría se haya archivado después.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    year: string;
+                    /** @description 1 a 12. */
+                    month: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        lines: {
+                            /** Format: uuid */
+                            categoryId: string;
+                            plannedAmount: string;
+                            /** @enum {string} */
+                            currency: "PEN" | "USD";
+                        }[];
+                    };
+                };
+            };
+            responses: {
+                /** @description El presupuesto como quedó. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            year: number;
+                            month: number;
+                            /** @description Una por categoría y moneda, en el orden en que se guardaron. `[]` sin presupuesto. */
+                            lines: {
+                                /**
+                                 * Format: uuid
+                                 * @description Una categoría **madre**: suma lo real de sus hijas.
+                                 */
+                                categoryId: string;
+                                /**
+                                 * @description El de su categoría.
+                                 * @enum {string}
+                                 */
+                                type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
+                                /** @description String decimal con 2 decimales (`"800.00"`), cero o más. */
+                                plannedAmount: string;
+                                /** @enum {string} */
+                                currency: "PEN" | "USD";
+                            }[];
+                        };
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: el presupuesto solo se gestiona desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Una categoría no existe o es de otra cuenta; o el módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El cuerpo no tiene la forma esperada, o una partida rompe una regla: monto negativo o con más de 2 decimales, subcategoría, categoría archivada, repetida, o mes inválido. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {

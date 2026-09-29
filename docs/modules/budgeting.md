@@ -1,6 +1,6 @@
 # Módulo Presupuesto (`budgeting`)
 
-> Ficha del módulo. Estado: **en construcción** (hito H4). Hoy existen el módulo, sus tablas y sus reglas en el dominio; los endpoints y la pantalla llegan con las tareas siguientes. Flag **apagado**.
+> Ficha del módulo. Estado: **en construcción** (hito H4). Hoy se lee y se guarda el presupuesto de un mes; lo real contra lo planeado, copiar el mes anterior y la pantalla llegan con las tareas siguientes. Flag **apagado**.
 
 ## Qué resuelve
 
@@ -51,7 +51,7 @@ La base exige por su cuenta, aunque alguien se salte la aplicación:
 - **Una partida es de la misma cuenta que su presupuesto y que su categoría**: `budget_lines` lleva su propio `user_id` para que las claves foráneas compuestas `(budget_id, user_id)` y `(category_id, user_id, type)` lo garanticen.
 - **El tipo de la partida es el de su categoría.**
 - El mes está entre 1 y 12 y el monto planeado no es negativo (`CHECK`).
-- Borrar un presupuesto borra sus partidas; una categoría con partidas **no se puede borrar** (se archiva, como con las transacciones).
+- Borrar un presupuesto borra sus partidas, y borrar una cuenta borra sus presupuestos y partidas (la partida cuelga **directo** de su usuario, como una transacción). Una categoría con partidas **no se puede borrar** (se archiva, como con las transacciones).
 
 Que la categoría sea **madre** no lo puede exigir la base sin cruzar módulos: lo valida el dominio.
 
@@ -62,7 +62,18 @@ Que la categoría sea **madre** no lo puede exigir la base sin cruzar módulos: 
 
 ## Endpoints
 
-Llegan con las tareas 03 a 05 (`GET/PUT /budgets/{year}/{month}`, `POST /budgets/{year}/{month}/copy-from-previous`).
+Todos exigen una sesión (un token personal recibe 403), filtran por el `userId` del token y responden **404** con el flag apagado. El año y el mes de la ruta dicen **qué** mes, nunca de quién. Detalle en `/api/v1/openapi.json`.
+
+| Método | Ruta                      | Qué hace                                                                                |
+| ------ | ------------------------- | --------------------------------------------------------------------------------------- |
+| `GET`  | `/budgets/{year}/{month}` | Las partidas del mes. **Un mes sin presupuesto responde 200 con `lines: []`**, no 404   |
+| `PUT`  | `/budgets/{year}/{month}` | Guarda el mes **entero**: la lista reemplaza a la anterior (`[]` lo vacía), toda o nada |
+
+Cada partida viaja como `{ categoryId, plannedAmount, currency }`, con el monto como **string decimal**; la respuesta agrega el `type` de su categoría. Una categoría ajena o inexistente responde **404** (`CATEGORY_NOT_FOUND`); las reglas rotas, **422** con su código.
+
+**Una partida que el mes ya tenía se puede volver a mandar aunque su categoría se haya archivado después**: corregir un mes pasado no obliga a borrarla, igual que al corregir una transacción. Una partida **nueva** sí exige una categoría activa.
+
+Lo real contra lo planeado llega con la tarea 04, y copiar el mes anterior con la 05.
 
 ## Estado
 

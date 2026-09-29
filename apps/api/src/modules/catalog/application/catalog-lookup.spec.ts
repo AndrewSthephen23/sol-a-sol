@@ -46,11 +46,26 @@ describe('catalog lookup', () => {
   }
 
   describe('a category', () => {
-    it('tells its type and that it is active', async () => {
+    it('tells its type, that it is active and that it is top-level', async () => {
       await expect(lookup.category(ANA, await food())).resolves.toEqual({
         type: 'VARIABLE_EXPENSE',
         archived: false,
+        parentId: null,
       });
+    });
+
+    it('tells the parent of a subcategory', async () => {
+      const parent = await food();
+      const delivery = await categories.create({
+        userId: ANA,
+        type: 'VARIABLE_EXPENSE',
+        name: 'Delivery',
+        parentId: parent,
+        color: '#1E88E5',
+        icon: 'bike',
+      });
+
+      await expect(lookup.category(ANA, delivery.id)).resolves.toMatchObject({ parentId: parent });
     });
 
     it('tells that it is archived', async () => {
