@@ -106,7 +106,7 @@ Por eso la regla se protege en capas. Ninguna depende de las otras:
 
 ## API pública para otros módulos
 
-`CatalogLookup` (exportado por `index.ts`) responde, para una cuenta, **el tipo y si está archivada** una categoría, y **la moneda y si está archivado** un método de pago; `null` si no existe o es ajeno. Lo usa `transactions` para validar una transacción sin leer estas tablas. Devuelve lo mínimo a propósito: quien consulta no queda atado a la forma de las entidades.
+`CatalogLookup` (exportado por `index.ts`) responde, para una cuenta, **el tipo y si está archivada** una categoría, y **la moneda y si está archivado** un método de pago; `null` si no existe o es ajeno. Lo usan `transactions`, para validar una transacción, y `budgeting` y `reports` (H4), para subir lo de cada subcategoría a su madre, sin leer estas tablas. Devuelve lo mínimo a propósito: quien consulta no queda atado a la forma de las entidades.
 
 ## Endpoints
 

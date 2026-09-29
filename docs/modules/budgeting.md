@@ -1,6 +1,6 @@
 # Módulo Presupuesto (`budgeting`)
 
-> Ficha del módulo. Estado: **en construcción** (hito H4). La API está completa: leer y guardar el mes con lo real al lado, copiar el mes anterior y seguir las fusiones de categorías. La pantalla llega con la tarea 07. Flag **apagado**.
+> Ficha del módulo. Estado: **publicado en 0.5.0** (cierre de H4). Leer y guardar el presupuesto del mes con lo real al lado, copiar el mes anterior y seguir las fusiones de categorías, con su pantalla en `/budgeting`. Flag **encendido**.
 
 ## Qué resuelve
 
@@ -85,9 +85,9 @@ Cada partida viaja como `{ categoryId, plannedAmount, currency }`, con el monto 
 
 ## Estado
 
-- Feature flag: `FEATURE_BUDGETING` (**apagado** hasta cumplir la Definition of Done). Encendido en las pruebas E2E.
+- Feature flag: **`FEATURE_BUDGETING=true`** desde el cierre de H4 (0.5.0).
 - Escenarios: [`features/budgeting/`](../../features/budgeting/), en verde con `pnpm test:bdd`. Corren contra los casos de uso reales, con los fakes de los puertos, y leen lo real de las transacciones que el escenario registra.
-- Web: `/budgeting`, en el registro de navegación y oculta con el flag apagado (ver abajo).
+- Web: `/budgeting`, en el menú como «Presupuesto». Con el flag apagado la pantalla responde 404 y no aparece en el menú, igual que la API.
 
 ## Pantalla (web)
 

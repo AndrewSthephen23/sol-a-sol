@@ -1,6 +1,6 @@
 # Módulo Reportes (`reports`)
 
-> Ficha del módulo. Estado: **en construcción** (hito H4). Hoy da el **dashboard del mes** por la API; la pantalla llega con la tarea 08. Flag **apagado**. El resumen mensual y el anual llegan en H6.
+> Ficha del módulo. Estado: **publicado en 0.5.0** (cierre de H4): el **dashboard del mes**, en la API y en la página de inicio `/`. Flag **encendido**. El resumen mensual y el anual llegan en H6.
 
 ## Qué resuelve
 
@@ -44,9 +44,9 @@ Montos como **string decimal**; la parte de la dona (`share`) como string **sin 
 
 ## Estado
 
-- Feature flag: `FEATURE_REPORTS` (**apagado** hasta cumplir la Definition of Done).
+- Feature flag: **`FEATURE_REPORTS=true`** desde el cierre de H4 (0.5.0).
 - Escenarios: [`features/reports/`](../../features/reports/), en verde con `pnpm test:bdd`. Corren contra los casos de uso reales, con los fakes de los puertos, y leen lo real de las transacciones que el escenario registra.
-- Web: el dashboard vive en `/` (manifest `dashboard`, decisión 10 de H4). Con el flag apagado, `/` muestra la bienvenida en vez de un 404, porque es a donde se llega al entrar. Encendido en las pruebas E2E.
+- Web: el dashboard vive en `/` (manifest `dashboard`, decisión 10 de H4). Con el flag apagado, `/` muestra la bienvenida en vez de un 404, porque es a donde se llega al entrar.
 
 ## Pantalla (web)
 
