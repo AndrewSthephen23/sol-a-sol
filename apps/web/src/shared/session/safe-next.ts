@@ -1,7 +1,8 @@
 export const HOME = '/';
 
 const LOGIN = '/login';
-const BASE = 'http://sol-a-sol.invalid';
+// Solo una base para interpretar rutas; nunca se pide nada a este origen.
+const BASE = 'https://sol-a-sol.invalid';
 
 /**
  * A dónde volver después de entrar, sacado de `?next=`. Solo se acepta una ruta de la propia

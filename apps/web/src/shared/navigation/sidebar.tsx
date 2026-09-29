@@ -16,7 +16,7 @@ interface SidebarProps {
  * Usa enlaces normales porque hoy existe una sola ruta; cuando haya varias pantallas
  * conviene pasar a `next/link` para la navegación del lado del cliente.
  */
-export function Sidebar({ manifests, isEnabled, actions }: SidebarProps) {
+export function Sidebar({ manifests, isEnabled, actions }: Readonly<SidebarProps>) {
   const items = buildNavigation(manifests, isEnabled);
 
   return (

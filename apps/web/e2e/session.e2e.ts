@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import { expect, type Page, test } from '@playwright/test';
 
 import { type Account, createAccount, createAccountWithTotp } from './support/accounts';
@@ -78,7 +80,7 @@ test.describe('sesión', () => {
     const account = await createAccount();
     await page.goto('/login');
 
-    await signIn(page, { ...account, password: 'no-es-la-clave' });
+    await signIn(page, { ...account, password: randomUUID() });
 
     // Por texto: Next también pone en la página un `role="alert"`, vacío, para anunciar las rutas.
     await expect(

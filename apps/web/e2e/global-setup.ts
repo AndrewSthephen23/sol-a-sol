@@ -1,5 +1,6 @@
 import { type ChildProcess, execFileSync, spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
@@ -11,6 +12,11 @@ const POSTGRES_IMAGE = 'postgres:18.6-alpine3.24';
 const API_ROOT = fileURLToPath(new URL('../../api', import.meta.url));
 const WEB_ROOT = fileURLToPath(new URL('..', import.meta.url));
 const STARTUP_TIMEOUT_MS = 60_000;
+
+// Las CLI se ejecutan con este mismo `node` y por su ruta, no buscándolas en el `PATH`: así no
+// importa qué haya en él.
+const PRISMA_CLI = createRequire(`${API_ROOT}package.json`).resolve('prisma/build/index.js');
+const NEXT_CLI = createRequire(import.meta.url).resolve('next/dist/bin/next');
 
 /**
  * Levanta lo que usan las pruebas y devuelve cómo apagarlo:
@@ -25,7 +31,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   const container = await new PostgreSqlContainer(POSTGRES_IMAGE).start();
   const databaseUrl = container.getConnectionUri();
 
-  execFileSync('pnpm', ['exec', 'prisma', 'migrate', 'deploy'], {
+  execFileSync(process.execPath, [PRISMA_CLI, 'migrate', 'deploy'], {
     cwd: API_ROOT,
     env: { ...process.env, DATABASE_URL: databaseUrl },
     stdio: 'inherit',
@@ -35,7 +41,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   process.env[INVITE_CODE_VAR] = inviteCode;
 
   const flags = { FEATURE_IDENTITY: 'true' };
-  const api = start('api', 'node', ['dist/main.js'], API_ROOT, {
+  const api = start('api', ['dist/main.js'], API_ROOT, {
     ...flags,
     PORT: String(API_PORT),
     DATABASE_URL: databaseUrl,
@@ -50,16 +56,10 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     AUTH_RATE_LIMIT_PER_MINUTE: '100000',
     LOG_LEVEL: 'warn',
   });
-  const web = start(
-    'web',
-    'pnpm',
-    ['exec', 'next', 'start', '--port', String(WEB_PORT)],
-    WEB_ROOT,
-    {
-      ...flags,
-      API_URL,
-    },
-  );
+  const web = start('web', [NEXT_CLI, 'start', '--port', String(WEB_PORT)], WEB_ROOT, {
+    ...flags,
+    API_URL,
+  });
 
   const stop = async () => {
     for (const child of [web, api]) stopGroup(child);
@@ -78,15 +78,14 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
 
 function start(
   name: string,
-  command: string,
   args: string[],
   cwd: string,
   env: Record<string, string>,
 ): ChildProcess {
   // Sin `--env-file`: el `.env` de desarrollo no se lee, así que la configuración es solo esta.
-  // En su propio grupo de procesos (`detached`): `pnpm exec next start` deja hijos (`next-server`)
+  // En su propio grupo de procesos (`detached`): `next start` deja hijos (`next-server`)
   // que no mueren con el padre, y al terminar se apaga el grupo entero.
-  const child = spawn(command, args, {
+  const child = spawn(process.execPath, args, {
     cwd,
     env: { ...process.env, ...env },
     stdio: 'pipe',

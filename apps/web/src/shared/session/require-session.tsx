@@ -14,7 +14,7 @@ import { useSessionStatus } from './session-provider';
  * Es la puerta de la interfaz, no la de los datos: esa la cierra la API, que responde 401 a toda
  * petición sin token. Aquí solo se evita dibujar una pantalla que no podría cargar nada.
  */
-export function RequireSession({ children }: { children: ReactNode }) {
+export function RequireSession({ children }: Readonly<{ children: ReactNode }>) {
   const status = useSessionStatus();
   const router = useRouter();
   const pathname = usePathname();
@@ -27,9 +27,9 @@ export function RequireSession({ children }: { children: ReactNode }) {
 
   if (status !== 'authenticated') {
     return (
-      <p role="status" className="px-4 py-12 text-center text-sm text-stone-500">
+      <output className="block px-4 py-12 text-center text-sm text-stone-500">
         Cargando tu sesión…
-      </p>
+      </output>
     );
   }
 

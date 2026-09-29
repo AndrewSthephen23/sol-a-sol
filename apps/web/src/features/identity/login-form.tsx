@@ -18,6 +18,9 @@ interface LoginFormProps {
   onSignedIn: () => void;
 }
 
+/** El código del teléfono son seis dígitos; el de recuperación, letras y guiones. */
+const TOTP_INPUT = { inputMode: 'numeric', maxLength: 6 } as const;
+
 const INPUT =
   'w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-base focus:border-amber-500 focus:outline-none';
 
@@ -28,7 +31,7 @@ const INPUT =
  * No cuenta intentos ni decide bloqueos: eso lo hace la API, y duplicarlo aquí sería tener dos
  * verdades. Solo muestra lo que la API responde, traducido.
  */
-export function LoginForm({ onSignedIn }: LoginFormProps) {
+export function LoginForm({ onSignedIn }: Readonly<LoginFormProps>) {
   const api = useApi();
   const session = useSession();
   const [step, setStep] = useState<Step>('credentials');
@@ -93,6 +96,8 @@ export function LoginForm({ onSignedIn }: LoginFormProps) {
     }
   }
 
+  const codeLabel = step === 'totp' ? 'Código de tu app autenticadora' : 'Código de recuperación';
+
   function switchTo(next: Step) {
     setStep(next);
     setCode('');
@@ -104,7 +109,7 @@ export function LoginForm({ onSignedIn }: LoginFormProps) {
       {step === 'credentials' ? (
         <>
           <label className="flex flex-col gap-1 text-sm font-medium">
-            Correo
+            <span>Correo</span>
             <input
               type="email"
               name="email"
@@ -117,7 +122,7 @@ export function LoginForm({ onSignedIn }: LoginFormProps) {
             />
           </label>
           <label className="flex flex-col gap-1 text-sm font-medium">
-            Contraseña
+            <span>Contraseña</span>
             <input
               type="password"
               name="password"
@@ -132,11 +137,11 @@ export function LoginForm({ onSignedIn }: LoginFormProps) {
         </>
       ) : (
         <label className="flex flex-col gap-1 text-sm font-medium">
-          {step === 'totp' ? 'Código de tu app autenticadora' : 'Código de recuperación'}
+          <span>{codeLabel}</span>
           <input
             name="code"
             autoComplete="one-time-code"
-            {...(step === 'totp' ? { inputMode: 'numeric' as const, maxLength: 6 } : {})}
+            {...(step === 'totp' ? TOTP_INPUT : {})}
             value={code}
             onChange={(event) => {
               setCode(event.target.value);

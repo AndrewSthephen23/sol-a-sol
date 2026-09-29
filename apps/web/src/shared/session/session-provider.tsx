@@ -41,7 +41,7 @@ interface SessionProviderProps {
  * Una sola sesión y un solo cliente de API para toda la web. Al montar intenta recuperar la
  * sesión con la cookie de refresco: hasta que responde, el estado es `unknown`.
  */
-export function SessionProvider({ children, session: given }: SessionProviderProps) {
+export function SessionProvider({ children, session: given }: Readonly<SessionProviderProps>) {
   const [value] = useState<SessionContextValue>(() => {
     // El servidor también renderiza este componente, pero ahí no hay sesión ni se llama a la API:
     // las pantallas privadas se dibujan en el navegador. Recibe una inerte que nunca se usa.
