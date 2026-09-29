@@ -239,3 +239,27 @@ export {
   type PaymentDueRule,
   previousBillingCycle,
 } from './credit-cards/billing-cycle.js';
+export {
+  computeUtilization,
+  CRITICAL_UTILIZATION_FROM,
+  HIGH_UTILIZATION_ABOVE,
+  NegativeCreditLimitError,
+  PAYMENT_ALERT_DAYS,
+  type PaymentAlert,
+  paymentAlert,
+  type PaymentAlertStatus,
+  type Utilization,
+  type UtilizationLevel,
+} from './credit-cards/utilization.js';
+export {
+  computeInstallmentPlan,
+  type Installment,
+  installmentInterest,
+  type InstallmentPlanRequest,
+  InstallmentTooSmallError,
+  InstallmentTotalBelowPriceError,
+  InvalidInstallmentCountError,
+  MAX_INSTALLMENTS,
+  MIN_INSTALLMENTS,
+  pendingInstallments,
+} from './credit-cards/installment-plan.js';
