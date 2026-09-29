@@ -86,7 +86,7 @@ Cada partida viaja como `{ categoryId, plannedAmount, currency }`, con el monto 
 ## Estado
 
 - Feature flag: `FEATURE_BUDGETING` (**apagado** hasta cumplir la Definition of Done). Encendido en las pruebas E2E.
-- Escenarios: [`features/budgeting/`](../../features/budgeting/), `@pendiente` hasta la tarea 09.
+- Escenarios: [`features/budgeting/`](../../features/budgeting/), en verde con `pnpm test:bdd`. Corren contra los casos de uso reales, con los fakes de los puertos, y leen lo real de las transacciones que el escenario registra.
 - Web: `/budgeting`, en el registro de navegación y oculta con el flag apagado (ver abajo).
 
 ## Pantalla (web)

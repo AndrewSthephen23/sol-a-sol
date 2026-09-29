@@ -5,6 +5,25 @@ import { type Clock, type Currency, FixedClock, type TransactionType } from '@so
 
 import { RecordingEventPublisher } from '../../src/shared/events/event-publisher.fake.js';
 import {
+  type Budget,
+  GetBudget,
+  ReplaceBudget,
+} from '../../src/modules/budgeting/application/budgets.js';
+import {
+  type CopiedBudget,
+  CopyPreviousBudget,
+} from '../../src/modules/budgeting/application/copy-previous-budget.js';
+import { ReassignBudgetCategory } from '../../src/modules/budgeting/application/reassign-budget-category.js';
+import { FakeBudgetRepository } from '../../src/modules/budgeting/ports/budget-repository.fake.js';
+import { FakeBudgetCatalogReader } from '../../src/modules/budgeting/ports/catalog-reader.fake.js';
+import {
+  GetMonthlyDashboard,
+  type MonthlyDashboard,
+} from '../../src/modules/reports/application/monthly-dashboard.js';
+import { FakeReportCatalogReader } from '../../src/modules/reports/ports/report-readers.fake.js';
+import { TransactionsLookup } from '../../src/modules/transactions/application/transactions-lookup.js';
+import { CreateTransfer } from '../../src/modules/transactions/application/transfers.js';
+import {
   CreateTransaction,
   type CreateTransactionInput,
   DeleteTransaction,
@@ -44,13 +63,23 @@ const STANDARD_METHODS: readonly [string, Currency | null][] = [
  * El estado de un escenario: una cuenta (Ana) con su catálogo, los casos de uso reales sobre los
  * fakes de sus puertos y un reloj fijo. Se arma de cero en cada escenario: ninguno depende de
  * otro.
+ *
+ * Cucumber admite un solo mundo, así que este sirve a todos los `.feature`. El presupuesto y los
+ * reportes leen lo real con `TransactionsLookup` sobre el mismo repositorio de transacciones, como
+ * en la aplicación: lo que un escenario registra es lo que ven.
  */
 export class TransactionsWorld extends World {
   readonly catalog = new FakeCatalogReader();
   readonly transactions = new FakeTransactionRepository();
   readonly transfers = new FakeTransferRepository();
   readonly events = new RecordingEventPublisher();
+  readonly budgetLines = new FakeBudgetRepository();
+  readonly budgetCatalog = new FakeBudgetCatalogReader();
+  readonly reportCatalog = new FakeReportCatalogReader();
   clock: Clock = FixedClock.at(DEFAULT_NOW);
+
+  /** El tipo de cada categoría, para registrar un movimiento del tipo que le corresponde. */
+  private readonly categoryTypes = new Map<string, TransactionType>();
 
   /** Nombre → id, por cuenta: los escenarios hablan de «Comida», no de ids. */
   private readonly categoryIds = new Map<string, string>();
@@ -60,6 +89,10 @@ export class TransactionsWorld extends World {
   last: Transaction | null = null;
   lastError: unknown = null;
   page: TransactionPage | null = null;
+  /** El presupuesto o el resumen que el escenario acaba de ver. */
+  budget: Budget | null = null;
+  copied: CopiedBudget | null = null;
+  dashboard: MonthlyDashboard | null = null;
   /** Transacciones de las que el escenario habla después («la del 10/09», «uno de la primera página»). */
   readonly remembered = new Map<string, Transaction>();
   /** Ids de los que el escenario habla después («esa cuenta», «la categoría de Bruno»). */
@@ -79,14 +112,18 @@ export class TransactionsWorld extends World {
   ): string {
     const id = `${userId}/category/${name}`;
     this.categoryIds.set(`${userId}/${name}`, id);
-    this.catalog.withCategory(userId, id, {
+    this.categoryTypes.set(id, type);
+    const parentId =
+      options.parent === undefined ? undefined : this.categoryId(userId, options.parent);
+    const category = {
       type,
-      name,
       archived: options.archived ?? false,
-      ...(options.parent === undefined
-        ? {}
-        : { parentId: this.categoryId(userId, options.parent) }),
-    });
+      ...(parentId === undefined ? {} : { parentId }),
+    };
+    // El mismo catálogo, visto por cada módulo a través de su propio puerto.
+    this.catalog.withCategory(userId, id, { ...category, name });
+    this.budgetCatalog.withCategory(userId, id, category);
+    this.reportCatalog.with(userId, id, parentId ?? null);
 
     return id;
   }
@@ -114,6 +151,18 @@ export class TransactionsWorld extends World {
     if (id === undefined) throw new Error(`The scenario never set up the category «${name}».`);
 
     return id;
+  }
+
+  /** La categoría si ya existe; si no, una nueva de ese tipo. */
+  ensureCategory(userId: string, name: string, type: TransactionType): string {
+    return this.categoryIds.get(`${userId}/${name}`) ?? this.addCategory(userId, name, type);
+  }
+
+  categoryType(id: string): TransactionType {
+    const type = this.categoryTypes.get(id);
+    if (type === undefined) throw new Error(`The scenario never set up the category «${id}».`);
+
+    return type;
   }
 
   methodId(userId: string, alias: string): string {
@@ -164,6 +213,42 @@ export class TransactionsWorld extends World {
     const useCase = new ListTransactions(this.transactions, this.transfers, this.catalog);
 
     return useCase.execute({ userId: ANA, after: null, limit: 50, ...input });
+  }
+
+  get createTransfer(): CreateTransfer {
+    return new CreateTransfer(this.transfers, this.catalog, this.events, this.clock);
+  }
+
+  // --- Presupuesto y reportes: leen lo real por la API pública de `transactions` ---
+
+  get getBudget(): GetBudget {
+    return new GetBudget(
+      this.budgetLines,
+      this.budgetCatalog,
+      new TransactionsLookup(this.transactions),
+    );
+  }
+
+  get replaceBudget(): ReplaceBudget {
+    return new ReplaceBudget(this.budgetLines, this.budgetCatalog, this.getBudget);
+  }
+
+  get copyBudget(): CopyPreviousBudget {
+    return new CopyPreviousBudget(this.budgetLines, this.budgetCatalog, this.getBudget);
+  }
+
+  /**
+   * Lo que hace el presupuesto cuando `catalog` fusiona una categoría. Sin su listener: ese importa
+   * la API pública de `catalog`, que arrastra Prisma, y los escenarios corren sin base.
+   */
+  get reassignBudgetCategory(): ReassignBudgetCategory {
+    return new ReassignBudgetCategory(this.budgetLines);
+  }
+
+  get monthlyDashboard(): GetMonthlyDashboard {
+    const lookup = new TransactionsLookup(this.transactions);
+
+    return new GetMonthlyDashboard(lookup, this.reportCatalog, this.clock);
   }
 
   /** Registra y guarda lo registrado como `last`; si se rechaza, guarda el error. */

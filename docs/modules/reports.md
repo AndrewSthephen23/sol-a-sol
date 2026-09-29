@@ -45,7 +45,7 @@ Montos como **string decimal**; la parte de la dona (`share`) como string **sin 
 ## Estado
 
 - Feature flag: `FEATURE_REPORTS` (**apagado** hasta cumplir la Definition of Done).
-- Escenarios: [`features/reports/`](../../features/reports/), `@pendiente` hasta la tarea 09.
+- Escenarios: [`features/reports/`](../../features/reports/), en verde con `pnpm test:bdd`. Corren contra los casos de uso reales, con los fakes de los puertos, y leen lo real de las transacciones que el escenario registra.
 - Web: el dashboard vive en `/` (manifest `dashboard`, decisión 10 de H4). Con el flag apagado, `/` muestra la bienvenida en vez de un 404, porque es a donde se llega al entrar. Encendido en las pruebas E2E.
 
 ## Pantalla (web)
