@@ -39,6 +39,7 @@ model User {
   tags                 Tag[]
   budgets              Budget[]
   budgetLines          BudgetLine[]
+  creditCards          CreditCard[]
 
   @@map("users")
 }
@@ -272,10 +273,16 @@ model PaymentMethod {
   transactions Transaction[]
   transfersOut Transfer[]        @relation("TransferFrom")
   transfersIn  Transfer[]        @relation("TransferTo")
+  /// A lo sumo una (`payment_method_id` es único). Prisma la ve como lista porque la clave es
+  /// compuesta y solo una de sus columnas es única.
+  creditCards  CreditCard[]
 
   /// Destino de la clave foránea compuesta de `Transaction.paymentMethod`: `id` ya es único; esto
   /// solo le da a PostgreSQL el índice que exige para referenciar las dos columnas juntas.
   @@unique([id, userId])
+  /// Destino de la clave foránea compuesta de `CreditCard.paymentMethod`: con `kind`, la base
+  /// exige que la tarjeta configurada cuelgue de un método `CREDIT_CARD` de la misma cuenta.
+  @@unique([id, userId, kind])
   /// Sin `@@index([userId])`: las búsquedas por usuario usan el índice único del alias, que
   /// empieza por esa columna.
   @@map("payment_methods")
@@ -472,4 +479,60 @@ model BudgetLine {
   /// Para seguir una fusión de categorías sin recorrer la tabla.
   @@index([categoryId])
   @@map("budget_lines")
+}
+
+/// Cómo se calcula la fecha límite de pago de un estado de cuenta (decisión 5 de H5).
+enum PaymentDueRule {
+  /// N días después del corte.
+  DAYS_AFTER_STATEMENT
+  /// Un día fijo del mes; si es anterior o igual al día de corte, es del mes siguiente.
+  DAY_OF_MONTH
+
+  @@map("payment_due_rule")
+}
+
+/// Lo que hace falta para seguir una tarjeta de crédito: su línea, su día de corte y su regla de
+/// pago (decisiones de H5, 2026-09-29). Cuelga de un método de pago `CREDIT_CARD` de `catalog`, que
+/// ya guarda lo que la identifica (alias, banco, últimos 4): **aquí no se duplica**, y nunca hay
+/// número completo, CVV ni vencimiento del plástico.
+///
+/// Lleva su propio `userId` y el `kind` de su método para que la clave foránea compuesta exija
+/// que el método sea de la misma cuenta y de tipo `CREDIT_CARD` (el `CHECK` de la migración fija
+/// el `kind`). Lo que se debe, la utilización y los estados de cuenta **no se guardan**: se
+/// calculan al consultar con las transacciones.
+model CreditCard {
+  id                    String            @id @default(uuid(7)) @db.Uuid
+  userId                String            @map("user_id") @db.Uuid
+  /// Una configuración por método de pago.
+  paymentMethodId       String            @unique @map("payment_method_id") @db.Uuid
+  /// Siempre `CREDIT_CARD` (`CHECK`): solo existe para la clave foránea compuesta.
+  kind                  PaymentMethodKind @default(CREDIT_CARD)
+  /// Línea de crédito, cero o más. Una sola, en una moneda (decisión 3): la utilización solo
+  /// cuenta la deuda en esa moneda.
+  creditLimit           Decimal           @map("credit_limit") @db.Decimal(18, 2)
+  creditLimitCurrency   Currency          @map("credit_limit_currency")
+  /// 1 a 31. Si el mes no tiene ese día, el corte es el último día del mes (CLAUDE.md). La compra
+  /// del día de corte entra en el estado que cierra ese día (decisión 4).
+  statementDay          Int               @map("statement_day") @db.SmallInt
+  paymentDueRule        PaymentDueRule    @map("payment_due_rule")
+  /// Solo con `DAYS_AFTER_STATEMENT`, 1 a 60.
+  dueDaysAfterStatement Int?              @map("due_days_after_statement") @db.SmallInt
+  /// Solo con `DAY_OF_MONTH`, 1 a 31.
+  dueDayOfMonth         Int?              @map("due_day_of_month") @db.SmallInt
+  /// Lo que ya se debía antes de registrar en la app, uno por moneda (decisión 2), cero o más.
+  /// Solo cuentan las compras y los pagos posteriores a `openingBalanceDate`.
+  openingBalancePen     Decimal?          @map("opening_balance_pen") @db.Decimal(18, 2)
+  openingBalanceUsd     Decimal?          @map("opening_balance_usd") @db.Decimal(18, 2)
+  /// Fecha de negocio del saldo inicial; existe si y solo si hay algún saldo inicial.
+  openingBalanceDate    DateTime?         @map("opening_balance_date") @db.Date
+  createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  /// Directo al usuario (lección de `budget_lines` en H4): al borrar la cuenta, la tarjeta se va
+  /// en el mismo nivel que su método de pago.
+  user                  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Sin cascada: un método con tarjeta configurada no se borra, se archiva.
+  paymentMethod         PaymentMethod     @relation(fields: [paymentMethodId, userId, kind], references: [id, userId, kind], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([userId])
+  @@map("credit_cards")
 }
