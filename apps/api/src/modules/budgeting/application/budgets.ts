@@ -3,8 +3,11 @@ import {
   assertBudgetableCategory,
   assertBudgetLines,
   assertBudgetMonth,
+  type BudgetTypeReport,
   type Currency,
+  LocalDate,
   Money,
+  summarizeBudget,
 } from '@sol-a-sol/domain';
 
 import { BudgetCategoryNotFoundError } from '../domain/errors.js';
@@ -14,24 +17,52 @@ import {
   type BudgetRepository,
   type StoredBudgetLine,
 } from '../ports/budget-repository.js';
+import { BUDGET_ACTUALS_READER, type BudgetActualsReader } from '../ports/actuals-reader.js';
 import { BUDGET_CATALOG_READER, type BudgetCatalogReader } from '../ports/catalog-reader.js';
 
-/** El presupuesto de un mes: sus partidas. Lo real contra lo planeado llega con la tarea 04. */
+/** El presupuesto de un mes: sus partidas y, por tipo y moneda, lo planeado contra lo real. */
 export interface Budget {
   year: number;
   month: number;
   lines: StoredBudgetLine[];
+  summary: BudgetTypeReport[];
 }
 
-/** Un mes sin presupuesto no es un error: responde sus partidas, ninguna. */
+/**
+ * El presupuesto de un mes con lo real al lado: diferencia, % ejecutado y estado de cada partida,
+ * la fila «Sin presupuesto» y el total de cada tipo, por moneda (`summarizeBudget`).
+ *
+ * Lo real de una subcategoría **sube a su madre**, que es donde va la partida (decisión 2 de H4).
+ * Un mes sin presupuesto no es un error: sus partidas son ninguna, y lo real igual se muestra.
+ * El mes en curso llega hasta hoy solo: una transacción nunca es futura.
+ */
 @Injectable()
 export class GetBudget {
-  constructor(@Inject(BUDGET_REPOSITORY) private readonly budgets: BudgetRepository) {}
+  constructor(
+    @Inject(BUDGET_REPOSITORY) private readonly budgets: BudgetRepository,
+    @Inject(BUDGET_CATALOG_READER) private readonly catalog: BudgetCatalogReader,
+    @Inject(BUDGET_ACTUALS_READER) private readonly actuals: BudgetActualsReader,
+  ) {}
 
   async execute(month: BudgetMonth): Promise<Budget> {
     assertBudgetMonth(month.year, month.month);
+    const first = LocalDate.of(month.year, month.month, 1);
+    const [lines, categories, real] = await Promise.all([
+      this.budgets.lines(month),
+      this.catalog.allCategories(month.userId),
+      this.actuals.totalsByCategory(month.userId, first, first.lastDayOfMonth()),
+    ]);
 
-    return { year: month.year, month: month.month, lines: await this.budgets.lines(month) };
+    const parentOf = new Map(categories.map((category) => [category.id, category.parentId]));
+    const summary = summarizeBudget(
+      lines,
+      real.map((entry) => ({
+        ...entry,
+        categoryId: parentOf.get(entry.categoryId) ?? entry.categoryId,
+      })),
+    );
+
+    return { year: month.year, month: month.month, lines, summary };
   }
 }
 
@@ -56,8 +87,10 @@ export class ReplaceBudget {
   constructor(
     @Inject(BUDGET_REPOSITORY) private readonly budgets: BudgetRepository,
     @Inject(BUDGET_CATALOG_READER) private readonly catalog: BudgetCatalogReader,
+    private readonly getBudget: GetBudget,
   ) {}
 
+  /** Responde el mes como quedó, con lo real al lado, igual que `GetBudget`. */
   async execute(month: BudgetMonth, lines: readonly BudgetLineInput[]): Promise<Budget> {
     assertBudgetMonth(month.year, month.month);
     const planned = lines.map((line) => ({
@@ -85,11 +118,11 @@ export class ReplaceBudget {
 
       return type;
     };
-    const saved = await this.budgets.replace(
+    await this.budgets.replace(
       month,
       planned.map((line) => ({ ...line, type: typeOf(line.categoryId) })),
     );
 
-    return { year: month.year, month: month.month, lines: saved };
+    return this.getBudget.execute(month);
   }
 }

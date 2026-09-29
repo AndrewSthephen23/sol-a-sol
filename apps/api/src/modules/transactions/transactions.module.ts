@@ -15,6 +15,7 @@ import {
 import { ConfirmImport } from './application/import-confirm.js';
 import { PreviewImport } from './application/import-preview.js';
 import { ReassignCategory } from './application/reassign-category.js';
+import { TransactionsLookup } from './application/transactions-lookup.js';
 import { DeleteTag, ListTags, RenameTag } from './application/tags.js';
 import {
   CreateTransfer,
@@ -74,7 +75,9 @@ import { TRANSFER_REPOSITORY } from './ports/transfer-repository.js';
     CategoryMergedListener,
     { provide: TAG_REPOSITORY, useClass: PrismaTagRepository },
     { provide: CATALOG_READER, useExisting: CatalogLookup },
+    TransactionsLookup,
   ],
-  exports: [],
+  // Lo que leen otros módulos: el presupuesto, los reportes, las tarjetas y los resúmenes.
+  exports: [TransactionsLookup],
 })
 export class TransactionsModule {}

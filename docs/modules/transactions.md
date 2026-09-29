@@ -149,6 +149,15 @@ Responde **201** con `{ transactions, transfers, alreadyImported, createdCategor
 3. **Decisiones.** Por cada categoría o método pendiente se propone **crear lo que falta y restaurar lo archivado**, y se puede cambiar por «usar otro» (una categoría activa del mismo tipo, o un método activo). Un método nuevo exige elegir tipo y moneda, y se revisa con `assertValidPaymentMethod` del dominio antes de mandar (últimos 4 obligatorios en tarjeta y nunca más de 4; el efectivo no tiene banco; cuentas y billeteras guardan una sola moneda).
 4. **Confirmar.** Todo o nada. Tras importar se vuelven a pedir movimientos, categorías, métodos y etiquetas. Volver a importar el mismo archivo no duplica: la vista previa dice que ya se importó.
 
+## API pública para otros módulos
+
+`TransactionsLookup` (exportado por `index.ts`) es lo que leen de este módulo el presupuesto (H4) y, más adelante, los reportes, las tarjetas y los resúmenes, sin tocar sus tablas ni importar su interior. Igual que `CatalogLookup` en `catalog`:
+
+- `totalsByCategory(userId, desde, hasta)`: totales por categoría (la de cada transacción, sin subir a su madre), tipo y moneda, entre dos fechas incluidas.
+- Solo transacciones **vigentes** (las borradas no cuentan) y **nunca transferencias**. Nunca convierte moneda. Exige el `userId`, que va dentro de la consulta.
+
+Devuelve lo mínimo a propósito: quien consulta no queda atado a la forma de las entidades.
+
 ## Eventos de dominio
 
 Se publican **después de guardar**, esperando a los oyentes, y llevan solo ids (ADR-0004). Nadie los escucha todavía: existen para que el presupuesto (H4), las tarjetas (H5) y los resúmenes (H6) no tengan que tocar este módulo.

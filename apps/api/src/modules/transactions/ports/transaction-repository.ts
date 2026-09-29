@@ -59,6 +59,9 @@ export interface TransactionChanges {
 }
 
 /** Qué transacciones listar. Todo opcional; sin nada, todas las vigentes de la cuenta. */
+/** Lo sumado de una categoría en un tipo y una moneda. */
+export type CategoryAmount = TypedAmount & { categoryId: string };
+
 export interface TransactionFilter {
   /** Inclusivo. */
   from?: LocalDate;
@@ -129,6 +132,12 @@ export interface TransactionRepository {
 
   /** La suma por tipo y moneda de **todo** lo que cumple el filtro, no solo de una página. */
   totals(userId: string, filter: TransactionFilter): Promise<TypedAmount[]>;
+
+  /**
+   * Lo mismo, además **por categoría** (la de cada transacción, sin subir a su madre): lo que
+   * leen otros módulos, como el presupuesto, por `TransactionsLookup`.
+   */
+  totalsByCategory(userId: string, filter: TransactionFilter): Promise<CategoryAmount[]>;
 
   /**
    * Pasa **todas** las transacciones de una categoría a otra, borradas incluidas, en una sola

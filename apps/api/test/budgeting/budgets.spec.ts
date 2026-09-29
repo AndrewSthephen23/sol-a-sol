@@ -14,6 +14,9 @@ const REGISTER = `/${API_PREFIX}/auth/register`;
 const LOGIN = `/${API_PREFIX}/auth/login`;
 const TOKENS = `/${API_PREFIX}/tokens`;
 const CATEGORIES = `/${API_PREFIX}/categories`;
+const TRANSACTIONS = `/${API_PREFIX}/transactions`;
+const METHODS = `/${API_PREFIX}/payment-methods`;
+const TRANSFERS = `/${API_PREFIX}/transfers`;
 const SEPTEMBER = `/${API_PREFIX}/budgets/2026/9`;
 const ANA = { email: 'ana@example.com', password: 'caballo grapa batería' };
 const BRUNO = { email: 'bruno@example.com', password: 'otra frase bastante larga' };
@@ -21,10 +24,25 @@ const BRUNO = { email: 'bruno@example.com', password: 'otra frase bastante larga
 const JWT_SECRET = 'clave-de-prueba-no-real-0123456789';
 const TOTP_KEY = Buffer.alloc(32, 7).toString('base64');
 
+interface VarianceBody {
+  planned: string;
+  actual: string;
+  difference: string;
+  executed: string | null;
+  status: string;
+}
+
 interface BudgetBody {
   year: number;
   month: number;
   lines: { categoryId: string; type: string; plannedAmount: string; currency: string }[];
+  summary: {
+    type: string;
+    currency: string;
+    lines: (VarianceBody & { categoryId: string })[];
+    unbudgeted: { categoryId: string; amount: string }[];
+    total: VarianceBody;
+  }[];
 }
 
 interface CategoryBody {
@@ -50,6 +68,7 @@ describe('budgets', () => {
     process.env.FEATURE_IDENTITY = 'true';
     process.env.FEATURE_CATALOG = 'true';
     process.env.FEATURE_BUDGETING = 'true';
+    process.env.FEATURE_TRANSACTIONS = 'true';
     process.env.AUTH_JWT_SECRET = JWT_SECRET;
     process.env.AUTH_TOTP_ENCRYPTION_KEY = TOTP_KEY;
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -82,6 +101,7 @@ describe('budgets', () => {
     delete process.env.FEATURE_IDENTITY;
     delete process.env.FEATURE_CATALOG;
     delete process.env.FEATURE_BUDGETING;
+    delete process.env.FEATURE_TRANSACTIONS;
     delete process.env.REGISTRATION_MODE;
     delete process.env.AUTH_JWT_SECRET;
     delete process.env.AUTH_TOTP_ENCRYPTION_KEY;
@@ -127,7 +147,7 @@ describe('budgets', () => {
 
   describe('reading a month', () => {
     it('answers a month without a budget with no lines, not a 404', async () => {
-      await expect(read()).resolves.toEqual({ year: 2026, month: 9, lines: [] });
+      await expect(read()).resolves.toEqual({ year: 2026, month: 9, lines: [], summary: [] });
     });
 
     it('refuses a month that does not exist, saying why', async () => {
@@ -178,8 +198,8 @@ describe('budgets', () => {
           { categoryId: wages, type: 'INCOME', plannedAmount: '4000.00', currency: 'PEN' },
         ],
       };
-      expect(response.body).toEqual(expected);
-      await expect(read()).resolves.toEqual(expected);
+      expect(response.body).toMatchObject(expected);
+      await expect(read()).resolves.toMatchObject(expected);
     });
 
     it('replaces the whole month, is idempotent, and an empty list empties it', async () => {
@@ -260,6 +280,142 @@ describe('budgets', () => {
     });
   });
 
+  describe('planned against actual', () => {
+    /** Registra un gasto por la API real, como lo haría la web. */
+    async function spend(
+      categoryId: string,
+      amount: string,
+      date = '2026-09-10',
+      session = ana,
+      currency = 'PEN',
+    ) {
+      const response = await request(server)
+        .post(TRANSACTIONS)
+        .set('Authorization', `Bearer ${session}`)
+        .send({
+          date,
+          type: 'VARIABLE_EXPENSE',
+          categoryId,
+          amount,
+          currency,
+          description: 'Gasto',
+        })
+        .expect(201);
+
+      return (response.body as { id: string }).id;
+    }
+
+    it('puts what was spent, subcategories included, next to each line', async () => {
+      await put({ lines: [line(groceries, '800.00')] }).expect(200);
+      await spend(groceries, '100.00');
+      await spend(delivery, '50.40');
+
+      const { summary } = await read();
+
+      expect(summary).toEqual([
+        {
+          type: 'VARIABLE_EXPENSE',
+          currency: 'PEN',
+          lines: [
+            {
+              categoryId: groceries,
+              planned: '800.00',
+              actual: '150.40',
+              difference: '649.60',
+              executed: '18.8',
+              status: 'WITHIN',
+            },
+          ],
+          unbudgeted: [],
+          total: {
+            planned: '800.00',
+            actual: '150.40',
+            difference: '649.60',
+            executed: '18.8',
+            status: 'WITHIN',
+          },
+        },
+      ]);
+    });
+
+    it('marks a line exceeded, and a zero line has no percentage', async () => {
+      await put({ lines: [line(groceries, '0')] }).expect(200);
+      await spend(groceries, '4.50');
+
+      const [report] = (await read()).summary;
+
+      expect(report?.lines[0]).toMatchObject({
+        actual: '4.50',
+        difference: '-4.50',
+        executed: null,
+        status: 'EXCEEDED',
+      });
+    });
+
+    it('counts only this month, and neither deleted transactions nor transfers', async () => {
+      await put({ lines: [line(groceries, '100.00')] }).expect(200);
+      await spend(groceries, '10.00', '2026-09-01');
+      await spend(groceries, '999.00', '2026-08-31');
+      const deleted = await spend(groceries, '500.00', '2026-09-15');
+      await request(server)
+        .delete(`${TRANSACTIONS}/${deleted}`)
+        .set('Authorization', `Bearer ${ana}`)
+        .expect(204);
+      const accounts = await Promise.all(
+        ['Sueldo BCP', 'Ahorros BCP'].map(async (alias) => {
+          const created = await request(server)
+            .post(METHODS)
+            .set('Authorization', `Bearer ${ana}`)
+            .send({ kind: 'ACCOUNT', alias, currency: 'PEN' })
+            .expect(201);
+
+          return (created.body as { id: string }).id;
+        }),
+      );
+      await request(server)
+        .post(TRANSFERS)
+        .set('Authorization', `Bearer ${ana}`)
+        .send({
+          date: '2026-09-12',
+          fromPaymentMethodId: accounts[0],
+          toPaymentMethodId: accounts[1],
+          amount: '300.00',
+          description: 'Ahorro',
+        })
+        .expect(201);
+
+      const [report] = (await read()).summary;
+
+      expect(report?.total.actual).toBe('10.00');
+    });
+
+    it('shows spending without a line, apart and counted in the total, and never converts', async () => {
+      await put({ lines: [line(groceries, '800.00')] }).expect(200);
+      const movies = await category({ name: 'Películas', type: 'VARIABLE_EXPENSE' });
+      await spend(movies, '45.00');
+      await spend(groceries, '20.00', '2026-09-10', ana, 'USD');
+
+      const { summary } = await read();
+
+      expect(
+        summary.map((report) => [report.currency, report.unbudgeted, report.total.actual]),
+      ).toEqual([
+        ['PEN', [{ categoryId: movies, amount: '45.00' }], '45.00'],
+        ['USD', [{ categoryId: groceries, amount: '20.00' }], '20.00'],
+      ]);
+    });
+
+    it('never adds what another account spent, even in a category with the same name', async () => {
+      await put({ lines: [line(groceries, '800.00')] }).expect(200);
+      const hers = await category({ name: 'Víveres', type: 'VARIABLE_EXPENSE' }, bruno);
+      await spend(hers, '700.00', '2026-09-10', bruno);
+
+      const [report] = (await read()).summary;
+
+      expect(report?.total.actual).toBe('0.00');
+    });
+  });
+
   describe('user isolation (anti-IDOR)', () => {
     it('answers 404 for a category of another account, and saves nothing', async () => {
       const hers = await category({ name: 'Víveres', type: 'VARIABLE_EXPENSE' }, bruno);
@@ -273,7 +429,12 @@ describe('budgets', () => {
     it('never shows nor touches the budget of another account for the same month', async () => {
       await put({ lines: [line(groceries)] }).expect(200);
 
-      await expect(read(bruno)).resolves.toEqual({ year: 2026, month: 9, lines: [] });
+      await expect(read(bruno)).resolves.toEqual({
+        year: 2026,
+        month: 9,
+        lines: [],
+        summary: [],
+      });
       await put({ lines: [] }, bruno).expect(200);
 
       expect((await read()).lines).toHaveLength(1);

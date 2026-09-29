@@ -11,6 +11,9 @@ export interface BudgetCatalogReader {
     userId: string,
     id: string,
   ): Promise<{ type: TransactionType; archived: boolean; parentId: string | null } | null>;
+
+  /** Todas las categorías de la cuenta, archivadas incluidas: para subir lo de una hija a su madre. */
+  allCategories(userId: string): Promise<{ id: string; parentId: string | null }[]>;
 }
 
 export const BUDGET_CATALOG_READER = Symbol('BudgetCatalogReader');

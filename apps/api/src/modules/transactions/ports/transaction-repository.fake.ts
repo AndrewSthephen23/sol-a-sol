@@ -6,6 +6,7 @@ import {
 } from '@sol-a-sol/domain';
 
 import {
+  type CategoryAmount,
   type NewTransaction,
   newestFirst,
   orderTags,
@@ -117,6 +118,16 @@ export class FakeTransactionRepository implements TransactionRepository {
   totals(userId: string, filter: TransactionFilter): Promise<TypedAmount[]> {
     return Promise.resolve(
       this.matching(userId, filter).map((row) => ({
+        type: row.type,
+        amount: row.amount,
+        count: 1,
+      })),
+    );
+  }
+  totalsByCategory(userId: string, filter: TransactionFilter): Promise<CategoryAmount[]> {
+    return Promise.resolve(
+      this.matching(userId, filter).map((row) => ({
+        categoryId: row.categoryId,
         type: row.type,
         amount: row.amount,
         count: 1,

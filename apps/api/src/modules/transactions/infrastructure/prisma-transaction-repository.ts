@@ -11,6 +11,7 @@ import {
 import { Prisma } from '../../../generated/prisma/client.js';
 import { PrismaService } from '../../../shared/prisma/prisma.service.js';
 import {
+  type CategoryAmount,
   type NewTransaction,
   orderTags,
   type PagePosition,
@@ -220,6 +221,32 @@ export class PrismaTransactionRepository implements TransactionRepository {
        GROUP BY type, currency`;
 
     return rows.map((row) => ({
+      type: row.type,
+      amount: Money.of(row.amount, row.currency),
+      count: row.count,
+    }));
+  }
+  async totalsByCategory(userId: string, filter: TransactionFilter): Promise<CategoryAmount[]> {
+    const rows = await this.prisma.$queryRaw<
+      {
+        categoryId: string;
+        type: Transaction['type'];
+        currency: Currency;
+        amount: string;
+        count: number;
+      }[]
+    >`
+      SELECT category_id::text AS "categoryId",
+             type::text AS type,
+             currency::text AS currency,
+             sum(amount)::text AS amount,
+             count(*)::int AS count
+        FROM transactions
+       WHERE ${Prisma.join(filterConditions(userId, filter), ' AND ')}
+       GROUP BY category_id, type, currency`;
+
+    return rows.map((row) => ({
+      categoryId: row.categoryId,
       type: row.type,
       amount: Money.of(row.amount, row.currency),
       count: row.count,

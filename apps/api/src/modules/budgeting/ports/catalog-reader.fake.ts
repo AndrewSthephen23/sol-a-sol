@@ -41,4 +41,12 @@ export class FakeBudgetCatalogReader implements BudgetCatalogReader {
       parentId: found.parentId,
     });
   }
+
+  allCategories(userId: string): Promise<{ id: string; parentId: string | null }[]> {
+    return Promise.resolve(
+      [...this.categories]
+        .filter(([, category]) => category.userId === userId)
+        .map(([id, category]) => ({ id, parentId: category.parentId })),
+    );
+  }
 }

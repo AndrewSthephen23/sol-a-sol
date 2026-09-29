@@ -3622,6 +3622,52 @@ export interface paths {
                                 /** @enum {string} */
                                 currency: "PEN" | "USD";
                             }[];
+                            /** @description Planeado contra real por tipo y moneda, sin convertir nunca. Lo real de una subcategoría suma en su madre; sin transferencias ni borradas. */
+                            summary: {
+                                /** @enum {string} */
+                                type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
+                                /** @enum {string} */
+                                currency: "PEN" | "USD";
+                                lines: {
+                                    /** @description String decimal. */
+                                    planned: string;
+                                    /** @description String decimal. Lo real del mes. */
+                                    actual: string;
+                                    /** @description String decimal, «lo bueno es positivo». Límite: planeado − real (lo disponible). Meta: real − planeado (cuánto se superó). */
+                                    difference: string;
+                                    /** @description Real sobre planeado en %, **sin redondear**. Nulo con lo planeado en cero. */
+                                    executed: string | null;
+                                    /**
+                                     * @description Límite (gasto, deuda): WITHIN o EXCEEDED. Meta (ingreso, ahorro, inversión): PENDING o MET.
+                                     * @enum {string}
+                                     */
+                                    status: "WITHIN" | "EXCEEDED" | "PENDING" | "MET";
+                                    /** Format: uuid */
+                                    categoryId: string;
+                                }[];
+                                /** @description Lo real de categorías sin partida, de mayor a menor: «Sin presupuesto». */
+                                unbudgeted: {
+                                    /** Format: uuid */
+                                    categoryId: string;
+                                    amount: string;
+                                }[];
+                                /** @description Las partidas contra **todo** lo real del tipo. */
+                                total: {
+                                    /** @description String decimal. */
+                                    planned: string;
+                                    /** @description String decimal. Lo real del mes. */
+                                    actual: string;
+                                    /** @description String decimal, «lo bueno es positivo». Límite: planeado − real (lo disponible). Meta: real − planeado (cuánto se superó). */
+                                    difference: string;
+                                    /** @description Real sobre planeado en %, **sin redondear**. Nulo con lo planeado en cero. */
+                                    executed: string | null;
+                                    /**
+                                     * @description Límite (gasto, deuda): WITHIN o EXCEEDED. Meta (ingreso, ahorro, inversión): PENDING o MET.
+                                     * @enum {string}
+                                     */
+                                    status: "WITHIN" | "EXCEEDED" | "PENDING" | "MET";
+                                };
+                            }[];
                         };
                     };
                 };
@@ -3717,6 +3763,52 @@ export interface paths {
                                 plannedAmount: string;
                                 /** @enum {string} */
                                 currency: "PEN" | "USD";
+                            }[];
+                            /** @description Planeado contra real por tipo y moneda, sin convertir nunca. Lo real de una subcategoría suma en su madre; sin transferencias ni borradas. */
+                            summary: {
+                                /** @enum {string} */
+                                type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
+                                /** @enum {string} */
+                                currency: "PEN" | "USD";
+                                lines: {
+                                    /** @description String decimal. */
+                                    planned: string;
+                                    /** @description String decimal. Lo real del mes. */
+                                    actual: string;
+                                    /** @description String decimal, «lo bueno es positivo». Límite: planeado − real (lo disponible). Meta: real − planeado (cuánto se superó). */
+                                    difference: string;
+                                    /** @description Real sobre planeado en %, **sin redondear**. Nulo con lo planeado en cero. */
+                                    executed: string | null;
+                                    /**
+                                     * @description Límite (gasto, deuda): WITHIN o EXCEEDED. Meta (ingreso, ahorro, inversión): PENDING o MET.
+                                     * @enum {string}
+                                     */
+                                    status: "WITHIN" | "EXCEEDED" | "PENDING" | "MET";
+                                    /** Format: uuid */
+                                    categoryId: string;
+                                }[];
+                                /** @description Lo real de categorías sin partida, de mayor a menor: «Sin presupuesto». */
+                                unbudgeted: {
+                                    /** Format: uuid */
+                                    categoryId: string;
+                                    amount: string;
+                                }[];
+                                /** @description Las partidas contra **todo** lo real del tipo. */
+                                total: {
+                                    /** @description String decimal. */
+                                    planned: string;
+                                    /** @description String decimal. Lo real del mes. */
+                                    actual: string;
+                                    /** @description String decimal, «lo bueno es positivo». Límite: planeado − real (lo disponible). Meta: real − planeado (cuánto se superó). */
+                                    difference: string;
+                                    /** @description Real sobre planeado en %, **sin redondear**. Nulo con lo planeado en cero. */
+                                    executed: string | null;
+                                    /**
+                                     * @description Límite (gasto, deuda): WITHIN o EXCEEDED. Meta (ingreso, ahorro, inversión): PENDING o MET.
+                                     * @enum {string}
+                                     */
+                                    status: "WITHIN" | "EXCEEDED" | "PENDING" | "MET";
+                                };
                             }[];
                         };
                     };
