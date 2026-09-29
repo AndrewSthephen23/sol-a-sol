@@ -1247,6 +1247,26 @@ function transactionsPaths(): Record<string, unknown> {
   };
 }
 
+const BUDGET_VARIANCE = z.object({
+  planned: z.string().describe('String decimal.'),
+  actual: z.string().describe('String decimal. Lo real del mes.'),
+  difference: z
+    .string()
+    .describe(
+      'String decimal, «lo bueno es positivo». Límite: planeado − real (lo disponible). Meta: ' +
+        'real − planeado (cuánto se superó).',
+    ),
+  executed: z
+    .string()
+    .nullable()
+    .describe('Real sobre planeado en %, **sin redondear**. Nulo con lo planeado en cero.'),
+  status: z
+    .enum(['WITHIN', 'EXCEEDED', 'PENDING', 'MET'])
+    .describe(
+      'Límite (gasto, deuda): WITHIN o EXCEEDED. Meta (ingreso, ahorro, inversión): PENDING o MET.',
+    ),
+});
+
 const BUDGET_SCHEMA = schemaOf(
   z.object({
     year: z.int(),
@@ -1264,6 +1284,22 @@ const BUDGET_SCHEMA = schemaOf(
       )
       .describe(
         'Una por categoría y moneda, en el orden en que se guardaron. `[]` sin presupuesto.',
+      ),
+    summary: z
+      .array(
+        z.object({
+          type: transactionTypeSchema,
+          currency: currencySchema,
+          lines: z.array(BUDGET_VARIANCE.extend({ categoryId: z.uuid() })),
+          unbudgeted: z
+            .array(z.object({ categoryId: z.uuid(), amount: z.string() }))
+            .describe('Lo real de categorías sin partida, de mayor a menor: «Sin presupuesto».'),
+          total: BUDGET_VARIANCE.describe('Las partidas contra **todo** lo real del tipo.'),
+        }),
+      )
+      .describe(
+        'Planeado contra real por tipo y moneda, sin convertir nunca. Lo real de una ' +
+          'subcategoría suma en su madre; sin transferencias ni borradas.',
       ),
   }),
 );

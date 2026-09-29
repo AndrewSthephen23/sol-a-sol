@@ -5,17 +5,47 @@ import {
   type PutBudgetRequest,
   putBudgetRequestSchema,
 } from '@sol-a-sol/contracts';
+import type { BudgetVariance } from '@sol-a-sol/domain';
 
 import { RequiresFeature } from '../../../shared/feature-flags/feature-flag.guard.js';
 import { ZodValidationPipe } from '../../../shared/http/zod-validation.pipe.js';
 import { AccessTokenGuard, CurrentUser } from '../../identity/index.js';
 import { type Budget, GetBudget, ReplaceBudget } from '../application/budgets.js';
 
-/** Lo que viaja: el monto planeado como **string decimal**, nunca como número. */
+/**
+ * Lo planeado contra lo real, con los montos como **string decimal** y el % ejecutado como string
+ * **sin redondear** (la web muestra 2 decimales), o `null` si lo planeado es cero.
+ */
+export interface VarianceResponse {
+  planned: string;
+  actual: string;
+  difference: string;
+  executed: string | null;
+  status: BudgetVariance['status'];
+}
+
+/** Lo que viaja: los montos como **string decimal**, nunca como número. */
 export interface BudgetResponse {
   year: number;
   month: number;
   lines: { categoryId: string; type: string; plannedAmount: string; currency: string }[];
+  summary: {
+    type: string;
+    currency: string;
+    lines: (VarianceResponse & { categoryId: string })[];
+    unbudgeted: { categoryId: string; amount: string }[];
+    total: VarianceResponse;
+  }[];
+}
+
+function varianceOf(variance: BudgetVariance): VarianceResponse {
+  return {
+    planned: variance.planned.toFixed(),
+    actual: variance.actual.toFixed(),
+    difference: variance.difference.toFixed(),
+    executed: variance.executed === null ? null : variance.executed.toString(),
+    status: variance.status,
+  };
 }
 
 function toResponse(budget: Budget): BudgetResponse {
@@ -27,6 +57,16 @@ function toResponse(budget: Budget): BudgetResponse {
       type: line.type,
       plannedAmount: line.planned.toFixed(),
       currency: line.planned.currency,
+    })),
+    summary: budget.summary.map((report) => ({
+      type: report.type,
+      currency: report.currency,
+      lines: report.lines.map((line) => ({ categoryId: line.categoryId, ...varianceOf(line) })),
+      unbudgeted: report.unbudgeted.map((entry) => ({
+        categoryId: entry.categoryId,
+        amount: entry.amount.toFixed(),
+      })),
+      total: varianceOf(report.total),
     })),
   };
 }

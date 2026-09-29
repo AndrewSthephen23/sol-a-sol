@@ -1,6 +1,6 @@
 # Módulo Presupuesto (`budgeting`)
 
-> Ficha del módulo. Estado: **en construcción** (hito H4). Hoy se lee y se guarda el presupuesto de un mes; lo real contra lo planeado, copiar el mes anterior y la pantalla llegan con las tareas siguientes. Flag **apagado**.
+> Ficha del módulo. Estado: **en construcción** (hito H4). Hoy se lee y se guarda el presupuesto de un mes, con lo real al lado; copiar el mes anterior y la pantalla llegan con las tareas siguientes. Flag **apagado**.
 
 ## Qué resuelve
 
@@ -73,7 +73,14 @@ Cada partida viaja como `{ categoryId, plannedAmount, currency }`, con el monto 
 
 **Una partida que el mes ya tenía se puede volver a mandar aunque su categoría se haya archivado después**: corregir un mes pasado no obliga a borrarla, igual que al corregir una transacción. Una partida **nueva** sí exige una categoría activa.
 
-Lo real contra lo planeado llega con la tarea 04, y copiar el mes anterior con la 05.
+**Lo real al lado de lo planeado** (tarea 04): las dos respuestas traen `summary`, por tipo y moneda, con cada partida (`planned`, `actual`, `difference`, `executed`, `status`), la fila `unbudgeted` («Sin presupuesto», de mayor a menor) y el `total` del tipo, que incluye lo sin presupuesto. Los montos van como string decimal y `executed` como string **sin redondear** (la web muestra 2 decimales), o `null` con lo planeado en cero.
+
+- **Lo real de una subcategoría suma en su madre**, donde va la partida.
+- **Solo el mes pedido**, del día 1 al último; el mes en curso llega hasta hoy porque una transacción nunca es futura.
+- **Sin transferencias ni transacciones borradas**, y **nunca se convierte moneda**: lo gastado en dólares va a su propio bloque, aunque la categoría tenga partida en soles.
+- Lo real sale de `transactions` por su API pública (`TransactionsLookup`), nunca de sus tablas.
+
+Copiar el mes anterior llega con la tarea 05.
 
 ## Estado
 
