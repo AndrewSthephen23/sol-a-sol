@@ -151,7 +151,7 @@ Responde **201** con `{ transactions, transfers, alreadyImported, createdCategor
 
 ## API pública para otros módulos
 
-`TransactionsLookup` (exportado por `index.ts`) es lo que leen de este módulo el presupuesto (H4) y, más adelante, los reportes, las tarjetas y los resúmenes, sin tocar sus tablas ni importar su interior. Igual que `CatalogLookup` en `catalog`:
+`TransactionsLookup` (exportado por `index.ts`) es lo que leen de este módulo el presupuesto y el dashboard (H4) y, más adelante, las tarjetas y los resúmenes, sin tocar sus tablas ni importar su interior. Igual que `CatalogLookup` en `catalog`:
 
 - `totalsByCategory(userId, desde, hasta)`: totales por categoría (la de cada transacción, sin subir a su madre), tipo y moneda, entre dos fechas incluidas. Lo usan el presupuesto y el dashboard.
 - `totalsByDay(userId, desde, hasta)`: lo mismo por día, tipo y moneda: las barras del dashboard.
@@ -161,7 +161,7 @@ Devuelve lo mínimo a propósito: quien consulta no queda atado a la forma de la
 
 ## Eventos de dominio
 
-Se publican **después de guardar**, esperando a los oyentes, y llevan solo ids (ADR-0004). Nadie los escucha todavía: existen para que el presupuesto (H4), las tarjetas (H5) y los resúmenes (H6) no tengan que tocar este módulo.
+Se publican **después de guardar**, esperando a los oyentes, y llevan solo ids (ADR-0004). Nadie los escucha todavía: el presupuesto y el dashboard (H4) calculan lo real al consultar, con `TransactionsLookup`, así que no necesitan copiarlo. Existen para que las tarjetas (H5) y los resúmenes (H6) no tengan que tocar este módulo.
 
 | Evento                              | Cuándo                                 | Datos                       |
 | ----------------------------------- | -------------------------------------- | --------------------------- |

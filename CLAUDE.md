@@ -17,6 +17,7 @@ Cada funcionalidad entra **con** su capa de calidad (pruebas, documentación, se
    - Los repartos (cuotas) usan `allocate`, que no pierde céntimos: **los céntimos sobrantes van a las primeras partes** (S/ 100.00 en 3 → 33.34, 33.33, 33.33).
    - Los porcentajes (`percentageOf`) se calculan sin redondear y **se muestran con 2 decimales** (36.67 %); con base cero no hay porcentaje (`null`).
    - **Textos con montos:** `parseAmount` interpreta un texto que solo contiene el monto (`"S/ 1,234.50"`, `"US$ 20"`). Solo acepta **punto decimal** con coma de miles, el formato peruano; `1.234,50` se rechaza por ambiguo en vez de adivinar. Un `$` suelto es **USD** (los soles se escriben `S/`). Si el texto no trae moneda, **la indica quien llama** (`defaultCurrency`): el dominio no supone soles.
+   - **Solo para dibujar** (el alto de una barra, el ángulo de una porción) un monto se pasa a `number`, en el gráfico y nada más: lo que se lee va en texto con `formatMoney`, y nunca se calcula con ese número.
    - **Notificaciones completas:** `findAmountInText` extrae el monto de un texto libre, pero solo si está **pegado a una moneda**, para no confundirlo con los últimos dígitos de la tarjeta, una fecha o el número de cuotas. Si hay montos distintos no elige: la captura va a la bandeja de revisión.
 2. **Nunca `new Date()` en la lógica de dominio.** El "hoy" entra como parámetro o por un puerto `Clock`.
 3. **Montos de transacción siempre positivos**; el signo lo determina el tipo de transacción. `Money` sí admite negativos, porque diferencias y saldos pueden serlo (presupuesto S/ 500 − gasto S/ 550 = −S/ 50): la regla se valida en la transacción, no en el dinero.
@@ -51,6 +52,7 @@ apps/api/src/modules/<modulo>/
 - `application` depende de `domain` y `ports`, nunca de `infrastructure`.
 - `http` e `infrastructure` dependen de `application`.
 - **Un módulo no importa el interior de otro:** se comunican por la API pública del módulo (su `index.ts`) o por **eventos de dominio**.
+- **Para leer datos de otro módulo**, su `…Lookup` público (`CatalogLookup`, `TransactionsLookup`) entra por un **puerto propio** de quien lee (`useExisting` en el módulo), así el caso de uso se prueba con un fake. Lo derivado (lo real del presupuesto, el dashboard) se **calcula al consultar**, no se copia a otra tabla.
 
 Módulos de la fase 1: `identity`, `catalog`, `transactions`, `budgeting`, `credit-cards`, `goals`, `reports`, `capture`. Fases posteriores (no implementar aún): `investments-us`, `funds`, `investments-pe`, `retirement`.
 
@@ -72,6 +74,7 @@ Módulos de la fase 1: `identity`, `catalog`, `transactions`, `budgeting`, `cred
 - **OpenAPI** en `/api/v1/openapi.json`, generado desde los mismos esquemas Zod con los que la API valida, así que no puede desincronizarse. Un módulo con su feature flag apagado **no aparece** en el documento: describirlo confirmaría justo lo que su 404 oculta. Una prueba comprueba que toda ruta registrada esté documentada y que no se documente ninguna que no exista.
 - **La web habla con la API por un cliente generado** desde ese documento (`openapi-typescript` + `openapi-fetch`). `pnpm api:client` lo genera **con todos los módulos encendidos**, flags aparte, para que la web pueda prepararse antes de encenderlos. `schema.gen.ts` **no se edita a mano**: si hace falta, el contrato está mal. Si cambias una ruta o un esquema, regenera y versiona; CI falla si el cliente quedó desactualizado.
 - **Sesión en la web:** el token de acceso vive **solo en memoria** (nunca `localStorage`) y la web llama a la API por su propio origen (`proxy.ts` reenvía `/api/*`). Las renovaciones van **de a una, también entre pestañas**: dos `/auth/refresh` a la vez con la misma cookie son, para la API, un robo, y cierran todas las sesiones. Detalle en [`docs/modules/identity.md`](docs/modules/identity.md).
+- **Gráficos:** se dibujan **solo en el navegador**, después de hidratar (`ClientOnly`). Las librerías de gráficos ponen estilos en línea, que la CSP (sin `'unsafe-inline'`) bloquearía en el HTML del servidor. Cada gráfico lleva su **alternativa en texto** (un resumen o una tabla), y el SVG va con `aria-hidden`.
 
 **Agregar un error nuevo:**
 
