@@ -1,6 +1,6 @@
 # Módulo Catálogo (`catalog`)
 
-> Ficha del módulo. Estado: **en construcción** (hito H3). **Categorías** con su semilla (tarea 02) y **métodos de pago** (tarea 03) completos en la API. Flag **apagado**.
+> Ficha del módulo. Estado: **completo en la API** (hito H3, versión 0.4.0). **Categorías** con su jerarquía, semilla al registrarse, archivar, mover, fusionar y convertir en etiqueta; **métodos de pago** con sus reglas por tipo. Flag **encendido**. **La web todavía no tiene la pantalla de gestión del catálogo** (quedó para después de H3): la lista y el formulario de transacciones lo usan, pero su manifest no está en la navegación.
 
 ## Qué resuelve
 
@@ -149,6 +149,6 @@ Todos exigen una sesión (`Authorization: Bearer <token de acceso>`), filtran po
 
 ## Estado
 
-- Feature flag: `FEATURE_CATALOG` (**apagado** hasta cumplir la Definition of Done)
-- Escenarios: [`features/catalog/`](../../features/catalog/)
-- Web: el manifest está en el registro de navegación pero no se ve con el flag apagado. Si al cerrar H3 el catálogo sigue sin pantalla propia, sale del registro, como `identity`.
+- Feature flag: **`FEATURE_CATALOG=true`** desde el cierre de H3 (0.4.0). Tiene que estar encendido para que la web registre transacciones: de aquí salen las categorías y los métodos de pago.
+- Escenarios: [`features/catalog/`](../../features/catalog/), **`@pendiente`**: sin pasos todavía (decisión 7 de H3, 2026-09-29). Las reglas están cubiertas por las pruebas unitarias y de integración; los pasos se escriben en un PR propio.
+- Web: **sin pantalla de gestión** (crear, archivar, fusionar desde la web) hasta después de H3 (decidido el 2026-09-28). Por eso `catalog` **no está en el registro de navegación** (`apps/web/src/shared/navigation/registry.ts`): un enlace a `/catalog` apuntaría a nada.

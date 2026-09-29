@@ -2,7 +2,7 @@
 
 > Qué cubre el proyecto de los controles del **OWASP Application Security Verification Standard, nivel 1** (el mínimo, aplicable a cualquier aplicación), y qué falta.
 >
-> Se actualiza al cerrar cada hito. Estado al **cierre de H2** (versión 0.3.0).
+> Se actualiza al cerrar cada hito. Estado al **cierre de H3** (versión 0.4.0): identidad, catálogo y transacciones en la API, y la primera interfaz de la web.
 >
 > Los identificadores son los de **ASVS 4.0.3**, que es la numeración con la que se escribió esta ficha; al auditar de verdad conviene contrastarlos con el documento oficial de la versión que se use, porque la numeración cambió en la 5.0.
 
@@ -39,22 +39,25 @@
 
 ## V4 · Control de acceso
 
-| Control                                                | Cómo se cubre                                                                                          | Estado |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ | ------ |
-| Denegar por defecto                                    | `AccessTokenGuard` en toda ruta protegida; sin credencial, 401                                         | ✅     |
-| El identificador viene del token                       | `@CurrentUser()`; si falta el guard, lanza en vez de consultar sin filtrar                             | ✅     |
-| Aislamiento por usuario (IDOR)                         | Los repositorios exigen `userId`, que viaja **dentro** del `WHERE`/`UPDATE`                            | ✅     |
-| Verificado con pruebas                                 | `test/identity/access-isolation.spec.ts`: cada endpoint, sin sesión y con la de otra cuenta            | ✅     |
-| Privilegio mínimo de las credenciales                  | Los tokens personales solo entran donde diga `@AcceptsPersonalAccessToken`, y con su scope; si no, 403 | ✅     |
-| Decisiones de seguridad no controladas por quien llama | El tope de caudal se elige por metadata del controller, no por el texto de la URL                      | ✅     |
+| Control                                                | Cómo se cubre                                                                                                                                                                                                                                                                                            | Estado |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| Denegar por defecto                                    | `AccessTokenGuard` en toda ruta protegida; sin credencial, 401                                                                                                                                                                                                                                           | ✅     |
+| El identificador viene del token                       | `@CurrentUser()`; si falta el guard, lanza en vez de consultar sin filtrar                                                                                                                                                                                                                               | ✅     |
+| Aislamiento por usuario (IDOR)                         | Los repositorios exigen `userId`, que viaja **dentro** del `WHERE`/`UPDATE`                                                                                                                                                                                                                              | ✅     |
+| Verificado con pruebas                                 | `test/identity/access-isolation.spec.ts`: cada endpoint, sin sesión y con la de otra cuenta. Catálogo y transacciones: **los 24 endpoints** tienen su prueba con la sesión de otra cuenta en `test/catalog/` y `test/transactions/` (404 y lo ajeno intacto, también al fusionar, importar o transferir) | ✅     |
+| Privilegio mínimo de las credenciales                  | Los tokens personales solo entran donde diga `@AcceptsPersonalAccessToken`, y con su scope; si no, 403                                                                                                                                                                                                   | ✅     |
+| Decisiones de seguridad no controladas por quien llama | El tope de caudal se elige por metadata del controller, no por el texto de la URL                                                                                                                                                                                                                        | ✅     |
 
 ## V5 · Validación y saneamiento
 
-| Control                           | Cómo se cubre                                                                            | Estado |
-| --------------------------------- | ---------------------------------------------------------------------------------------- | ------ |
-| Validación de entrada por esquema | Zod de `@sol-a-sol/contracts` en cada cuerpo; la política de negocio queda en el dominio | ✅     |
-| Consultas parametrizadas          | Prisma; no se concatena SQL                                                              | ✅     |
-| Tamaños máximos                   | Correo 254, contraseña 256 (defensivo: argon2id gasta memoria a propósito)               | ✅     |
+| Control                           | Cómo se cubre                                                                                                                                                               | Estado |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| Validación de entrada por esquema | Zod de `@sol-a-sol/contracts` en cada cuerpo; la política de negocio queda en el dominio                                                                                    | ✅     |
+| Consultas parametrizadas          | Prisma; no se concatena SQL                                                                                                                                                 | ✅     |
+| Tamaños máximos                   | Correo 254, contraseña 256 (defensivo: argon2id gasta memoria a propósito)                                                                                                  | ✅     |
+| Límites de la importación         | CSV de **1 MB** (en bytes) y **5 000 filas** (413); cuerpo JSON de toda la API hasta **2 MB**; largos máximos por columna                                                   | ✅     |
+| Montos y listas acotados          | Montos como string decimal de hasta 16 cifras enteras y 2 decimales (más se **rechaza**, no se redondea); hasta 10 etiquetas por transacción; cursor opaco con largo máximo | ✅     |
+| Nada del cliente decide el dueño  | Un `userId` o un `source` en el cuerpo se **rechaza** (esquemas estrictos), no se ignora                                                                                    | ✅     |
 
 ## V7 · Errores y bitácora
 
