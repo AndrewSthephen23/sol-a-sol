@@ -119,6 +119,18 @@ Responde **201** con `{ transactions, transfers, alreadyImported, createdCategor
 
 > Las categorías y métodos se crean con los casos de uso de `catalog` (su API pública), fuera de la transacción de base de datos: si la escritura de las filas falla, lo creado queda y una nueva vista previa ya lo muestra como existente.
 
+## En la web
+
+`/transactions` (tarea 09 de H3) muestra un mes: totales por moneda arriba y los movimientos agrupados por día, del más reciente al más viejo, con «Cargar más» siguiendo el cursor.
+
+- **Los filtros viven en la URL** (`month`, `show`, `categoryId`, `tag`, `q`): filtrar no recarga la página, y el botón atrás deshace un filtro o un cambio de mes. La búsqueda se aplica 300 ms después de dejar de escribir y **reemplaza** la entrada del historial, para no dejar una por letra.
+- **El mes por defecto es el de hoy en Lima**, calculado por el dominio (`today`), no con `new Date()` en un componente.
+- **Los totales son de todo lo filtrado**, no de la página cargada: los calcula la API. Una tarjeta por moneda, sin convertir.
+- **Los montos se muestran sin pasar por `number`** (`formatMoney` trabaja sobre el texto). El signo lo da el tipo: solo el ingreso suma.
+- Los nombres de categorías y métodos de pago se piden **con los archivados**: un mes viejo puede usarlos y tiene que seguir mostrándolos. El filtro de categoría los marca como «(archivada)».
+- Los meses salen en español de Perú (`es-PE`): «setiembre», no «septiembre».
+- La caché de la web **se vacía al terminar la sesión**, para que quien entre después no vea ni por un instante los datos del anterior.
+
 ## Eventos de dominio
 
 Se publican **después de guardar**, esperando a los oyentes, y llevan solo ids (ADR-0004). Nadie los escucha todavía: existen para que el presupuesto (H4), las tarjetas (H5) y los resúmenes (H6) no tengan que tocar este módulo.
@@ -205,4 +217,4 @@ El monto viaja como **string decimal** (`"25.90"`) y la fecha como `YYYY-MM-DD`.
 
 - Feature flag: `FEATURE_TRANSACTIONS` (**apagado** hasta cumplir la Definition of Done)
 - Escenarios: [`features/transactions/`](../../features/transactions/)
-- Web: el manifest está en el registro de navegación pero no se ve con el flag apagado; la pantalla llega con la tarea 09.
+- Web: `/transactions` con la lista (tarea 09, PR A1). El formulario (crear, editar, transferencias, etiquetas) y borrar con «Deshacer» llegan en el PR A2; la importación CSV, en el PR B. Con el flag apagado la pantalla responde 404, igual que la API.

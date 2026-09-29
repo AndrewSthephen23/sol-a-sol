@@ -22,7 +22,8 @@ const NEXT_CLI = createRequire(import.meta.url).resolve('next/dist/bin/next');
  * Levanta lo que usan las pruebas y devuelve cómo apagarlo:
  *
  * 1. Un PostgreSQL efímero, con las migraciones versionadas (nunca `db push`).
- * 2. La API compilada (`dist/main.js`), con `identity` encendido y el registro por invitación.
+ * 2. La API compilada (`dist/main.js`), con `identity`, `catalog` y `transactions` encendidos y
+ *    el registro por invitación.
  * 3. La web compilada (`next start`), que reenvía `/api/*` a esa API.
  *
  * Los secretos se generan en cada corrida y no se escriben en ningún archivo.
@@ -40,7 +41,11 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   const inviteCode = randomBytes(12).toString('hex');
   process.env[INVITE_CODE_VAR] = inviteCode;
 
-  const flags = { FEATURE_IDENTITY: 'true' };
+  const flags = {
+    FEATURE_IDENTITY: 'true',
+    FEATURE_CATALOG: 'true',
+    FEATURE_TRANSACTIONS: 'true',
+  };
   const api = start('api', ['dist/main.js'], API_ROOT, {
     ...flags,
     PORT: String(API_PORT),
