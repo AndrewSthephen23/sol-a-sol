@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
 
-import { expect, type Page, test } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
+import { expect, test } from './support/test';
 import { type Account, createAccount, createAccountWithTotp } from './support/accounts';
 
 async function signIn(page: Page, { email, password }: Account) {

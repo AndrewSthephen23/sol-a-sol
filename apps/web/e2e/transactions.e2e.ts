@@ -1,5 +1,6 @@
-import { expect, type Page, test } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
+import { expect, test } from './support/test';
 import { formatDay } from '../src/shared/time/dates';
 import { createAccount } from './support/accounts';
 import { limaDates, seedMovements } from './support/movements';
