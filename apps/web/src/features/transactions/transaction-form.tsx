@@ -1,22 +1,19 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import type { SubmitEvent } from 'react';
-
-import { errorMessage, NETWORK_ERROR } from '@/shared/api/problem';
-import type { Currency } from '@/shared/format/money';
+import { useMemo } from 'react';
 
 import { Field, INPUT } from './field';
 import { categoryGroups, lastPaymentMethod, paymentMethodOptions } from './form-options';
-import { categoriesById } from './labels';
 import {
-  checkTransaction,
-  type FieldErrors,
-  fixedCurrency,
-  formErrorFor,
-  type TransactionField,
-  type TransactionValues,
-} from './movement-form-model';
+  AmountField,
+  CurrencyField,
+  DateField,
+  DescriptionField,
+  FormFooter,
+  useMovementForm,
+} from './form-parts';
+import { categoriesById } from './labels';
+import { checkTransaction, fixedCurrency, type TransactionValues } from './movement-form-model';
 import { useSaveTransaction } from './mutations';
 import type { Category, PaymentMethod } from './queries';
 
@@ -46,9 +43,6 @@ export function TransactionForm({
   today,
   onSaved,
 }: Readonly<TransactionFormProps>) {
-  const [values, setValues] = useState(initial);
-  const [errors, setErrors] = useState<FieldErrors<TransactionField>>({});
-  const [formError, setFormError] = useState<string | null>(null);
   const save = useSaveTransaction(id);
 
   const context = useMemo(
@@ -67,6 +61,15 @@ export function TransactionForm({
     () => paymentMethodOptions(paymentMethods, initial.paymentMethodId),
     [paymentMethods, initial.paymentMethodId],
   );
+  const { values, set, errors, formError, pending, submit } = useMovementForm({
+    initial,
+    check: (current: TransactionValues) => checkTransaction(current, context),
+    save,
+    onSaved: (body) => {
+      lastPaymentMethod.write(body.paymentMethodId ?? null);
+      onSaved(body.date);
+    },
+  });
   const method =
     values.paymentMethodId === null
       ? undefined
@@ -74,59 +77,18 @@ export function TransactionForm({
   const methodCurrency = fixedCurrency(method);
   const proposed = context.categories.get(values.categoryId)?.name;
 
-  function set<K extends keyof TransactionValues>(field: K, value: TransactionValues[K]) {
-    setValues((current) => ({ ...current, [field]: value }));
-  }
-
-  async function submit(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (save.isPending) return;
-    const checked = checkTransaction(values, context);
-    if ('errors' in checked) {
-      setErrors(checked.errors);
-      setFormError(null);
-
-      return;
-    }
-    setErrors({});
-    setFormError(null);
-    try {
-      const outcome = await save.mutateAsync(checked.body);
-      if (outcome.ok) {
-        lastPaymentMethod.write(checked.body.paymentMethodId ?? null);
-        onSaved(checked.body.date);
-
-        return;
-      }
-      const placed = formErrorFor(outcome.code);
-      if (placed?.field !== undefined && placed.field in values) {
-        setErrors({ [placed.field]: placed.message });
-      } else {
-        setFormError(placed?.message ?? errorMessage(outcome.code));
-      }
-    } catch {
-      setFormError(NETWORK_ERROR);
-    }
-  }
-
   return (
     <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-4">
-      <Field label="Monto" error={errors.amount}>
-        {(control) => (
-          <input
-            {...control}
-            name="amount"
-            inputMode="decimal"
-            autoComplete="off"
-            placeholder="0.00"
-            value={values.amount}
-            onChange={(event) => {
-              set('amount', event.target.value);
-            }}
-            className={`${INPUT} text-2xl font-semibold`}
-          />
-        )}
-      </Field>
+      <AmountField
+        name="amount"
+        label="Monto"
+        large
+        value={values.amount}
+        error={errors.amount}
+        onChange={(amount) => {
+          set('amount', amount);
+        }}
+      />
 
       <Field label="Categoría" error={errors.categoryId}>
         {(control) => (
@@ -176,40 +138,23 @@ export function TransactionForm({
 
       {/* Solo si el método no fija la moneda. Sin valor por defecto: nunca se suponen soles. */}
       {methodCurrency === null && (
-        <Field label="Moneda" error={errors.currency}>
-          {(control) => (
-            <select
-              {...control}
-              name="currency"
-              value={values.currency ?? ''}
-              onChange={(event) => {
-                set('currency', (event.target.value || null) as Currency | null);
-              }}
-              className={INPUT}
-            >
-              <option value="">Elige la moneda</option>
-              <option value="PEN">Soles (S/)</option>
-              <option value="USD">Dólares (US$)</option>
-            </select>
-          )}
-        </Field>
+        <CurrencyField
+          value={values.currency}
+          error={errors.currency}
+          onChange={(currency) => {
+            set('currency', currency);
+          }}
+        />
       )}
 
-      <Field label="Fecha" error={errors.date}>
-        {(control) => (
-          <input
-            {...control}
-            type="date"
-            name="date"
-            max={today}
-            value={values.date}
-            onChange={(event) => {
-              set('date', event.target.value);
-            }}
-            className={INPUT}
-          />
-        )}
-      </Field>
+      <DateField
+        value={values.date}
+        today={today}
+        error={errors.date}
+        onChange={(date) => {
+          set('date', date);
+        }}
+      />
 
       <details
         open={
@@ -225,24 +170,14 @@ export function TransactionForm({
           Más detalles
         </summary>
         <div className="mt-3 flex flex-col gap-4">
-          <Field
-            label="Descripción"
+          <DescriptionField
+            value={values.description}
             error={errors.description}
-            {...(proposed === undefined ? {} : { hint: `Si la dejas vacía: «${proposed}».` })}
-          >
-            {(control) => (
-              <input
-                {...control}
-                name="description"
-                maxLength={200}
-                value={values.description}
-                onChange={(event) => {
-                  set('description', event.target.value);
-                }}
-                className={INPUT}
-              />
-            )}
-          </Field>
+            proposed={proposed}
+            onChange={(description) => {
+              set('description', description);
+            }}
+          />
           <Field label="Comercio" error={errors.merchant}>
             {(control) => (
               <input
@@ -274,19 +209,7 @@ export function TransactionForm({
         </div>
       </details>
 
-      {formError !== null && (
-        <p role="alert" className="text-sm text-red-700">
-          {formError}
-        </p>
-      )}
-
-      <button
-        type="submit"
-        disabled={save.isPending}
-        className="rounded-md bg-amber-500 px-4 py-3 text-base font-semibold text-white hover:bg-amber-600 disabled:opacity-50"
-      >
-        {save.isPending ? 'Guardando…' : 'Guardar'}
-      </button>
+      <FormFooter error={formError} pending={pending} />
     </form>
   );
 }

@@ -12,7 +12,7 @@ export interface ControlProps {
 
 interface FieldProps {
   label: string;
-  error?: string | undefined;
+  error: string | undefined;
   hint?: string;
   /** Recibe lo que asocia el control con su etiqueta y su error. */
   children: (control: ControlProps) => ReactElement;
