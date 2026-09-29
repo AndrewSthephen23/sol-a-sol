@@ -2,6 +2,7 @@ import { connection } from 'next/server';
 import { Suspense } from 'react';
 import type { ReactNode } from 'react';
 
+import { UndoProvider } from '@/shared/feedback/undo-toast';
 import { isFeatureEnabled } from '@/shared/navigation/feature-flags';
 import { featureManifests } from '@/shared/navigation/registry';
 import { Sidebar } from '@/shared/navigation/sidebar';
@@ -24,12 +25,14 @@ export default async function PrivateLayout({ children }: Readonly<{ children: R
     // no podría prerenderizar el resto de la página.
     <Suspense>
       <RequireSession>
-        <Sidebar
-          manifests={featureManifests}
-          isEnabled={isFeatureEnabled}
-          actions={<LogoutButton />}
-        />
-        {children}
+        <UndoProvider>
+          <Sidebar
+            manifests={featureManifests}
+            isEnabled={isFeatureEnabled}
+            actions={<LogoutButton />}
+          />
+          {children}
+        </UndoProvider>
       </RequireSession>
     </Suspense>
   );

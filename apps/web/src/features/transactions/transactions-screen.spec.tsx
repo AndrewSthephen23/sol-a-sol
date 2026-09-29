@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createQueryClient, QueryProvider } from '@/shared/api/query-provider';
+import { UndoProvider } from '@/shared/feedback/undo-toast';
 import { Session } from '@/shared/session/session';
 import { SessionProvider } from '@/shared/session/session-provider';
 
@@ -129,7 +130,9 @@ function setup(transactions: Answer) {
   render(
     <SessionProvider session={session}>
       <QueryProvider client={client}>
-        <TransactionsScreen clock={CLOCK} />
+        <UndoProvider>
+          <TransactionsScreen clock={CLOCK} />
+        </UndoProvider>
       </QueryProvider>
     </SessionProvider>,
   );
@@ -354,6 +357,44 @@ describe('TransactionsScreen', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('deletes from the list and offers to undo', async () => {
+    const { lists } = setup((url) =>
+      url.pathname.endsWith('/transactions')
+        ? page([expense('a', '2026-09-28', 'Pan', '4.50')])
+        : new Response(null, { status: 204 }),
+    );
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Borrar «Pan»' }));
+
+    expect(await screen.findByText('Movimiento borrado.')).toBeInTheDocument();
+    expect(lists.map((url) => url.pathname)).toContain('/api/v1/transactions/a');
+  });
+
+  it('says so when a delete from the list fails', async () => {
+    setup((url) =>
+      url.pathname.endsWith('/transactions')
+        ? page([expense('a', '2026-09-28', 'Pan', '4.50')])
+        : new Response(null, { status: 500 }),
+    );
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Borrar «Pan»' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo borrar.');
+  });
+
+  it('links each movement to its correction, and offers to register one', async () => {
+    setup(() => page([expense('a', '2026-09-28', 'Pan', '4.50')]));
+
+    expect(await screen.findByRole('link', { name: /Pan/ })).toHaveAttribute(
+      'href',
+      '/transactions/a',
+    );
+    expect(screen.getByRole('link', { name: '+ Registrar' })).toHaveAttribute(
+      'href',
+      '/transactions/new',
+    );
   });
 
   it('forgets every loaded movement when the session ends', async () => {
