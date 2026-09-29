@@ -3858,6 +3858,164 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/budgets/{year}/{month}/copy-from-previous": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Copia al mes las partidas del mes anterior que le faltan.
+         * @description Copia del mes anterior o, si está vacío, del **último mes con presupuesto**. **Solo completa lo que falta**: nunca pisa una partida (misma categoría y moneda). Las categorías archivadas no se copian y van en `skipped`. Sin ningún mes anterior con presupuesto responde **200** con `copiedFrom: null`: no es un error.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    year: string;
+                    /** @description 1 a 12. */
+                    month: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description El mes como quedó, con de dónde se copió y lo que quedó fuera. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            year: number;
+                            month: number;
+                            /** @description Una por categoría y moneda, en el orden en que se guardaron. `[]` sin presupuesto. */
+                            lines: {
+                                /**
+                                 * Format: uuid
+                                 * @description Una categoría **madre**: suma lo real de sus hijas.
+                                 */
+                                categoryId: string;
+                                /**
+                                 * @description El de su categoría.
+                                 * @enum {string}
+                                 */
+                                type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
+                                /** @description String decimal con 2 decimales (`"800.00"`), cero o más. */
+                                plannedAmount: string;
+                                /** @enum {string} */
+                                currency: "PEN" | "USD";
+                            }[];
+                            /** @description Planeado contra real por tipo y moneda, sin convertir nunca. Lo real de una subcategoría suma en su madre; sin transferencias ni borradas. */
+                            summary: {
+                                /** @enum {string} */
+                                type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
+                                /** @enum {string} */
+                                currency: "PEN" | "USD";
+                                lines: {
+                                    /** @description String decimal. */
+                                    planned: string;
+                                    /** @description String decimal. Lo real del mes. */
+                                    actual: string;
+                                    /** @description String decimal, «lo bueno es positivo». Límite: planeado − real (lo disponible). Meta: real − planeado (cuánto se superó). */
+                                    difference: string;
+                                    /** @description Real sobre planeado en %, **sin redondear**. Nulo con lo planeado en cero. */
+                                    executed: string | null;
+                                    /**
+                                     * @description Límite (gasto, deuda): WITHIN o EXCEEDED. Meta (ingreso, ahorro, inversión): PENDING o MET.
+                                     * @enum {string}
+                                     */
+                                    status: "WITHIN" | "EXCEEDED" | "PENDING" | "MET";
+                                    /** Format: uuid */
+                                    categoryId: string;
+                                }[];
+                                /** @description Lo real de categorías sin partida, de mayor a menor: «Sin presupuesto». */
+                                unbudgeted: {
+                                    /** Format: uuid */
+                                    categoryId: string;
+                                    amount: string;
+                                }[];
+                                /** @description Las partidas contra **todo** lo real del tipo. */
+                                total: {
+                                    /** @description String decimal. */
+                                    planned: string;
+                                    /** @description String decimal. Lo real del mes. */
+                                    actual: string;
+                                    /** @description String decimal, «lo bueno es positivo». Límite: planeado − real (lo disponible). Meta: real − planeado (cuánto se superó). */
+                                    difference: string;
+                                    /** @description Real sobre planeado en %, **sin redondear**. Nulo con lo planeado en cero. */
+                                    executed: string | null;
+                                    /**
+                                     * @description Límite (gasto, deuda): WITHIN o EXCEEDED. Meta (ingreso, ahorro, inversión): PENDING o MET.
+                                     * @enum {string}
+                                     */
+                                    status: "WITHIN" | "EXCEEDED" | "PENDING" | "MET";
+                                };
+                            }[];
+                        } & {
+                            /** @description De qué mes se copió; nulo si no había ninguno anterior con presupuesto. */
+                            copiedFrom: {
+                                year: number;
+                                month: number;
+                            } | null;
+                            /** @description Partidas del origen que no se copiaron: su categoría está archivada. */
+                            skipped: {
+                                /** Format: uuid */
+                                categoryId: string;
+                                /** @enum {string} */
+                                currency: "PEN" | "USD";
+                            }[];
+                        };
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: el presupuesto solo se gestiona desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El año o el mes no son válidos (`BUDGET_MONTH_INVALID`). */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {

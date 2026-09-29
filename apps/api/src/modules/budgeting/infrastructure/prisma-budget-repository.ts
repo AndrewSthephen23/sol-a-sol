@@ -58,4 +58,56 @@ export class PrismaBudgetRepository implements BudgetRepository {
 
     return this.lines(month);
   }
+
+  async latestBefore(
+    target: BudgetMonth,
+  ): Promise<{ year: number; month: number; lines: StoredBudgetLine[] } | null> {
+    const { userId, year, month } = target;
+    const latest = await this.prisma.budget.findFirst({
+      where: {
+        userId,
+        lines: { some: {} },
+        OR: [{ year: { lt: year } }, { year, month: { lt: month } }],
+      },
+      orderBy: [{ year: 'desc' }, { month: 'desc' }],
+      select: { year: true, month: true },
+    });
+    if (latest === null) return null;
+
+    return { ...latest, lines: await this.lines({ userId, ...latest }) };
+  }
+
+  async mergeCategory(userId: string, fromId: string, intoId: string): Promise<number> {
+    // El `userId` va dentro de cada consulta y cada escritura, nunca en una comprobación aparte.
+    return this.prisma.$transaction(async (tx) => {
+      const moving = await tx.budgetLine.findMany({
+        where: { userId, categoryId: fromId },
+        select: { id: true, budgetId: true, currency: true, plannedAmount: true },
+      });
+      for (const from of moving) {
+        const into = await tx.budgetLine.findFirst({
+          where: { userId, budgetId: from.budgetId, categoryId: intoId, currency: from.currency },
+          select: { id: true, plannedAmount: true },
+        });
+        if (into === null) {
+          await tx.budgetLine.updateMany({
+            where: { id: from.id, userId },
+            data: { categoryId: intoId },
+          });
+          continue;
+        }
+        // Las dos tenían partida ese mes y en esa moneda: se suman (2026-09-29).
+        const total = Money.of(into.plannedAmount.toFixed(2), from.currency).add(
+          Money.of(from.plannedAmount.toFixed(2), from.currency),
+        );
+        await tx.budgetLine.updateMany({
+          where: { id: into.id, userId },
+          data: { plannedAmount: total.toFixed() },
+        });
+        await tx.budgetLine.deleteMany({ where: { id: from.id, userId } });
+      }
+
+      return moving.length;
+    });
+  }
 }

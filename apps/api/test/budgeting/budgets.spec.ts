@@ -416,6 +416,122 @@ describe('budgets', () => {
     });
   });
 
+  describe('copying from the previous month', () => {
+    const AUGUST = `/${API_PREFIX}/budgets/2026/8`;
+    const JUNE = `/${API_PREFIX}/budgets/2026/6`;
+
+    function copy(session = ana, path = SEPTEMBER): request.Test {
+      return request(server)
+        .post(`${path}/copy-from-previous`)
+        .set('Authorization', `Bearer ${session}`);
+    }
+
+    it('only fills in what the month is missing, and says where it copied from', async () => {
+      await put(
+        { lines: [line(groceries, '800'), line(wages, '4000'), line(groceries, '50', 'USD')] },
+        ana,
+        AUGUST,
+      ).expect(200);
+      await put({ lines: [line(groceries, '900')] }).expect(200);
+
+      const response = await copy().expect(200);
+
+      expect(response.body).toMatchObject({
+        copiedFrom: { year: 2026, month: 8 },
+        skipped: [],
+        lines: [
+          { categoryId: groceries, plannedAmount: '900.00', currency: 'PEN' },
+          { categoryId: wages, plannedAmount: '4000.00', currency: 'PEN' },
+          { categoryId: groceries, plannedAmount: '50.00', currency: 'USD' },
+        ],
+      });
+      await expect(read()).resolves.toMatchObject({ lines: (response.body as BudgetBody).lines });
+    });
+
+    it('goes back to the last month with a budget, and leaves archived categories out', async () => {
+      await put({ lines: [line(groceries, '600'), line(wages, '4000')] }, ana, JUNE).expect(200);
+      await request(server)
+        .patch(`${CATEGORIES}/${wages}`)
+        .set('Authorization', `Bearer ${ana}`)
+        .send({ archived: true })
+        .expect(200);
+
+      const response = await copy().expect(200);
+
+      expect(response.body).toMatchObject({
+        copiedFrom: { year: 2026, month: 6 },
+        skipped: [{ categoryId: wages, currency: 'PEN' }],
+        lines: [{ categoryId: groceries, plannedAmount: '600.00' }],
+      });
+    });
+
+    it('copies nothing, with 200, when there is no previous budget', async () => {
+      const response = await copy().expect(200);
+
+      expect(response.body).toMatchObject({ copiedFrom: null, skipped: [], lines: [] });
+    });
+
+    it('never copies from another account', async () => {
+      await put({ lines: [line(groceries)] }, ana, AUGUST).expect(200);
+
+      const response = await copy(bruno).expect(200);
+
+      expect(response.body).toMatchObject({ copiedFrom: null, lines: [] });
+      expect((await read()).lines).toEqual([]);
+    });
+  });
+
+  describe('following a category merge', () => {
+    function merge(id: string, intoCategoryId: string, session = ana): request.Test {
+      return request(server)
+        .post(`${CATEGORIES}/${id}/merge`)
+        .set('Authorization', `Bearer ${session}`)
+        .send({ intoCategoryId });
+    }
+
+    it('moves the lines to the category they were merged into, adding up same-month lines', async () => {
+      const market = await category({ name: 'Mercado', type: 'VARIABLE_EXPENSE' });
+      await put({ lines: [line(groceries, '800'), line(market, '300.50')] }).expect(200);
+      await put({ lines: [line(market, '250')] }, ana, `/${API_PREFIX}/budgets/2026/8`).expect(200);
+
+      await merge(market, groceries).expect(200);
+
+      expect((await read()).lines).toEqual([
+        {
+          categoryId: groceries,
+          type: 'VARIABLE_EXPENSE',
+          plannedAmount: '1100.50',
+          currency: 'PEN',
+        },
+      ]);
+      expect((await read(ana, `/${API_PREFIX}/budgets/2026/8`)).lines).toEqual([
+        {
+          categoryId: groceries,
+          type: 'VARIABLE_EXPENSE',
+          plannedAmount: '250.00',
+          currency: 'PEN',
+        },
+      ]);
+    });
+
+    it('never touches the budget of another account', async () => {
+      await put({ lines: [line(groceries)] }).expect(200);
+      const hers = await category({ name: 'Víveres', type: 'VARIABLE_EXPENSE' }, bruno);
+      const hersToo = await category({ name: 'Mercado', type: 'VARIABLE_EXPENSE' }, bruno);
+
+      await merge(hers, hersToo, bruno).expect(200);
+
+      expect((await read()).lines).toEqual([
+        {
+          categoryId: groceries,
+          type: 'VARIABLE_EXPENSE',
+          plannedAmount: '800.00',
+          currency: 'PEN',
+        },
+      ]);
+    });
+  });
+
   describe('user isolation (anti-IDOR)', () => {
     it('answers 404 for a category of another account, and saves nothing', async () => {
       const hers = await category({ name: 'Víveres', type: 'VARIABLE_EXPENSE' }, bruno);
@@ -445,9 +561,11 @@ describe('budgets', () => {
     const routes = [
       ['GET', undefined],
       ['PUT', { lines: [] }],
+      ['POST', undefined],
     ] as const;
 
     function send(method: string, body: object | undefined): request.Test {
+      if (method === 'POST') return request(server).post(`${SEPTEMBER}/copy-from-previous`);
       return method === 'GET'
         ? request(server).get(SEPTEMBER)
         : request(server).put(SEPTEMBER).send(body);

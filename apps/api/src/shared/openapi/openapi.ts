@@ -1304,6 +1304,23 @@ const BUDGET_SCHEMA = schemaOf(
   }),
 );
 
+const COPIED_BUDGET_SCHEMA = {
+  allOf: [
+    BUDGET_SCHEMA,
+    schemaOf(
+      z.object({
+        copiedFrom: z
+          .object({ year: z.int(), month: z.int() })
+          .nullable()
+          .describe('De qué mes se copió; nulo si no había ninguno anterior con presupuesto.'),
+        skipped: z
+          .array(z.object({ categoryId: z.uuid(), currency: currencySchema }))
+          .describe('Partidas del origen que no se copiaron: su categoría está archivada.'),
+      }),
+    ),
+  ],
+};
+
 const BUDGET_MONTH_PARAMETERS = [
   { name: 'year', in: 'path', required: true, schema: { type: 'string', pattern: '^\\d{4}$' } },
   {
@@ -1364,6 +1381,29 @@ function budgetingPaths(): Record<string, unknown> {
             'El cuerpo no tiene la forma esperada, o una partida rompe una regla: monto negativo o ' +
               'con más de 2 decimales, subcategoría, categoría archivada, repetida, o mes inválido.',
           ),
+        },
+      },
+    },
+    [`/${API_PREFIX}/budgets/{year}/{month}/copy-from-previous`]: {
+      post: {
+        tags: ['budgeting'],
+        summary: 'Copia al mes las partidas del mes anterior que le faltan.',
+        description:
+          'Copia del mes anterior o, si está vacío, del **último mes con presupuesto**. **Solo ' +
+          'completa lo que falta**: nunca pisa una partida (misma categoría y moneda). Las ' +
+          'categorías archivadas no se copian y van en `skipped`. Sin ningún mes anterior con ' +
+          'presupuesto responde **200** con `copiedFrom: null`: no es un error.',
+        security: [{ accessToken: [] }],
+        parameters: BUDGET_MONTH_PARAMETERS,
+        responses: {
+          '200': {
+            description: 'El mes como quedó, con de dónde se copió y lo que quedó fuera.',
+            content: { 'application/json': { schema: COPIED_BUDGET_SCHEMA } },
+          },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem('El módulo está apagado.'),
+          '422': problem('El año o el mes no son válidos (`BUDGET_MONTH_INVALID`).'),
         },
       },
     },

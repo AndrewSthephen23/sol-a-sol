@@ -1,6 +1,6 @@
 # Módulo Presupuesto (`budgeting`)
 
-> Ficha del módulo. Estado: **en construcción** (hito H4). Hoy se lee y se guarda el presupuesto de un mes, con lo real al lado; copiar el mes anterior y la pantalla llegan con las tareas siguientes. Flag **apagado**.
+> Ficha del módulo. Estado: **en construcción** (hito H4). La API está completa: leer y guardar el mes con lo real al lado, copiar el mes anterior y seguir las fusiones de categorías. La pantalla llega con la tarea 07. Flag **apagado**.
 
 ## Qué resuelve
 
@@ -58,16 +58,17 @@ Que la categoría sea **madre** no lo puede exigir la base sin cruzar módulos: 
 ## Eventos de dominio
 
 - **Emite:** nada todavía.
-- **Escucha:** `catalog.category.merged`, para mover las partidas de la categoría fusionada (tarea 05; ADR-0005).
+- **Escucha:** `catalog.category.merged` (ADR-0005). Las partidas de la categoría fusionada pasan a la destino **en todos los meses**, en una sola transacción; si la destino ya tenía partida ese mes y en esa moneda, **se suman** (2026-09-29). Al convertir una subcategoría en etiqueta no hay nada que mover: las partidas van solo en madres. Si el oyente falla, la fusión sigue (ADR-0004) y volver a fusionar las mueve.
 
 ## Endpoints
 
 Todos exigen una sesión (un token personal recibe 403), filtran por el `userId` del token y responden **404** con el flag apagado. El año y el mes de la ruta dicen **qué** mes, nunca de quién. Detalle en `/api/v1/openapi.json`.
 
-| Método | Ruta                      | Qué hace                                                                                |
-| ------ | ------------------------- | --------------------------------------------------------------------------------------- |
-| `GET`  | `/budgets/{year}/{month}` | Las partidas del mes. **Un mes sin presupuesto responde 200 con `lines: []`**, no 404   |
-| `PUT`  | `/budgets/{year}/{month}` | Guarda el mes **entero**: la lista reemplaza a la anterior (`[]` lo vacía), toda o nada |
+| Método | Ruta                                         | Qué hace                                                                                                                             |
+| ------ | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET`  | `/budgets/{year}/{month}`                    | Las partidas del mes. **Un mes sin presupuesto responde 200 con `lines: []`**, no 404                                                |
+| `PUT`  | `/budgets/{year}/{month}`                    | Guarda el mes **entero**: la lista reemplaza a la anterior (`[]` lo vacía), toda o nada                                              |
+| `POST` | `/budgets/{year}/{month}/copy-from-previous` | Copia las partidas que el mes no tiene, del mes anterior o del último con presupuesto. Responde **200** con `copiedFrom` y `skipped` |
 
 Cada partida viaja como `{ categoryId, plannedAmount, currency }`, con el monto como **string decimal**; la respuesta agrega el `type` de su categoría. Una categoría ajena o inexistente responde **404** (`CATEGORY_NOT_FOUND`); las reglas rotas, **422** con su código.
 
@@ -80,7 +81,7 @@ Cada partida viaja como `{ categoryId, plannedAmount, currency }`, con el monto 
 - **Sin transferencias ni transacciones borradas**, y **nunca se convierte moneda**: lo gastado en dólares va a su propio bloque, aunque la categoría tenga partida en soles.
 - Lo real sale de `transactions` por su API pública (`TransactionsLookup`), nunca de sus tablas.
 
-Copiar el mes anterior llega con la tarea 05.
+**Copiar del mes anterior** (tarea 05): solo completa lo que falta y **nunca pisa** una partida (misma categoría y moneda); si el mes anterior está vacío, copia del **último mes con presupuesto** (un mes posterior nunca es «anterior»); las categorías archivadas **no se copian** y van en `skipped`, para que no desaparezcan en silencio. **Sin ningún mes anterior con presupuesto responde 200 con `copiedFrom: null`**: no es un error (2026-09-29). Todo se escribe de una vez.
 
 ## Estado
 
