@@ -249,8 +249,8 @@ Then('se avisa que {string} no se copió', function (this: TransactionsWorld, na
 When(
   'fusiono {string} en {string}',
   async function (this: TransactionsWorld, from: string, into: string) {
-    // Lo que `catalog` publica al fusionar; el presupuesto lo escucha.
-    await this.budgetMergeListener.handle({
+    // Lo que `catalog` publica al fusionar (`catalog.category.merged`); el presupuesto lo escucha.
+    await this.reassignBudgetCategory.execute({
       userId: ANA,
       fromId: this.categoryId(ANA, from),
       intoId: this.categoryId(ANA, into),

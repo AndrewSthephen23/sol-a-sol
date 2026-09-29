@@ -14,7 +14,6 @@ import {
   CopyPreviousBudget,
 } from '../../src/modules/budgeting/application/copy-previous-budget.js';
 import { ReassignBudgetCategory } from '../../src/modules/budgeting/application/reassign-budget-category.js';
-import { BudgetCategoryMergedListener } from '../../src/modules/budgeting/infrastructure/category-merged.listener.js';
 import { FakeBudgetRepository } from '../../src/modules/budgeting/ports/budget-repository.fake.js';
 import { FakeBudgetCatalogReader } from '../../src/modules/budgeting/ports/catalog-reader.fake.js';
 import {
@@ -238,9 +237,12 @@ export class TransactionsWorld extends World {
     return new CopyPreviousBudget(this.budgetLines, this.budgetCatalog, this.getBudget);
   }
 
-  /** Lo que escucha el presupuesto cuando `catalog` fusiona una categoría. */
-  get budgetMergeListener(): BudgetCategoryMergedListener {
-    return new BudgetCategoryMergedListener(new ReassignBudgetCategory(this.budgetLines));
+  /**
+   * Lo que hace el presupuesto cuando `catalog` fusiona una categoría. Sin su listener: ese importa
+   * la API pública de `catalog`, que arrastra Prisma, y los escenarios corren sin base.
+   */
+  get reassignBudgetCategory(): ReassignBudgetCategory {
+    return new ReassignBudgetCategory(this.budgetLines);
   }
 
   get monthlyDashboard(): GetMonthlyDashboard {
