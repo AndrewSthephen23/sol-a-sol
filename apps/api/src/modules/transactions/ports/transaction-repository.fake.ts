@@ -7,6 +7,7 @@ import {
 
 import {
   type CategoryAmount,
+  type DayAmount,
   type NewTransaction,
   newestFirst,
   orderTags,
@@ -128,6 +129,16 @@ export class FakeTransactionRepository implements TransactionRepository {
     return Promise.resolve(
       this.matching(userId, filter).map((row) => ({
         categoryId: row.categoryId,
+        type: row.type,
+        amount: row.amount,
+        count: 1,
+      })),
+    );
+  }
+  totalsByDay(userId: string, filter: TransactionFilter): Promise<DayAmount[]> {
+    return Promise.resolve(
+      this.matching(userId, filter).map((row) => ({
+        date: row.date,
         type: row.type,
         amount: row.amount,
         count: 1,

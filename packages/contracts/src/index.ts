@@ -101,3 +101,4 @@ export {
   type PutBudgetRequest,
   putBudgetRequestSchema,
 } from './budgeting/budgets.js';
+export { type MonthlyReportQuery, monthlyReportQuerySchema } from './reports/monthly.js';

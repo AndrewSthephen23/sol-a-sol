@@ -62,6 +62,9 @@ export interface TransactionChanges {
 /** Lo sumado de una categoría en un tipo y una moneda. */
 export type CategoryAmount = TypedAmount & { categoryId: string };
 
+/** Lo sumado de un día en un tipo y una moneda. */
+export type DayAmount = TypedAmount & { date: LocalDate };
+
 export interface TransactionFilter {
   /** Inclusivo. */
   from?: LocalDate;
@@ -138,6 +141,9 @@ export interface TransactionRepository {
    * leen otros módulos, como el presupuesto, por `TransactionsLookup`.
    */
   totalsByCategory(userId: string, filter: TransactionFilter): Promise<CategoryAmount[]>;
+
+  /** Lo mismo, además **por día**: las barras del dashboard. */
+  totalsByDay(userId: string, filter: TransactionFilter): Promise<DayAmount[]>;
 
   /**
    * Pasa **todas** las transacciones de una categoría a otra, borradas incluidas, en una sola

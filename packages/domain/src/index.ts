@@ -214,3 +214,14 @@ export {
   summarizeBudget,
   type UnbudgetedAmount,
 } from './budgeting/budget-summary.js';
+export {
+  buildMonthlyDashboard,
+  type CategoryAmount,
+  type CategorySlice,
+  type CurrencyDashboard,
+  type DailyExpense,
+  type DayAmount,
+  DISTRIBUTION_SLICES,
+  type MonthlyDashboardInput,
+  type TypeTable,
+} from './reports/monthly-dashboard.js';

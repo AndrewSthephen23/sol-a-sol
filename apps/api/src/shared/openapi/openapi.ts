@@ -1410,12 +1410,103 @@ function budgetingPaths(): Record<string, unknown> {
   };
 }
 
+const MONTHLY_REPORT_SCHEMA = schemaOf(
+  z.object({
+    year: z.int(),
+    month: z.int(),
+    currencies: z
+      .array(
+        z.object({
+          currency: currencySchema,
+          kpis: z
+            .object({
+              income: z.string(),
+              expense: z.string().describe('Gasto fijo + variable.'),
+              saving: z.string().describe('Ahorro + inversión.'),
+              debt: z.string(),
+              balance: z.string().describe('Ingresos menos todo lo demás. Puede ser negativo.'),
+            })
+            .describe('Strings decimales.'),
+          daily: z
+            .array(z.object({ date: z.iso.date(), amount: z.string() }))
+            .describe(
+              'Gasto fijo + variable de cada día, **con los días sin gasto en cero**. El mes en ' +
+                'curso llega hasta hoy (Lima); uno que no empezó no tiene días.',
+            ),
+          distribution: z
+            .array(
+              z.object({
+                categoryId: z.uuid().nullable().describe('Nulo es «Otras».'),
+                amount: z.string(),
+                share: z.string().nullable().describe('% del gasto del mes, sin redondear.'),
+              }),
+            )
+            .describe(
+              'El gasto por categoría **madre** (con sus hijas), de mayor a menor: las 6 primeras y el resto en «Otras».',
+            ),
+          byType: z
+            .array(
+              z.object({
+                type: transactionTypeSchema,
+                total: z.string(),
+                categories: z.array(z.object({ categoryId: z.uuid(), amount: z.string() })),
+              }),
+            )
+            .describe('Cada tipo con sus categorías madre, de mayor a menor.'),
+        }),
+      )
+      .describe('Una entrada por moneda con movimientos, primero soles; nunca se convierte.'),
+  }),
+);
+
+function reportsPaths(): Record<string, unknown> {
+  return {
+    [`/${API_PREFIX}/reports/monthly`]: {
+      get: {
+        tags: ['reports'],
+        summary:
+          'El dashboard de un mes: KPIs, gasto diario, dona por categoría y tablas por tipo.',
+        description:
+          'Todo en una llamada, por moneda y sin convertir nunca. Sin transferencias ni ' +
+          'transacciones borradas; lo de una subcategoría suma en su madre.',
+        security: [{ accessToken: [] }],
+        parameters: [
+          {
+            name: 'year',
+            in: 'query',
+            required: true,
+            schema: { type: 'string', pattern: '^\\d{4}$' },
+          },
+          {
+            name: 'month',
+            in: 'query',
+            required: true,
+            schema: { type: 'string', pattern: '^\\d{1,2}$' },
+            description: '1 a 12.',
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'El dashboard del mes. Sin movimientos, `currencies` viene vacío.',
+            content: { 'application/json': { schema: MONTHLY_REPORT_SCHEMA } },
+          },
+          '401': problem('Falta el token de acceso o no vale.'),
+          '403': problem('Llegó un token personal: los reportes solo se ven desde una sesión.'),
+          '404': problem('El módulo está apagado.'),
+          '422': problem('Falta el año o el mes, no tienen la forma esperada, o el mes no existe.'),
+        },
+      },
+    },
+  };
+}
+
 /** Rutas que aporta cada módulo de negocio, para omitirlas cuando su flag está apagado. */
 const PATHS_BY_MODULE: Partial<Record<FeatureModule, () => Record<string, unknown>>> = {
   identity: identityPaths,
   catalog: catalogPaths,
   transactions: transactionsPaths,
   budgeting: budgetingPaths,
+  reports: reportsPaths,
 };
 
 export interface OpenApiOptions {

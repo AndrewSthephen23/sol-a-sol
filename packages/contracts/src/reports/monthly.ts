@@ -1,0 +1,18 @@
+import { z } from 'zod';
+
+/**
+ * El mes del dashboard (`?year=2026&month=9`): solo la forma. Un mes que no existe (13) lo
+ * rechaza el dominio al armar la fecha, diciendo qué regla se rompió.
+ */
+export const monthlyReportQuerySchema = z.object({
+  year: z
+    .string()
+    .regex(/^\d{4}$/u, { message: 'Expected a year such as "2026".' })
+    .transform(Number),
+  month: z
+    .string()
+    .regex(/^\d{1,2}$/u, { message: 'Expected a month such as "9".' })
+    .transform(Number),
+});
+
+export type MonthlyReportQuery = z.infer<typeof monthlyReportQuerySchema>;

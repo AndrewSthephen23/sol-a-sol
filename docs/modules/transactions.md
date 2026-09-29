@@ -153,7 +153,8 @@ Responde **201** con `{ transactions, transfers, alreadyImported, createdCategor
 
 `TransactionsLookup` (exportado por `index.ts`) es lo que leen de este módulo el presupuesto (H4) y, más adelante, los reportes, las tarjetas y los resúmenes, sin tocar sus tablas ni importar su interior. Igual que `CatalogLookup` en `catalog`:
 
-- `totalsByCategory(userId, desde, hasta)`: totales por categoría (la de cada transacción, sin subir a su madre), tipo y moneda, entre dos fechas incluidas.
+- `totalsByCategory(userId, desde, hasta)`: totales por categoría (la de cada transacción, sin subir a su madre), tipo y moneda, entre dos fechas incluidas. Lo usan el presupuesto y el dashboard.
+- `totalsByDay(userId, desde, hasta)`: lo mismo por día, tipo y moneda: las barras del dashboard.
 - Solo transacciones **vigentes** (las borradas no cuentan) y **nunca transferencias**. Nunca convierte moneda. Exige el `userId`, que va dentro de la consulta.
 
 Devuelve lo mínimo a propósito: quien consulta no queda atado a la forma de las entidades.
