@@ -1,5 +1,15 @@
 # @sol-a-sol/domain
 
+## 0.5.0
+
+### Patch Changes
+
+- 6a41264: La pantalla del presupuesto (`/budgeting`), todavía con el módulo apagado: el mes en la URL con el mismo selector que las transacciones, lo planeado contra lo real por tipo y moneda con su barra de % ejecutado y una frase que dice qué significa («Quedan…», «Te pasaste…», «Faltan…», «Cumplida»), «Sin presupuesto» y el total del tipo. Se arma y se corrige el mes entero de una vez, y se copia del mes anterior diciendo de dónde y qué quedó fuera. El dominio suma `formatPercentage`: un porcentaje con 2 decimales y redondeo bancario.
+- 532d993: Reglas del presupuesto en el dominio. `computeBudgetVariance` compara lo planeado con lo real con la lectura de cada tipo: gasto y deuda son **límites** (diferencia = planeado − real, excedido apenas real > planeado) e ingreso, ahorro e inversión son **metas** (diferencia = real − planeado, cumplida al llegar). El % ejecutado se calcula sin redondear y no existe con lo planeado en cero. `summarizeBudget` junta partidas y real por tipo y moneda, sin convertir nunca, con la fila «Sin presupuesto» contada en el total. Y las reglas de una partida: cero o más, solo en una categoría madre y activa, una por categoría y moneda, en un mes válido.
+- 0457810: Nace el módulo `reports` (apagado con `FEATURE_REPORTS=false`), de solo lectura y sin tablas propias, con `GET /api/v1/reports/monthly`: el dashboard del mes en una llamada, por moneda y sin convertir nunca. Trae los KPIs (ingresos, gastos, ahorro, deuda y saldo), el gasto diario con los días en cero (el mes en curso hasta hoy en Lima), la dona del gasto por categoría madre con las 6 mayores y «Otras», y las tablas por tipo. Lo arma `buildMonthlyDashboard` en el dominio, con mutation testing al 100 %.
+
+  `TransactionsLookup` suma `totalsByDay`. `reports` no entra en la navegación: el dashboard vivirá en `/`.
+
 ## 0.4.0
 
 ### Patch Changes

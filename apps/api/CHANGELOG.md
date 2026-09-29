@@ -1,5 +1,48 @@
 # @sol-a-sol/api
 
+## 0.5.0
+
+### Minor Changes
+
+- 7754459: Cierra el hito **H4 — Presupuesto y dashboard**: ya se puede planear el mes y ver cómo va. Los módulos `budgeting` y `reports` quedan **encendidos** (`FEATURE_BUDGETING=true`, `FEATURE_REPORTS=true`):
+
+  - **Presupuesto** por categoría madre y moneda, para cualquier mes, con lo real al lado: lo que queda o cuánto me pasé en un límite, lo que falta o si se cumplió una meta, el % ejecutado y lo gastado sin partida. Se copia del mes anterior completando solo lo que falta y sigue las fusiones de categorías.
+  - **Dashboard del mes** en la página de inicio: KPIs por moneda, gasto por día, dona por categoría y tablas por tipo, con cada gráfico explicado también en texto y la política de contenido todavía sin `'unsafe-inline'`.
+
+  El aislamiento por usuario está probado en los 4 endpoints nuevos con la sesión de otra cuenta, los escenarios Gherkin de los dos módulos se ejecutan (cada regla se comprobó rompiéndola) y la checklist de OWASP ASVS queda al día.
+
+### Patch Changes
+
+- d9922ff: El presupuesto de un mes trae lo real al lado de lo planeado, todavía con el módulo apagado: por tipo y moneda, cada partida con su diferencia, su % ejecutado (sin redondear, `null` con lo planeado en cero) y su estado, la fila «Sin presupuesto» y el total del tipo. Lo real de una subcategoría suma en su madre, solo cuenta el mes pedido, sin transferencias ni borradas, y nunca se convierte moneda.
+
+  `transactions` ofrece por primera vez una lectura a otros módulos por su API pública, `TransactionsLookup`: totales por categoría, tipo y moneda entre dos fechas. La usará también el dashboard.
+
+- 1535191: `POST /api/v1/budgets/{year}/{month}/copy-from-previous`: copia al mes las partidas que le faltan, del mes anterior o del último con presupuesto, sin pisar ninguna. Las categorías archivadas no se copian y la respuesta dice cuáles quedaron fuera; sin ningún mes anterior con presupuesto responde sin copiar nada, no con un error.
+
+  El presupuesto sigue las fusiones de categorías: escucha `catalog.category.merged` y pasa las partidas a la destino en todos los meses, sumándolas si la destino ya tenía una ese mes en esa moneda.
+
+- c1a205f: `GET` y `PUT /api/v1/budgets/{year}/{month}`: leer y guardar el presupuesto de un mes, todavía con el módulo apagado. Un mes sin presupuesto responde sus partidas, ninguna, no un 404. Guardar reemplaza el mes entero, toda o nada: cada partida en una categoría madre y activa de la cuenta, una por categoría y moneda, con un monto de cero o más, en cualquier mes. Una partida que el mes ya tenía se puede volver a mandar aunque su categoría se haya archivado después.
+
+  `CatalogLookup` dice ahora si una categoría es de primer nivel. Y una partida cuelga también directo de su usuario: sin eso, borrar una cuenta con presupuesto fallaba.
+
+- ce70003: Empieza el hito **H4**: nace el módulo `budgeting` (apagado con `FEATURE_BUDGETING=false`) con sus dos tablas, `budgets` y `budget_lines`. Todavía no tiene endpoints.
+
+  - Un presupuesto por **mes y cuenta**; una partida por **categoría y moneda**, con su monto planeado en `NUMERIC(18,2)`, cero o más.
+  - La base exige que la partida sea de la misma cuenta que su presupuesto y que su categoría, y que su tipo sea el de la categoría.
+
+  Las reglas del presupuesto, decididas con el autor, quedan escritas en `docs/modules/budgeting.md`.
+
+- 0457810: Nace el módulo `reports` (apagado con `FEATURE_REPORTS=false`), de solo lectura y sin tablas propias, con `GET /api/v1/reports/monthly`: el dashboard del mes en una llamada, por moneda y sin convertir nunca. Trae los KPIs (ingresos, gastos, ahorro, deuda y saldo), el gasto diario con los días en cero (el mes en curso hasta hoy en Lima), la dona del gasto por categoría madre con las 6 mayores y «Otras», y las tablas por tipo. Lo arma `buildMonthlyDashboard` en el dominio, con mutation testing al 100 %.
+
+  `TransactionsLookup` suma `totalsByDay`. `reports` no entra en la navegación: el dashboard vivirá en `/`.
+
+- Updated dependencies [6a41264]
+- Updated dependencies [c1a205f]
+- Updated dependencies [532d993]
+- Updated dependencies [0457810]
+  - @sol-a-sol/domain@0.5.0
+  - @sol-a-sol/contracts@0.5.0
+
 ## 0.4.0
 
 ### Minor Changes
