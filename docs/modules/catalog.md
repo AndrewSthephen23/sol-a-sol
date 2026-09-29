@@ -101,7 +101,7 @@ Por eso la regla se protege en capas. Ninguna depende de las otras:
 
 ## Eventos de dominio
 
-- **Emite:** `catalog.category.merged { userId, fromId, intoId, tag? }` (`tag` solo al convertir una subcategoría en etiqueta), uno por cada fusión (la pedida y las de hijas del mismo nombre). Lo escucha `transactions` para mover sus filas; lo escuchará el presupuesto (H4).
+- **Emite:** `catalog.category.merged { userId, fromId, intoId, tag? }` (`tag` solo al convertir una subcategoría en etiqueta), uno por cada fusión (la pedida y las de hijas del mismo nombre). Lo escuchan `transactions`, para mover sus filas, y `budgeting`, para mover sus partidas (sumándolas si la destino ya tenía una ese mes).
 - **Escucha:** `identity.user.registered`, para sembrar las categorías iniciales de la cuenta nueva.
 
 ## API pública para otros módulos

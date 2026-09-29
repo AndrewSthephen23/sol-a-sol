@@ -23,6 +23,21 @@ export interface BudgetRepository {
 
   /** Reemplaza **todas** las partidas del mes, de una vez: o quedan todas o ninguna. */
   replace(month: BudgetMonth, lines: readonly StoredBudgetLine[]): Promise<StoredBudgetLine[]>;
+
+  /**
+   * El último mes **anterior** al pedido que tiene al menos una partida, o `null`: de ahí se
+   * copia (el mes anterior, o el último con presupuesto si ese está vacío).
+   */
+  latestBefore(
+    month: BudgetMonth,
+  ): Promise<{ year: number; month: number; lines: StoredBudgetLine[] } | null>;
+
+  /**
+   * Pasa las partidas de `fromId` a `intoId` en **todos** los meses de la cuenta, de una vez. Si
+   * ese mes `intoId` ya tenía partida en la misma moneda, **se suman** (2026-09-29). Devuelve
+   * cuántas partidas de `fromId` había.
+   */
+  mergeCategory(userId: string, fromId: string, intoId: string): Promise<number>;
 }
 
 export const BUDGET_REPOSITORY = Symbol('BudgetRepository');

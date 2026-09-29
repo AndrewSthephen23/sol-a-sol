@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post, Put, UseGuards } from '@nestjs/common';
 import {
   type BudgetMonthParams,
   budgetMonthParamsSchema,
@@ -11,6 +11,7 @@ import { RequiresFeature } from '../../../shared/feature-flags/feature-flag.guar
 import { ZodValidationPipe } from '../../../shared/http/zod-validation.pipe.js';
 import { AccessTokenGuard, CurrentUser } from '../../identity/index.js';
 import { type Budget, GetBudget, ReplaceBudget } from '../application/budgets.js';
+import { type CopiedBudget, CopyPreviousBudget } from '../application/copy-previous-budget.js';
 
 /**
  * Lo planeado contra lo real, con los montos como **string decimal** y el % ejecutado como string
@@ -37,6 +38,12 @@ export interface BudgetResponse {
     total: VarianceResponse;
   }[];
 }
+
+/** El mes después de copiar: de dónde se copió y qué partidas quedaron fuera (archivadas). */
+export type CopiedBudgetResponse = BudgetResponse & {
+  copiedFrom: { year: number; month: number } | null;
+  skipped: { categoryId: string; currency: string }[];
+};
 
 function varianceOf(variance: BudgetVariance): VarianceResponse {
   return {
@@ -84,6 +91,7 @@ export class BudgetsController {
   constructor(
     private readonly getBudget: GetBudget,
     private readonly replaceBudget: ReplaceBudget,
+    private readonly copyPrevious: CopyPreviousBudget,
   ) {}
 
   /** Un mes sin presupuesto responde 200 con `lines: []`: no haberlo armado no es un error. */
@@ -103,5 +111,20 @@ export class BudgetsController {
     @Body(new ZodValidationPipe(putBudgetRequestSchema)) body: PutBudgetRequest,
   ): Promise<BudgetResponse> {
     return toResponse(await this.replaceBudget.execute({ userId, ...params }, body.lines));
+  }
+
+  /**
+   * Copia las partidas del mes anterior (o del último con presupuesto) que el mes no tiene: nunca
+   * pisa una. Responde 200 aunque no haya de dónde copiar (`copiedFrom: null`): no es un error.
+   */
+  @Post(':year/:month/copy-from-previous')
+  @HttpCode(200)
+  async copy(
+    @CurrentUser() userId: string,
+    @Param(new ZodValidationPipe(budgetMonthParamsSchema)) params: BudgetMonthParams,
+  ): Promise<CopiedBudgetResponse> {
+    const copied: CopiedBudget = await this.copyPrevious.execute({ userId, ...params });
+
+    return { ...toResponse(copied), copiedFrom: copied.copiedFrom, skipped: copied.skipped };
   }
 }
