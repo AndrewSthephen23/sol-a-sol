@@ -1,47 +1,13 @@
 import assert from 'node:assert/strict';
 
-import { defineParameterType, Given, Then, When } from '@cucumber/cucumber';
-import { type Currency, FixedClock, LocalDate, type Money } from '@sol-a-sol/domain';
+import { Given, Then, When } from '@cucumber/cucumber';
+import { type Currency, FixedClock, LocalDate } from '@sol-a-sol/domain';
 
 import type { TransactionPage } from '../../../src/modules/transactions/application/transactions.js';
+import { amountOf, describe, sameMoney } from '../support/readers.js';
 import { ANA, BRUNO, type TransactionsWorld } from '../world.js';
 
-// --- Cómo se leen los datos de los escenarios ---------------------------------------------------
-
-/** `24/09/2026` → `2026-09-24`. Los escenarios usan el formato peruano; es su origen conocido. */
-defineParameterType({
-  name: 'fecha',
-  regexp: /\d{2}\/\d{2}\/\d{4}/,
-  transformer: (text: string) => LocalDate.parseDayFirst(text).toString(),
-});
-
-interface Amount {
-  /** Tal como está escrito, sin comas de miles: un tercer decimal llega intacto al dominio. */
-  amount: string;
-  currency: Currency;
-}
-
-/**
- * `"S/ 1,234.50"` → `{ amount: '1234.50', currency: 'PEN' }`. No usa `parseAmount` a propósito:
- * ese rechaza un tercer decimal, y los escenarios necesitan que el caso de uso lo rechace.
- */
-function amountOf(text: string): Amount {
-  const match = /^(S\/|US\$)\s*(-?[\d,]+(?:\.\d+)?)$/u.exec(text);
-  if (match === null) throw new Error(`Cannot read the amount «${text}».`);
-  const [, symbol, digits = ''] = match;
-
-  return { amount: digits.replaceAll(',', ''), currency: symbol === 'S/' ? 'PEN' : 'USD' };
-}
-
-function sameMoney(actual: Money, text: string): void {
-  const expected = amountOf(text);
-  assert.equal(`${actual.currency} ${actual.toFixed()}`, `${expected.currency} ${expected.amount}`);
-}
-
-/** Para los mensajes de una aserción: el mensaje de un error, o el valor tal cual. */
-function describe(error: unknown): string {
-  return error instanceof Error ? `${error.name}: ${error.message}` : JSON.stringify(error);
-}
+// Los montos y las fechas se leen en `support/readers.ts`, igual en todos los `.feature`.
 
 function assertRejected(world: TransactionsWorld, code?: string): void {
   assert.ok(world.lastError !== null, 'Expected the attempt to be rejected, but it was accepted.');
