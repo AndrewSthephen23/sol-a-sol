@@ -37,6 +37,7 @@ model User {
   transactions         Transaction[]
   transfers            Transfer[]
   tags                 Tag[]
+  budgets              Budget[]
 
   @@map("users")
 }
@@ -226,6 +227,7 @@ model Category {
   parent       Category?       @relation("CategoryHierarchy", fields: [parentId, userId, type], references: [id, userId, type], onDelete: NoAction, onUpdate: NoAction)
   children     Category[]      @relation("CategoryHierarchy")
   transactions Transaction[]
+  budgetLines  BudgetLine[]
 
   /// Destino de la clave foránea compuesta de `parent`. `id` ya es único; esto solo le da a
   /// PostgreSQL el índice que exige para referenciar las tres columnas juntas. Las búsquedas por
@@ -420,4 +422,49 @@ model TransactionTag {
   /// Para filtrar "las transacciones con esta etiqueta" sin recorrer la tabla.
   @@index([tagId])
   @@map("transaction_tags")
+}
+
+/// Presupuesto de un mes (H4): uno por mes y cuenta, con sus partidas.
+model Budget {
+  id        String       @id @default(uuid(7)) @db.Uuid
+  userId    String       @map("user_id") @db.Uuid
+  year      Int          @db.SmallInt
+  /// 1 a 12. Un presupuesto es de un mes, no de un día: no es una fecha.
+  month     Int          @db.SmallInt
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lines     BudgetLine[]
+
+  @@unique([userId, year, month])
+  /// Destino de la clave foránea compuesta de `BudgetLine`: `id` ya es único; esto le da a
+  /// PostgreSQL el índice que exige para referenciar las dos columnas juntas.
+  @@unique([id, userId])
+  @@map("budgets")
+}
+
+/// Cuánto se planea para una categoría **madre** en una moneda, en un mes (decisiones 2 y 3 de
+/// H4, 2026-09-29). Suma lo real de la madre y de sus hijas; que sea madre lo valida el dominio.
+///
+/// Lleva su propio `userId` y el `type` de su categoría para que la base exija, con claves
+/// compuestas, que el presupuesto y la categoría sean de la misma cuenta y que el tipo coincida.
+model BudgetLine {
+  id            String          @id @default(uuid(7)) @db.Uuid
+  budgetId      String          @map("budget_id") @db.Uuid
+  userId        String          @map("user_id") @db.Uuid
+  categoryId    String          @map("category_id") @db.Uuid
+  type          TransactionType
+  /// Cero o más: 0 marca «aquí no gastar nada» (2026-09-29).
+  plannedAmount Decimal         @map("planned_amount") @db.Decimal(18, 2)
+  currency      Currency
+  createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  budget        Budget          @relation(fields: [budgetId, userId], references: [id, userId], onDelete: Cascade)
+  category      Category        @relation(fields: [categoryId, userId, type], references: [id, userId, type], onDelete: NoAction, onUpdate: NoAction)
+
+  /// Una partida por categoría y moneda en cada mes (decisión 3).
+  @@unique([budgetId, categoryId, currency])
+  /// Para seguir una fusión de categorías sin recorrer la tabla.
+  @@index([categoryId])
+  @@map("budget_lines")
 }

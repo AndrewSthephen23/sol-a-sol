@@ -11,6 +11,7 @@ import { TimeModule } from './shared/time/time.module.js';
 import { IdentityModule } from './modules/identity/identity.module.js';
 import { CatalogModule } from './modules/catalog/catalog.module.js';
 import { TransactionsModule } from './modules/transactions/transactions.module.js';
+import { BudgetingModule } from './modules/budgeting/budgeting.module.js';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { TransactionsModule } from './modules/transactions/transactions.module.j
     IdentityModule,
     CatalogModule,
     TransactionsModule,
+    BudgetingModule,
   ],
 })
 export class AppModule {}

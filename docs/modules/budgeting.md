@@ -1,0 +1,56 @@
+# Módulo Presupuesto (`budgeting`)
+
+> Ficha del módulo. Estado: **en construcción** (hito H4). Hoy existen el módulo y sus tablas; las reglas, los endpoints y la pantalla llegan con las tareas siguientes. Flag **apagado**.
+
+## Qué resuelve
+
+Planear el mes y seguirlo: cuánto va a cada categoría, cuánto se lleva y cuánto queda. Es la sección «Arma tu Presupuesto» del plan. Sin presupuesto, las transacciones dicen en qué se fue la plata, pero no si era lo que se quería.
+
+## Reglas de negocio
+
+Decididas con el autor el **2026-09-29**:
+
+| Tema                    | Regla                                                                                                                                                                                                              |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Qué se presupuesta      | **Todos los tipos**: ingreso, gasto fijo, gasto variable, ahorro, inversión y deuda                                                                                                                                |
+| Dónde va la partida     | **Solo en la categoría madre**. Suma lo real de la madre **y de todas sus hijas**, como el filtro de la lista de transacciones                                                                                     |
+| Moneda                  | **Una partida por categoría y moneda**: «Comida» puede tener S/ 800 y US$ 50 el mismo mes. Cada una compara solo con lo real en su moneda; **nunca se convierte**                                                  |
+| Límites                 | Gasto fijo, gasto variable **y deuda**. Diferencia = **planeado − real** (positivo: lo disponible; negativo: cuánto me pasé). **Excedida** apenas real > planeado, sin tolerancia                                  |
+| Metas                   | Ingreso, ahorro e inversión se leen al revés: lo bueno es llegar o pasarse                                                                                                                                         |
+| Monto cero              | **Permitido**: marca «aquí no gastar nada». Cualquier gasto la deja excedida y el % ejecutado no existe (`null`, se muestra «—»): nunca se divide por cero                                                         |
+| Sin presupuesto         | Lo real de las categorías sin partida va en una fila **«Sin presupuesto»** por tipo, y **cuenta** en el total real del tipo                                                                                        |
+| Copiar del mes anterior | **Solo completa lo que falta**, nunca pisa una partida. Si el mes anterior está vacío, usa el **último mes con presupuesto**. Las categorías archivadas **no se copian** y la respuesta dice cuáles quedaron fuera |
+| Qué meses               | **Cualquiera**, pasado o futuro, como las transacciones: no hay mes cerrado                                                                                                                                        |
+
+**Qué es gasto y qué es ahorro** no se redefine aquí: gasto es fijo + variable y ahorro es ahorro + inversión (`countsAsExpense` y `countsAsSaving` del dominio, decididos en H3). Las **transferencias no cuentan**.
+
+## Modelo de datos
+
+| Tabla          | Qué guarda                                                                                                                                                     |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `budgets`      | Un presupuesto por **mes y cuenta** (único `(user_id, year, month)`). `year` y `month` son enteros (el mes, 1 a 12): un presupuesto es de un mes, no de un día |
+| `budget_lines` | Una partida: categoría madre, tipo, monto planeado (`NUMERIC(18,2)`, **≥ 0**) y moneda. Única `(budget_id, category_id, currency)`                             |
+
+La base exige por su cuenta, aunque alguien se salte la aplicación:
+
+- **Una partida es de la misma cuenta que su presupuesto y que su categoría**: `budget_lines` lleva su propio `user_id` para que las claves foráneas compuestas `(budget_id, user_id)` y `(category_id, user_id, type)` lo garanticen.
+- **El tipo de la partida es el de su categoría.**
+- El mes está entre 1 y 12 y el monto planeado no es negativo (`CHECK`).
+- Borrar un presupuesto borra sus partidas; una categoría con partidas **no se puede borrar** (se archiva, como con las transacciones).
+
+Que la categoría sea **madre** no lo puede exigir la base sin cruzar módulos: lo valida el dominio.
+
+## Eventos de dominio
+
+- **Emite:** nada todavía.
+- **Escucha:** `catalog.category.merged`, para mover las partidas de la categoría fusionada (tarea 05; ADR-0005).
+
+## Endpoints
+
+Llegan con las tareas 03 a 05 (`GET/PUT /budgets/{year}/{month}`, `POST /budgets/{year}/{month}/copy-from-previous`).
+
+## Estado
+
+- Feature flag: `FEATURE_BUDGETING` (**apagado** hasta cumplir la Definition of Done).
+- Escenarios: [`features/budgeting/`](../../features/budgeting/), `@pendiente` hasta la tarea 09.
+- Web: el manifest (`/budgeting`) está en el registro de navegación y no se ve con el flag apagado; la pantalla llega con la tarea 07.
