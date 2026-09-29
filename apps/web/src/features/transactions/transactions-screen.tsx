@@ -64,6 +64,9 @@ export function TransactionsScreen({ clock = systemClock }: Readonly<{ clock?: C
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-6">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-bold tracking-tight">Transacciones</h1>
+        <Link href="/transactions/import" className="ml-auto text-sm text-stone-600 underline">
+          Importar CSV
+        </Link>
         {/* En el teléfono queda fijo abajo, al alcance del pulgar. */}
         <Link
           href="/transactions/new"
