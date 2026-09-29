@@ -85,6 +85,15 @@ Cada partida viaja como `{ categoryId, plannedAmount, currency }`, con el monto 
 
 ## Estado
 
-- Feature flag: `FEATURE_BUDGETING` (**apagado** hasta cumplir la Definition of Done).
+- Feature flag: `FEATURE_BUDGETING` (**apagado** hasta cumplir la Definition of Done). Encendido en las pruebas E2E.
 - Escenarios: [`features/budgeting/`](../../features/budgeting/), `@pendiente` hasta la tarea 09.
-- Web: el manifest (`/budgeting`) está en el registro de navegación y no se ve con el flag apagado; la pantalla llega con la tarea 07.
+- Web: `/budgeting`, en el registro de navegación y oculta con el flag apagado (ver abajo).
+
+## Pantalla (web)
+
+`/budgeting?month=2026-09`: el mes vive en la URL, con el mismo selector que la lista de transacciones (el botón atrás vuelve al mes que se miraba; sin `month`, el mes de hoy en Lima).
+
+- **Ver:** un bloque por tipo y moneda. Cada partida muestra «real de planeado», una barra `<progress>` (nativa y sin estilos en línea, por la CSP) y una frase que dice qué significa: «Quedan S/ 50.00» o «Te pasaste S/ 50.00» en un límite, «Faltan S/ 300.00» o «Cumplida» en una meta. Lo excedido va en rojo **y** con su frase, no solo con color. El % ejecutado se muestra con 2 decimales (redondeo bancario, `formatPercentage` del dominio) y **«—» con lo planeado en cero**. Lo gastado sin partida va plegado en «Sin presupuesto», y al final el total del tipo. Un mes sin partidas pero con gastos igual los muestra.
+- **Editar:** se guarda el mes **entero** con un `PUT`, y el botón se desactiva mientras tanto. Solo se ofrecen categorías **madre activas**; una categoría no se agrega dos veces en la misma moneda. Los montos se escriben como texto y se leen con `parseAmount` del dominio: cero o más, tercer decimal rechazado, la moneda escrita tiene que ser la de la partida. Un error de la API se muestra en español, traducido desde su `code`.
+- **Copiar del mes anterior:** dice de qué mes se copió, qué quedó fuera por estar archivado, o que no había de dónde copiar.
+- Lo real depende de lo que se registre en otras pantallas, así que el presupuesto se vuelve a pedir cada vez que se entra (`staleTime: 0`).

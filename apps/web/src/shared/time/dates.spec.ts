@@ -1,7 +1,15 @@
 import { FixedClock } from '@sol-a-sol/domain';
 import { describe, expect, it } from 'vitest';
 
-import { currentMonth, formatDay, formatMonth, shiftMonth, systemClock, todayIn } from './dates';
+import {
+  currentMonth,
+  formatDay,
+  formatMonth,
+  readMonth,
+  shiftMonth,
+  systemClock,
+  todayIn,
+} from './dates';
 
 describe('todayIn', () => {
   it('is the date in Lima, not in UTC', () => {
@@ -39,4 +47,17 @@ describe('formatDay and formatMonth', () => {
   it('write the month in Spanish', () => {
     expect(formatMonth('2026-09')).toBe('setiembre de 2026');
   });
+});
+
+describe('readMonth', () => {
+  it('takes a month with the expected shape', () => {
+    expect(readMonth('2026-12', '2026-09')).toBe('2026-12');
+  });
+
+  it.each([null, '', '2026-13', '2026-00', '2026-9', '26-09', '2026-09-01'])(
+    'falls back on %s',
+    (text) => {
+      expect(readMonth(text, '2026-09')).toBe('2026-09');
+    },
+  );
 });

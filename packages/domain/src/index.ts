@@ -13,6 +13,7 @@ export {
   InvalidAmountError,
   Money,
   PERCENTAGE_DECIMAL_PLACES,
+  formatPercentage,
   roundPercentage,
 } from './money/money.js';
 export { type Clock, FixedClock, PERU_TIME_ZONE, today } from './time/clock.js';

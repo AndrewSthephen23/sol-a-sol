@@ -7,6 +7,7 @@ import {
   CurrencyMismatchError,
   InvalidAllocationError,
   InvalidAmountError,
+  formatPercentage,
   Money,
   roundPercentage,
 } from './money.js';
@@ -209,6 +210,19 @@ describe('Money', () => {
       ['36', '36'],
     ])('rounds %s half to even with two decimals as %s', (value, expected) => {
       expect(roundPercentage(new Decimal(value)).toString()).toBe(expected);
+    });
+  });
+
+  describe('formatPercentage', () => {
+    it.each([
+      ['36.666666666666666667', '36.67'],
+      ['36.665', '36.66'],
+      ['36.675', '36.68'],
+      ['18.8', '18.80'],
+      ['100', '100.00'],
+      ['-12.5', '-12.50'],
+    ])('shows the exact %s with two decimals, half to even, as %s', (text, expected) => {
+      expect(formatPercentage(text)).toBe(expected);
     });
   });
 
