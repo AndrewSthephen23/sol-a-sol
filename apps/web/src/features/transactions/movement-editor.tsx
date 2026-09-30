@@ -6,6 +6,10 @@ import { useMemo, useState } from 'react';
 
 import type { Clock } from '@sol-a-sol/domain';
 
+import {
+  type InstallmentDraft,
+  installmentErrorMessage,
+} from '@/features/credit-cards/installment-model';
 import { useUndoNotice } from '@/shared/feedback/undo-toast';
 import { currentMonth, systemClock, todayIn } from '@/shared/time/dates';
 
@@ -66,8 +70,26 @@ function Screen({ title, children }: Readonly<{ title: string; children: React.R
   );
 }
 
+/**
+ * A dónde ir si una compra se guardó pero sus cuotas no: a corregirla, con lo escrito y el motivo,
+ * para volver a intentarlo sin registrarla dos veces.
+ */
+export function installmentsRetryUrl(
+  transactionId: string,
+  code: string | null,
+  draft: InstallmentDraft,
+): string {
+  const params = new URLSearchParams({ cuotas: draft.count, cuotasError: code ?? 'UNKNOWN' });
+  if (draft.total !== '') params.set('total', draft.total);
+
+  return `/transactions/${transactionId}?${params.toString()}`;
+}
+
 /** Registrar: una transacción (lo más común) o una transferencia entre cuentas propias. */
-export function NewMovementScreen({ clock = systemClock }: Readonly<{ clock?: Clock }>) {
+export function NewMovementScreen({
+  clock = systemClock,
+  cardsEnabled = false,
+}: Readonly<{ clock?: Clock; cardsEnabled?: boolean }>) {
   const router = useRouter();
   const catalog = useCatalog();
   const [kind, setKind] = useState<MovementKind>('transaction');
@@ -134,6 +156,10 @@ export function NewMovementScreen({ clock = systemClock }: Readonly<{ clock?: Cl
             paymentMethods={catalog.paymentMethods}
             today={today}
             onSaved={onSaved}
+            cardsEnabled={cardsEnabled}
+            onInstallmentsFailed={(transactionId, code, draft) => {
+              router.push(installmentsRetryUrl(transactionId, code, draft));
+            }}
           />
         ) : (
           <TransferForm
@@ -160,6 +186,9 @@ interface EditMovementScreenProps {
   kind: MovementKind;
   id: string;
   clock?: Clock;
+  cardsEnabled?: boolean;
+  /** Las cuotas que no se pudieron guardar al registrar la compra, y por qué. */
+  installmentsRetry?: { draft: InstallmentDraft; code: string | null } | null;
 }
 
 /** Corregir o borrar un movimiento existente. Los de meses pasados también (decisión 6 de H3). */
@@ -167,6 +196,8 @@ export function EditMovementScreen({
   kind,
   id,
   clock = systemClock,
+  cardsEnabled = false,
+  installmentsRetry = null,
 }: Readonly<EditMovementScreenProps>) {
   const router = useRouter();
   const catalog = useCatalog();
@@ -227,6 +258,15 @@ export function EditMovementScreen({
           paymentMethods={catalog.paymentMethods}
           today={today}
           onSaved={back}
+          cardsEnabled={cardsEnabled}
+          {...(installmentsRetry === null
+            ? {}
+            : {
+                initialInstallments: installmentsRetry.draft,
+                installmentsNotice: `La compra se guardó, pero sin cuotas: ${installmentErrorMessage(
+                  installmentsRetry.code,
+                )} Revisa las cuotas y guarda de nuevo.`,
+              })}
         />
       ) : (
         <TransferForm

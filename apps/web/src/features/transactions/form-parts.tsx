@@ -16,7 +16,8 @@ interface MovementFormOptions<V, B, F extends string> {
   /** Revisa lo escrito y arma el cuerpo, o dice qué campos están mal. */
   check: (values: V) => Checked<B, F>;
   save: UseMutationResult<Outcome, Error, B>;
-  onSaved: (body: B) => void;
+  /** Puede seguir trabajando (guardar las cuotas): el botón sigue desactivado hasta que termine. */
+  onSaved: (body: B, outcome: Extract<Outcome, { ok: true }>) => void | Promise<void>;
 }
 
 /**
@@ -33,6 +34,7 @@ export function useMovementForm<V extends object, B, F extends string>({
   const [values, setValues] = useState(initial);
   const [errors, setErrors] = useState<FieldErrors<F>>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [finishing, setFinishing] = useState(false);
 
   function set<K extends keyof V>(field: K, value: V[K]) {
     setValues((current) => ({ ...current, [field]: value }));
@@ -40,7 +42,7 @@ export function useMovementForm<V extends object, B, F extends string>({
 
   async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (save.isPending) return;
+    if (save.isPending || finishing) return;
     const checked = check(values);
     setFormError(null);
     if ('errors' in checked) {
@@ -52,7 +54,12 @@ export function useMovementForm<V extends object, B, F extends string>({
     try {
       const outcome = await save.mutateAsync(checked.body);
       if (outcome.ok) {
-        onSaved(checked.body);
+        setFinishing(true);
+        try {
+          await onSaved(checked.body, outcome);
+        } finally {
+          setFinishing(false);
+        }
 
         return;
       }
@@ -67,7 +74,7 @@ export function useMovementForm<V extends object, B, F extends string>({
     }
   }
 
-  return { values, set, errors, formError, pending: save.isPending, submit };
+  return { values, set, errors, formError, pending: save.isPending || finishing, submit };
 }
 
 /**

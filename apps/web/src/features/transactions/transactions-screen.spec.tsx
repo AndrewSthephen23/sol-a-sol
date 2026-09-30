@@ -99,12 +99,16 @@ const TOTALS = [
 type Answer = (url: URL) => Response | Promise<Response>;
 
 /** Una API falsa: `transactions` decide qué devuelve la lista según la query. */
-function setup(transactions: Answer) {
+/** Con `cards`, el flag de tarjetas está encendido y la Visa tiene esos planes de cuotas. */
+function setup(transactions: Answer, cards?: { plans: unknown[] }) {
   const lists: URL[] = [];
+  /** Todo lo que se pidió, también el catálogo y las tarjetas. */
+  const requested: string[] = [];
   const session = new Session({
     fetch: async (input) => {
       if (!(input instanceof Request)) return Response.json({ accessToken: 'token' });
       const url = new URL(input.url);
+      requested.push(url.pathname);
       switch (url.pathname) {
         case '/api/v1/categories':
           return Response.json([
@@ -114,6 +118,10 @@ function setup(transactions: Answer) {
           ]);
         case '/api/v1/payment-methods':
           return Response.json([method(BCP, 'BCP Sueldo'), method(YAPE, 'Visa', '1234')]);
+        case '/api/v1/credit-cards/status':
+          return Response.json([{ id: 'card-visa', paymentMethod: { id: YAPE } }]);
+        case '/api/v1/credit-cards/card-visa/installments':
+          return Response.json(cards?.plans ?? []);
         case '/api/v1/tags':
           return Response.json([
             { id: '66666666-6666-4666-8666-666666666666', name: 'viaje', transactionCount: 1 },
@@ -131,13 +139,13 @@ function setup(transactions: Answer) {
     <SessionProvider session={session}>
       <QueryProvider client={client}>
         <UndoProvider>
-          <TransactionsScreen clock={CLOCK} />
+          <TransactionsScreen clock={CLOCK} cardsEnabled={cards !== undefined} />
         </UndoProvider>
       </QueryProvider>
     </SessionProvider>,
   );
 
-  return { lists, session, client };
+  return { lists, requested, session, client };
 }
 
 const page = (items: unknown[], nextCursor: string | null = null, totals: unknown[] = TOTALS) =>
@@ -175,6 +183,34 @@ describe('TransactionsScreen', () => {
       '-S/ 1,204.10',
     );
     expect(lists[0]?.searchParams.get('month')).toBe('2026-09');
+  });
+
+  it('marks a purchase in installments with how many were billed', async () => {
+    setup(() => page([expense('a', '2026-09-28', 'Televisor', '1200.00')]), {
+      plans: [
+        {
+          id: 'plan',
+          transactionId: 'a',
+          count: 3,
+          state: 'ACTIVE',
+          installments: [
+            { number: 1, billed: true },
+            { number: 2, billed: false },
+            { number: 3, billed: false },
+          ],
+        },
+      ],
+    });
+
+    expect(await screen.findByText('Comida · BCP Sueldo · 1 de 3 cuotas')).toBeInTheDocument();
+  });
+
+  it('asks nothing about cards while they are off', async () => {
+    const { requested } = setup(() => page([expense('a', '2026-09-28', 'Televisor', '1200.00')]));
+
+    await screen.findByText('Comida · BCP Sueldo');
+    expect(requested).toContain('/api/v1/transactions');
+    expect(requested).not.toContain('/api/v1/credit-cards/status');
   });
 
   it('shows the totals of everything filtered, per currency', async () => {

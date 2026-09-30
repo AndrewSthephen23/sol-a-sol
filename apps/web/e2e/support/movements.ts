@@ -160,3 +160,17 @@ export async function payCard(fixture: CardFixture, amount: string): Promise<voi
   });
   if (!created.data) throw new Error(`Transfer answered ${String(created.response.status)}.`);
 }
+
+/** Configura la Visa del fixture: línea S/ 1,000.00, corte 20 y pago a 25 días. */
+export async function configureCard(fixture: CardFixture): Promise<void> {
+  const card = await api.POST('/api/v1/credit-cards', {
+    headers: fixture.headers,
+    body: {
+      paymentMethodId: fixture.visaId,
+      creditLimit: { amount: '1000.00', currency: 'PEN' },
+      statementDay: 20,
+      paymentDueRule: { kind: 'DAYS_AFTER_STATEMENT', days: 25 },
+    },
+  });
+  if (!card.data) throw new Error(`Credit card answered ${String(card.response.status)}.`);
+}

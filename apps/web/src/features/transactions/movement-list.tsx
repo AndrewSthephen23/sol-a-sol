@@ -15,6 +15,8 @@ interface MovementListProps {
   onTag: (tag: string) => void;
   /** Borrar ofrece «Deshacer» unos segundos, no pide confirmación (decisión 6 de H3). */
   onDelete: (kind: MovementKind, id: string) => void;
+  /** Una nota por transacción, como «3 de 6 cuotas» de una compra en cuotas. */
+  notes?: ReadonlyMap<string, string>;
 }
 
 /** Los movimientos agrupados por día, en el orden en que llegan (del más reciente al más viejo). */
@@ -52,6 +54,7 @@ export function MovementList({
   paymentMethods,
   onTag,
   onDelete,
+  notes,
 }: Readonly<MovementListProps>) {
   const methodName = (id: string | null) => {
     const method = id === null ? undefined : paymentMethods.get(id);
@@ -114,6 +117,7 @@ export function MovementList({
                             categories.get(movement.categoryId)?.name ?? TYPE_LABELS[movement.type],
                             methodName(movement.paymentMethodId),
                             movement.merchant,
+                            notes?.get(movement.id) ?? null,
                           ]
                             .filter((part) => part !== null)
                             .join(' · ')}

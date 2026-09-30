@@ -14,12 +14,14 @@ export type MovementKind = 'transaction' | 'transfer';
  * Lo que respondió la API a un cambio. No se lanza en un rechazo: el formulario necesita el
  * código para poner el error junto a su campo.
  */
-export type Outcome = { ok: true } | { ok: false; status: number; code: string | null };
+/** `id` es el del movimiento guardado, cuando la API lo devuelve (al registrar una transacción). */
+export type Outcome =
+  { ok: true; id?: string } | { ok: false; status: number; code: string | null };
 
-function outcomeOf(problem: unknown, response: Response): Outcome {
-  return response.ok
-    ? { ok: true }
-    : { ok: false, status: response.status, code: problemCode(problem) };
+function outcomeOf(problem: unknown, response: Response, id?: string): Outcome {
+  if (!response.ok) return { ok: false, status: response.status, code: problemCode(problem) };
+
+  return id === undefined ? { ok: true } : { ok: true, id };
 }
 
 /** Tras cualquier cambio, la lista, sus totales y las etiquetas se vuelven a pedir. */
@@ -39,12 +41,12 @@ export function useSaveTransaction(id: string | null) {
 
   return useMutation({
     mutationFn: async (body: TransactionBody): Promise<Outcome> => {
-      const { error, response } =
+      const { data, error, response } =
         id === null
           ? await api.POST('/api/v1/transactions', { body })
           : await api.PATCH('/api/v1/transactions/{id}', { params: { path: { id } }, body });
 
-      return outcomeOf(error, response);
+      return outcomeOf(error, response, data?.id);
     },
     onSuccess: invalidate,
   });
