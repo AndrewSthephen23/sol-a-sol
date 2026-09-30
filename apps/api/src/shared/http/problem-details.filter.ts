@@ -57,6 +57,9 @@ const STATUS_BY_DOMAIN_CODE = new Map<string, number>([
   ['CREDIT_CARD_NOT_FOUND', HttpStatus.NOT_FOUND],
   // El método de pago ya tiene su tarjeta: se corrige esa, no se configura otra.
   ['CREDIT_CARD_ALREADY_CONFIGURED', HttpStatus.CONFLICT],
+  ['INSTALLMENT_PLAN_NOT_FOUND', HttpStatus.NOT_FOUND],
+  // La compra ya se paga en cuotas: se deshace ese plan, no se agrega otro.
+  ['INSTALLMENT_PLAN_ALREADY_EXISTS', HttpStatus.CONFLICT],
 ]);
 
 /** Una regla de negocio rechazó una petición bien formada: contenido no procesable. */

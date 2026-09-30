@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   createCreditCardRequestSchema,
+  createInstallmentPlanRequestSchema,
+  installmentPlanParamsSchema,
   creditCardParamsSchema,
   updateCreditCardRequestSchema,
 } from './credit-cards.js';
@@ -129,5 +131,46 @@ describe('creditCardParamsSchema', () => {
 
   it('rejects anything else', () => {
     expect(creditCardParamsSchema.safeParse({ id: 'visa' }).success).toBe(false);
+  });
+});
+
+describe('createInstallmentPlanRequestSchema', () => {
+  it('accepts a plan without interest, and one with the bank total', () => {
+    expect(createInstallmentPlanRequestSchema.parse({ transactionId: METHOD, count: 3 })).toEqual({
+      transactionId: METHOD,
+      count: 3,
+    });
+    expect(
+      createInstallmentPlanRequestSchema.parse({
+        transactionId: METHOD,
+        count: 12,
+        totalAmount: '1302.36',
+      }),
+    ).toMatchObject({ totalAmount: '1302.36' });
+  });
+
+  it('leaves the range of installments to the domain', () => {
+    expect(
+      createInstallmentPlanRequestSchema.safeParse({ transactionId: METHOD, count: 99 }).success,
+    ).toBe(true);
+  });
+
+  it.each([
+    ['a count with decimals', { transactionId: METHOD, count: 2.5 }],
+    ['a total as a number', { transactionId: METHOD, count: 3, totalAmount: 1302.36 }],
+    ['a purchase that is not a UUID', { transactionId: 'tv', count: 3 }],
+    ['a userId', { transactionId: METHOD, count: 3, userId: METHOD }],
+    ['an amount per installment', { transactionId: METHOD, count: 3, amount: '33.33' }],
+  ])('rejects %s', (_case, body) => {
+    expect(createInstallmentPlanRequestSchema.safeParse(body).success).toBe(false);
+  });
+});
+
+describe('installmentPlanParamsSchema', () => {
+  it('needs both ids as UUIDs', () => {
+    expect(installmentPlanParamsSchema.safeParse({ id: METHOD, planId: METHOD }).success).toBe(
+      true,
+    );
+    expect(installmentPlanParamsSchema.safeParse({ id: METHOD, planId: 'x' }).success).toBe(false);
   });
 });

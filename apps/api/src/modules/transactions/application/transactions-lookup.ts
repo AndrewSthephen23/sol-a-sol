@@ -39,6 +39,16 @@ export interface PaymentMethodDayTotal {
   count: number;
 }
 
+/** Una transacción vigente, con lo mínimo para que otro módulo la siga (una compra en cuotas). */
+export interface TransactionReference {
+  id: string;
+  date: LocalDate;
+  type: TransactionType;
+  amount: Money;
+  paymentMethodId: string | null;
+  description: string;
+}
+
 /**
  * Lecturas que `transactions` ofrece a otros módulos por su API pública (`index.ts`), para que el
  * presupuesto, los reportes, las tarjetas (H5) o los resúmenes (H6) no lean sus tablas ni importen
@@ -89,5 +99,30 @@ export class TransactionsLookup {
         count,
       })),
     ];
+  }
+
+  /**
+   * Las vigentes de la cuenta con esos ids; las borradas, las que no existen y las de otra cuenta
+   * no aparecen. Para seguir a una compra (el plan de cuotas de una tarjeta) sin copiarla.
+   */
+  async liveTransactions(userId: string, ids: readonly string[]): Promise<TransactionReference[]> {
+    const found = await Promise.all(
+      [...new Set(ids)].map((id) => this.transactions.find(userId, id)),
+    );
+
+    return found.flatMap((transaction) =>
+      transaction === null
+        ? []
+        : [
+            {
+              id: transaction.id,
+              date: transaction.date,
+              type: transaction.type,
+              amount: transaction.amount,
+              paymentMethodId: transaction.paymentMethodId,
+              description: transaction.description,
+            },
+          ],
+    );
   }
 }

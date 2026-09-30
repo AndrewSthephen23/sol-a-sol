@@ -36,7 +36,12 @@ interface StatusBody {
   paymentMethod: { id: string; alias: string };
   status: {
     cycle: { start: string; end: string };
-    currencies: { currency: string; debt: string; cycleCharges: string }[];
+    currencies: {
+      currency: string;
+      debt: string;
+      cycleCharges: string;
+      pendingInstallments: string;
+    }[];
     statement: {
       start: string;
       end: string;
@@ -195,7 +200,9 @@ describe('credit card status', () => {
 
     expect(status).toEqual({
       cycle: { start: '2026-09-21', end: '2026-10-20' },
-      currencies: [{ currency: 'PEN', debt: '0.00', cycleCharges: '0.00' }],
+      currencies: [
+        { currency: 'PEN', debt: '0.00', cycleCharges: '0.00', pendingInstallments: '0.00' },
+      ],
       statement: {
         start: '2026-08-21',
         end: '2026-09-20',
@@ -247,8 +254,8 @@ describe('credit card status', () => {
     const { status } = await statusOf();
 
     expect(status.currencies).toEqual([
-      { currency: 'PEN', debt: '245.00', cycleCharges: '200.00' },
-      { currency: 'USD', debt: '0.00', cycleCharges: '30.00' },
+      { currency: 'PEN', debt: '245.00', cycleCharges: '200.00', pendingInstallments: '0.00' },
+      { currency: 'USD', debt: '0.00', cycleCharges: '30.00', pendingInstallments: '0.00' },
     ]);
     expect(status.statement).toMatchObject({
       paid: false,
@@ -331,7 +338,9 @@ describe('credit card status', () => {
 
       const { status } = await statusOf();
 
-      expect(status.currencies).toEqual([{ currency: 'PEN', debt: '0.00', cycleCharges: '0.00' }]);
+      expect(status.currencies).toEqual([
+        { currency: 'PEN', debt: '0.00', cycleCharges: '0.00', pendingInstallments: '0.00' },
+      ]);
       const everyone = await request(server)
         .get(`${CARDS}/status`)
         .set('Authorization', `Bearer ${ana}`)

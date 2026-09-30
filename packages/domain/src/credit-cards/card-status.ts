@@ -9,6 +9,7 @@ import {
   previousBillingCycle,
 } from './billing-cycle.js';
 import type { CreditCardSettings } from './credit-card-settings.js';
+import { computeInstallmentPlan, type Installment } from './installment-plan.js';
 import {
   computeUtilization,
   type PaymentAlert,
@@ -39,8 +40,23 @@ export interface CurrencyCardStatus {
   currency: Currency;
   /** Lo que se debe hoy: la deuda total (decisión 1). Negativa, es un saldo a favor. */
   debt: Money;
-  /** Lo cargado en el ciclo en curso, sin descontar pagos. */
+  /**
+   * Lo cargado en el ciclo en curso, sin descontar pagos. De una compra en cuotas cuenta la cuota
+   * que se factura en este ciclo, no la compra entera (2026-09-30).
+   */
   cycleCharges: Money;
+  /** Cuotas que todavía no se facturan, las de este ciclo incluidas: ya son parte de `debt`. */
+  pendingInstallments: Money;
+}
+
+/** Una compra en cuotas **activa**, como está hoy (`installmentPlanState`). */
+export interface CardInstallmentPlan {
+  purchaseDate: LocalDate;
+  /** El monto de la compra hoy: ya está en los movimientos. */
+  price: Money;
+  /** Lo que se paga en cuotas: el total del banco, o el precio sin intereses. */
+  total: Money;
+  count: number;
 }
 
 export interface StatementBalance {
@@ -81,6 +97,8 @@ export interface CardStatusRequest {
   settings: CreditCardSettings;
   /** Hasta hoy; los anteriores al saldo inicial se ignoran aquí mismo. */
   movements: readonly CardMovement[];
+  /** Solo las activas. Las de una compra anterior al saldo inicial se ignoran: ya está en él. */
+  installmentPlans?: readonly CardInstallmentPlan[];
   today: LocalDate;
 }
 
@@ -93,7 +111,12 @@ export function cardMovementEffect(kind: CardMovementKind): CardMovementEffect {
   return kind === 'INCOME' || kind === 'TRANSFER_IN' ? 'CREDIT' : 'CHARGE';
 }
 
-export function computeCardStatus({ settings, movements, today }: CardStatusRequest): CardStatus {
+export function computeCardStatus({
+  settings,
+  movements,
+  installmentPlans = [],
+  today,
+}: CardStatusRequest): CardStatus {
   const { creditLimit, openingBalance, statementDay } = settings;
   const cycle = computeBillingCycle(statementDay, today);
   const closed = previousBillingCycle(statementDay, cycle);
@@ -101,6 +124,17 @@ export function computeCardStatus({ settings, movements, today }: CardStatusRequ
   const counted = movements.filter(
     (movement) => openingBalance === null || movement.date.isAfter(openingBalance.date),
   );
+  const plans = installmentPlans
+    .filter((plan) => openingBalance === null || plan.purchaseDate.isAfter(openingBalance.date))
+    .map((plan) => ({
+      ...plan,
+      schedule: computeInstallmentPlan({
+        total: plan.total,
+        count: plan.count,
+        statementDay,
+        purchaseDate: plan.purchaseDate,
+      }),
+    }));
   const currencies = CURRENCIES.filter(
     (currency) =>
       currency === creditLimit.currency ||
@@ -110,10 +144,26 @@ export function computeCardStatus({ settings, movements, today }: CardStatusRequ
 
   const openingIn = (currency: Currency) =>
     openingBalance?.amounts.find((amount) => amount.currency === currency) ?? Money.zero(currency);
+  /** Las compras en cuotas en esa moneda hechas hasta `last`. */
+  const plansUntil = (currency: Currency, last: LocalDate) =>
+    plans.filter((plan) => plan.total.currency === currency && !plan.purchaseDate.isAfter(last));
+  /** Las cuotas de esas compras que se facturan después de `day`. */
+  const unbilledAfter = (currency: Currency, day: LocalDate) =>
+    sumMoney(
+      currency,
+      plansUntil(currency, day).flatMap((plan) =>
+        plan.schedule.filter((installment) => installment.statementDate.isAfter(day)),
+      ),
+    );
+  // El interés de una compra en cuotas es deuda desde el día de la compra (2026-09-30): no es una
+  // transacción, así que solo lo ve la tarjeta.
   const debtUntil = (currency: Currency, last: LocalDate) =>
-    counted
-      .filter((movement) => movement.amount.currency === currency && !movement.date.isAfter(last))
-      .reduce((total, movement) => total.add(signed(movement)), openingIn(currency));
+    plansUntil(currency, last).reduce(
+      (total, plan) => total.add(plan.total).subtract(plan.price),
+      counted
+        .filter((movement) => movement.amount.currency === currency && !movement.date.isAfter(last))
+        .reduce((total, movement) => total.add(signed(movement)), openingIn(currency)),
+    );
   const sumOf = (currency: Currency, effect: CardMovementEffect, from: LocalDate) =>
     counted
       .filter(
@@ -127,7 +177,20 @@ export function computeCardStatus({ settings, movements, today }: CardStatusRequ
   const statuses = currencies.map((currency) => ({
     currency,
     debt: debtUntil(currency, today),
-    cycleCharges: sumOf(currency, 'CHARGE', cycle.start),
+    // La compra en cuotas del ciclo sale entera de los cargos, y entra la cuota que se factura en
+    // este corte, sea de la compra que sea.
+    cycleCharges: plansUntil(currency, today)
+      .filter((plan) => !plan.purchaseDate.isBefore(cycle.start))
+      .reduce((total, plan) => total.subtract(plan.price), sumOf(currency, 'CHARGE', cycle.start))
+      .add(
+        sumMoney(
+          currency,
+          plansUntil(currency, today).flatMap((plan) =>
+            plan.schedule.filter((installment) => installment.statementDate.equals(cycle.end)),
+          ),
+        ),
+      ),
+    pendingInstallments: unbilledAfter(currency, today),
   }));
   const statement =
     openingBalance?.date.isAfter(closed.end) === true
@@ -137,7 +200,10 @@ export function computeCardStatus({ settings, movements, today }: CardStatusRequ
           computePaymentDueDate(closed.end, settings.paymentDueRule),
           today,
           currencies.map((currency) => {
-            const balance = debtUntil(currency, closed.end);
+            // El estado lleva las cuotas ya facturadas, no las que vienen (decisión 8).
+            const balance = debtUntil(currency, closed.end).subtract(
+              unbilledAfter(currency, closed.end),
+            );
             const credited = sumOf(currency, 'CREDIT', closed.end.plusDays(1));
             const left = balance.subtract(credited);
 
@@ -180,6 +246,13 @@ function statementOf(
     balances,
     paid: balances.every((entry) => entry.remaining.isZero()),
   };
+}
+
+function sumMoney(currency: Currency, installments: readonly Installment[]): Money {
+  return installments.reduce(
+    (total, installment) => total.add(installment.amount),
+    Money.zero(currency),
+  );
 }
 
 function signed(movement: CardMovement): Money {

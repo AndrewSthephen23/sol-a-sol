@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { CreditCardNotFoundError } from '../domain/errors.js';
 import { FakeCreditCardCatalogReader } from '../ports/catalog-reader.fake.js';
 import { FakeCreditCardRepository } from '../ports/credit-card-repository.fake.js';
+import { FakeInstallmentPlanRepository } from '../ports/installment-plan-repository.fake.js';
 import { FakeCreditCardMovementsReader } from '../ports/movements-reader.fake.js';
 import { GetCreditCardStatuses } from './credit-card-status.js';
 import { ListCreditCards } from './credit-cards.js';
@@ -49,6 +50,7 @@ describe('GetCreditCardStatuses', () => {
     statuses = new GetCreditCardStatuses(
       new ListCreditCards(cards, catalog),
       movements,
+      new FakeInstallmentPlanRepository(),
       FixedClock.at(NOW),
     );
     visa = (await cards.create(ANA, VISA, SETTINGS)).id;

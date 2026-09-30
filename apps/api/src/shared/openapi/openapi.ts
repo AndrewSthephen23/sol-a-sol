@@ -2,6 +2,7 @@ import {
   changePasswordRequestSchema,
   createCategoryRequestSchema,
   createCreditCardRequestSchema,
+  createInstallmentPlanRequestSchema,
   createPaymentMethodRequestSchema,
   createPersonalAccessTokenRequestSchema,
   createTransactionRequestSchema,
@@ -1561,7 +1562,15 @@ const CREDIT_CARD_STATUS_SCHEMA = {
                   debt: z
                     .string()
                     .describe('Lo que se debe hoy, de cualquier ciclo. Negativo: saldo a favor.'),
-                  cycleCharges: z.string().describe('Lo cargado en el ciclo en curso.'),
+                  cycleCharges: z
+                    .string()
+                    .describe(
+                      'Lo cargado en el ciclo en curso. De una compra en cuotas, solo la cuota ' +
+                        'que se factura en este ciclo.',
+                    ),
+                  pendingInstallments: z
+                    .string()
+                    .describe('Cuotas que todavía no se facturan; ya son parte de `debt`.'),
                 }),
               )
               .describe(
@@ -1613,6 +1622,51 @@ const CREDIT_CARD_STATUS_SCHEMA = {
   ],
 };
 
+const INSTALLMENT_PLAN_SCHEMA = schemaOf(
+  z.object({
+    id: z.uuid(),
+    transactionId: z.uuid(),
+    count: z.int().min(2).max(36),
+    state: z
+      .enum([
+        'ACTIVE',
+        'PURCHASE_DELETED',
+        'PURCHASE_NOT_ON_CARD',
+        'PURCHASE_NOT_A_CHARGE',
+        'TOTAL_BELOW_PRICE',
+      ])
+      .describe(
+        'El plan sigue a la compra: solo `ACTIVE` cuenta. Borrada, se ignora hasta que se ' +
+          'restaure; si cambió de tarjeta, pasó a ingreso o supera el total del banco, queda ' +
+          'inválido hasta corregirla.',
+      ),
+    purchase: z
+      .object({ date: z.iso.date(), description: z.string(), amount: MONEY_RESPONSE })
+      .nullable()
+      .describe('La compra como está hoy; nula si se borró.'),
+    total: MONEY_RESPONSE.nullable().describe(
+      'Lo que se paga en cuotas: el total del banco, o sin intereses el monto de la compra.',
+    ),
+    interest: MONEY_RESPONSE.nullable().describe(
+      'Total − precio. Solo cuenta en la deuda de la tarjeta: no es una transacción.',
+    ),
+    installments: z
+      .array(
+        z.object({
+          number: z.int(),
+          amount: MONEY_RESPONSE,
+          statementDate: z.iso.date().describe('El estado de cuenta en que se factura.'),
+          billed: z.boolean().describe('Ya se facturó (el estado que cierra hoy incluido).'),
+        }),
+      )
+      .describe('Suman exactamente el total; los céntimos sobrantes van a las primeras.'),
+    pending: z
+      .object({ count: z.int(), amount: MONEY_RESPONSE })
+      .nullable()
+      .describe('Las cuotas que faltan facturar; nulo si no queda ninguna.'),
+  }),
+);
+
 function creditCardsPaths(): Record<string, unknown> {
   const unauthorized = problem('Falta el token de acceso o no vale.');
   const forbidden = problem(
@@ -1620,6 +1674,12 @@ function creditCardsPaths(): Record<string, unknown> {
   );
   const card = {
     content: { 'application/json': { schema: CREDIT_CARD_SCHEMA } },
+  };
+  const ID_PARAMETER = {
+    name: 'id',
+    in: 'path',
+    required: true,
+    schema: { type: 'string', format: 'uuid' },
   };
   const rules =
     'La línea y el saldo inicial en una moneda que la tarjeta acepte, cero o más ' +
@@ -1716,6 +1776,88 @@ function creditCardsPaths(): Record<string, unknown> {
               'apagado.',
           ),
           '422': problem('El id no es un UUID.'),
+        },
+      },
+    },
+    [`/${API_PREFIX}/credit-cards/{id}/installments`]: {
+      get: {
+        tags: ['credit-cards'],
+        summary: 'Las compras en cuotas de una tarjeta, con lo que falta.',
+        security: [{ accessToken: [] }],
+        parameters: [ID_PARAMETER],
+        responses: {
+          '200': {
+            description: 'Los planes, en el orden en que se registraron.',
+            content: {
+              'application/json': { schema: { type: 'array', items: INSTALLMENT_PLAN_SCHEMA } },
+            },
+          },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem(
+            'La tarjeta no existe o es de otra cuenta (`CREDIT_CARD_NOT_FOUND`); o el módulo está ' +
+              'apagado.',
+          ),
+          '422': problem('El id no es un UUID.'),
+        },
+      },
+      post: {
+        tags: ['credit-cards'],
+        summary: 'Marca una compra hecha con la tarjeta como pagada en cuotas.',
+        description:
+          'De 2 a 36 cuotas. Sin intereses no se manda `totalAmount`: el total sigue siendo el ' +
+          'monto de la compra aunque se corrija. Con intereses, el total del banco (en la moneda ' +
+          'de la compra); la diferencia es deuda de la tarjeta. La compra entera sigue siendo ' +
+          'gasto el día que se hizo: presupuesto y dashboard no cambian.',
+        security: [{ accessToken: [] }],
+        parameters: [ID_PARAMETER],
+        requestBody: jsonBody(createInstallmentPlanRequestSchema),
+        responses: {
+          '201': {
+            description: 'El plan con sus cuotas.',
+            content: { 'application/json': { schema: INSTALLMENT_PLAN_SCHEMA } },
+          },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem(
+            'La tarjeta (`CREDIT_CARD_NOT_FOUND`) o la compra (`TRANSACTION_NOT_FOUND`) no existe, ' +
+              'está borrada o es de otra cuenta; o el módulo está apagado.',
+          ),
+          '409': problem('La compra ya se paga en cuotas (`INSTALLMENT_PLAN_ALREADY_EXISTS`).'),
+          '422': problem(
+            'El cuerpo no tiene la forma esperada, o la compra no es de esta tarjeta ' +
+              '(`INSTALLMENT_PURCHASE_NOT_ON_CARD`), es un ingreso ' +
+              '(`INSTALLMENT_PURCHASE_NOT_A_CHARGE`), el total baja del precio ' +
+              '(`INSTALLMENT_TOTAL_BELOW_PRICE`), las cuotas no van de 2 a 36 ' +
+              '(`INSTALLMENT_COUNT_INVALID`) o alguna quedaría en cero (`INSTALLMENT_TOO_SMALL`).',
+          ),
+        },
+      },
+    },
+    [`/${API_PREFIX}/credit-cards/{id}/installments/{planId}`]: {
+      delete: {
+        tags: ['credit-cards'],
+        summary: 'Deshace un plan de cuotas.',
+        description: 'La compra vuelve a pagarse entera en su estado de cuenta.',
+        security: [{ accessToken: [] }],
+        parameters: [
+          ID_PARAMETER,
+          {
+            name: 'planId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        responses: {
+          '204': { description: 'Deshecho.' },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem(
+            'El plan no existe, es de otra tarjeta o de otra cuenta ' +
+              '(`INSTALLMENT_PLAN_NOT_FOUND`); o el módulo está apagado.',
+          ),
+          '422': problem('Algún id no es un UUID.'),
         },
       },
     },
