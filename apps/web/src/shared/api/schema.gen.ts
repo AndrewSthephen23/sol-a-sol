@@ -4403,6 +4403,364 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/credit-cards/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Dónde está cada tarjeta hoy.
+         * @description Las tarjetas configuradas, archivadas incluidas, cada una con su estado: ciclo, deuda, utilización, último estado cerrado y alertas.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Las tarjetas de la cuenta con su estado. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": ({
+                            /** Format: uuid */
+                            id: string;
+                            /** @description Lo que identifica la tarjeta, leído del método de pago: nunca más que esto. */
+                            paymentMethod: {
+                                /** Format: uuid */
+                                id: string;
+                                alias: string;
+                                institution: string | null;
+                                last4: string | null;
+                                /**
+                                 * @description Nula = bimoneda.
+                                 * @enum {string|null}
+                                 */
+                                currency: "PEN" | "USD" | null;
+                                /** @description Archivada, la tarjeta se sigue viendo y corrigiendo, pero no avisa. */
+                                archived: boolean;
+                            };
+                            /** @description Una sola línea, en una moneda. Cero se permite (una adicional): sin porcentaje de uso. */
+                            creditLimit: {
+                                /** @description String decimal con 2 decimales (`"5000.00"`). */
+                                amount: string;
+                                /** @enum {string} */
+                                currency: "PEN" | "USD";
+                            };
+                            /** @description Día de corte; si el mes no lo tiene, el último día del mes. */
+                            statementDay: number;
+                            paymentDueRule: {
+                                /** @enum {string} */
+                                kind: "DAYS_AFTER_STATEMENT";
+                                days: number;
+                            } | {
+                                /** @enum {string} */
+                                kind: "DAY_OF_MONTH";
+                                day: number;
+                            };
+                            /** @description Lo que ya se debía antes de registrar en la app. Nulo: la deuda arranca en cero. */
+                            openingBalance: {
+                                /** Format: date */
+                                date: string;
+                                /** @description Uno por moneda, primero soles. */
+                                amounts: {
+                                    /** @description String decimal con 2 decimales (`"5000.00"`). */
+                                    amount: string;
+                                    /** @enum {string} */
+                                    currency: "PEN" | "USD";
+                                }[];
+                            } | null;
+                        } & {
+                            /** @description Calculado al consultar. Una compra, deuda, ahorro, inversión o una transferencia que sale de la tarjeta suben la deuda; un ingreso (devolución) o una transferencia que llega (pago, con lo que llegó) la bajan. */
+                            status: {
+                                /** @description El ciclo en curso (Lima); `end` es el próximo corte. */
+                                cycle: {
+                                    /** Format: date */
+                                    start: string;
+                                    /** Format: date */
+                                    end: string;
+                                };
+                                /** @description Primero soles. Siempre la moneda de la línea; la otra si tiene movimientos o saldo inicial. Nunca se convierte. */
+                                currencies: {
+                                    /** @enum {string} */
+                                    currency: "PEN" | "USD";
+                                    /** @description Lo que se debe hoy, de cualquier ciclo. Negativo: saldo a favor. */
+                                    debt: string;
+                                    /** @description Lo cargado en el ciclo en curso. */
+                                    cycleCharges: string;
+                                }[];
+                                /** @description El último estado cerrado. Nulo si el saldo inicial es posterior a su corte. */
+                                statement: {
+                                    /** Format: date */
+                                    start: string;
+                                    /**
+                                     * Format: date
+                                     * @description El día de corte.
+                                     */
+                                    end: string;
+                                    /** Format: date */
+                                    dueDate: string;
+                                    /** @description 0 el mismo día; negativo si ya venció. */
+                                    daysLeft: number;
+                                    /** @description Nada por pagar en ninguna moneda. */
+                                    paid: boolean;
+                                    balances: {
+                                        /** @enum {string} */
+                                        currency: "PEN" | "USD";
+                                        /** @description La deuda total el día del corte. */
+                                        balance: string;
+                                        /** @description Pagos y devoluciones después del corte. */
+                                        credited: string;
+                                        /** @description Lo que falta pagar; nunca negativo. */
+                                        remaining: string;
+                                    }[];
+                                } | null;
+                                utilization: {
+                                    /** @description Deuda en la moneda de la línea sobre la línea, en %, sin redondear. */
+                                    percentage: string | null;
+                                    /**
+                                     * @description HIGH > 30 %, CRITICAL ≥ 70 %. Nulo con línea cero.
+                                     * @enum {string|null}
+                                     */
+                                    level: "OK" | "HIGH" | "CRITICAL" | null;
+                                };
+                                /** @description Vence en 3 días o menos, o venció, y todavía se debe algo de ese estado. */
+                                paymentAlert: {
+                                    /** @enum {string} */
+                                    status: "DUE_SOON" | "OVERDUE";
+                                    daysLeft: number;
+                                } | null;
+                            };
+                        })[];
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: las tarjetas solo se gestionan desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/credit-cards/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Dónde está una tarjeta hoy. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description La tarjeta con su estado. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** @description Lo que identifica la tarjeta, leído del método de pago: nunca más que esto. */
+                            paymentMethod: {
+                                /** Format: uuid */
+                                id: string;
+                                alias: string;
+                                institution: string | null;
+                                last4: string | null;
+                                /**
+                                 * @description Nula = bimoneda.
+                                 * @enum {string|null}
+                                 */
+                                currency: "PEN" | "USD" | null;
+                                /** @description Archivada, la tarjeta se sigue viendo y corrigiendo, pero no avisa. */
+                                archived: boolean;
+                            };
+                            /** @description Una sola línea, en una moneda. Cero se permite (una adicional): sin porcentaje de uso. */
+                            creditLimit: {
+                                /** @description String decimal con 2 decimales (`"5000.00"`). */
+                                amount: string;
+                                /** @enum {string} */
+                                currency: "PEN" | "USD";
+                            };
+                            /** @description Día de corte; si el mes no lo tiene, el último día del mes. */
+                            statementDay: number;
+                            paymentDueRule: {
+                                /** @enum {string} */
+                                kind: "DAYS_AFTER_STATEMENT";
+                                days: number;
+                            } | {
+                                /** @enum {string} */
+                                kind: "DAY_OF_MONTH";
+                                day: number;
+                            };
+                            /** @description Lo que ya se debía antes de registrar en la app. Nulo: la deuda arranca en cero. */
+                            openingBalance: {
+                                /** Format: date */
+                                date: string;
+                                /** @description Uno por moneda, primero soles. */
+                                amounts: {
+                                    /** @description String decimal con 2 decimales (`"5000.00"`). */
+                                    amount: string;
+                                    /** @enum {string} */
+                                    currency: "PEN" | "USD";
+                                }[];
+                            } | null;
+                        } & {
+                            /** @description Calculado al consultar. Una compra, deuda, ahorro, inversión o una transferencia que sale de la tarjeta suben la deuda; un ingreso (devolución) o una transferencia que llega (pago, con lo que llegó) la bajan. */
+                            status: {
+                                /** @description El ciclo en curso (Lima); `end` es el próximo corte. */
+                                cycle: {
+                                    /** Format: date */
+                                    start: string;
+                                    /** Format: date */
+                                    end: string;
+                                };
+                                /** @description Primero soles. Siempre la moneda de la línea; la otra si tiene movimientos o saldo inicial. Nunca se convierte. */
+                                currencies: {
+                                    /** @enum {string} */
+                                    currency: "PEN" | "USD";
+                                    /** @description Lo que se debe hoy, de cualquier ciclo. Negativo: saldo a favor. */
+                                    debt: string;
+                                    /** @description Lo cargado en el ciclo en curso. */
+                                    cycleCharges: string;
+                                }[];
+                                /** @description El último estado cerrado. Nulo si el saldo inicial es posterior a su corte. */
+                                statement: {
+                                    /** Format: date */
+                                    start: string;
+                                    /**
+                                     * Format: date
+                                     * @description El día de corte.
+                                     */
+                                    end: string;
+                                    /** Format: date */
+                                    dueDate: string;
+                                    /** @description 0 el mismo día; negativo si ya venció. */
+                                    daysLeft: number;
+                                    /** @description Nada por pagar en ninguna moneda. */
+                                    paid: boolean;
+                                    balances: {
+                                        /** @enum {string} */
+                                        currency: "PEN" | "USD";
+                                        /** @description La deuda total el día del corte. */
+                                        balance: string;
+                                        /** @description Pagos y devoluciones después del corte. */
+                                        credited: string;
+                                        /** @description Lo que falta pagar; nunca negativo. */
+                                        remaining: string;
+                                    }[];
+                                } | null;
+                                utilization: {
+                                    /** @description Deuda en la moneda de la línea sobre la línea, en %, sin redondear. */
+                                    percentage: string | null;
+                                    /**
+                                     * @description HIGH > 30 %, CRITICAL ≥ 70 %. Nulo con línea cero.
+                                     * @enum {string|null}
+                                     */
+                                    level: "OK" | "HIGH" | "CRITICAL" | null;
+                                };
+                                /** @description Vence en 3 días o menos, o venció, y todavía se debe algo de ese estado. */
+                                paymentAlert: {
+                                    /** @enum {string} */
+                                    status: "DUE_SOON" | "OVERDUE";
+                                    daysLeft: number;
+                                } | null;
+                            };
+                        };
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: las tarjetas solo se gestionan desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description La tarjeta no existe o es de otra cuenta (`CREDIT_CARD_NOT_FOUND`); o el módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El id no es un UUID. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/credit-cards/{id}": {
         parameters: {
             query?: never;

@@ -1,10 +1,11 @@
-import { searchKey } from '@sol-a-sol/domain';
+import { type LocalDate, searchKey } from '@sol-a-sol/domain';
 
 import { newestFirst, type PagePosition } from './transaction-repository.js';
 import type {
   NewTransfer,
   Transfer,
   TransferChanges,
+  TransferDayAmount,
   TransferFilter,
   TransferRepository,
 } from './transfer-repository.js';
@@ -99,6 +100,35 @@ export class FakeTransferRepository implements TransferRepository {
     row.deletedAt = null;
 
     return Promise.resolve(true);
+  }
+
+  totalsByDayFor(
+    userId: string,
+    paymentMethodId: string,
+    to: LocalDate,
+  ): Promise<TransferDayAmount[]> {
+    const live = this.rows.filter(
+      (row) => row.userId === userId && row.deletedAt === null && !row.date.isAfter(to),
+    );
+
+    return Promise.resolve([
+      ...live
+        .filter((row) => row.toPaymentMethodId === paymentMethodId)
+        .map((row) => ({
+          date: row.date,
+          direction: 'IN' as const,
+          amount: row.receivedAmount,
+          count: 1,
+        })),
+      ...live
+        .filter((row) => row.fromPaymentMethodId === paymentMethodId)
+        .map((row) => ({
+          date: row.date,
+          direction: 'OUT' as const,
+          amount: row.amount,
+          count: 1,
+        })),
+    ]);
   }
 
   private liveRow(userId: string, id: string): Row | undefined {

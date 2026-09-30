@@ -1544,6 +1544,75 @@ const CREDIT_CARD_SCHEMA = schemaOf(
   }),
 );
 
+const CREDIT_CARD_STATUS_SCHEMA = {
+  allOf: [
+    CREDIT_CARD_SCHEMA,
+    schemaOf(
+      z.object({
+        status: z
+          .object({
+            cycle: z
+              .object({ start: z.iso.date(), end: z.iso.date() })
+              .describe('El ciclo en curso (Lima); `end` es el próximo corte.'),
+            currencies: z
+              .array(
+                z.object({
+                  currency: currencySchema,
+                  debt: z
+                    .string()
+                    .describe('Lo que se debe hoy, de cualquier ciclo. Negativo: saldo a favor.'),
+                  cycleCharges: z.string().describe('Lo cargado en el ciclo en curso.'),
+                }),
+              )
+              .describe(
+                'Primero soles. Siempre la moneda de la línea; la otra si tiene movimientos o ' +
+                  'saldo inicial. Nunca se convierte.',
+              ),
+            statement: z
+              .object({
+                start: z.iso.date(),
+                end: z.iso.date().describe('El día de corte.'),
+                dueDate: z.iso.date(),
+                daysLeft: z.int().describe('0 el mismo día; negativo si ya venció.'),
+                paid: z.boolean().describe('Nada por pagar en ninguna moneda.'),
+                balances: z.array(
+                  z.object({
+                    currency: currencySchema,
+                    balance: z.string().describe('La deuda total el día del corte.'),
+                    credited: z.string().describe('Pagos y devoluciones después del corte.'),
+                    remaining: z.string().describe('Lo que falta pagar; nunca negativo.'),
+                  }),
+                ),
+              })
+              .nullable()
+              .describe(
+                'El último estado cerrado. Nulo si el saldo inicial es posterior a su corte.',
+              ),
+            utilization: z.object({
+              percentage: z
+                .string()
+                .nullable()
+                .describe('Deuda en la moneda de la línea sobre la línea, en %, sin redondear.'),
+              level: z
+                .enum(['OK', 'HIGH', 'CRITICAL'])
+                .nullable()
+                .describe('HIGH > 30 %, CRITICAL ≥ 70 %. Nulo con línea cero.'),
+            }),
+            paymentAlert: z
+              .object({ status: z.enum(['DUE_SOON', 'OVERDUE']), daysLeft: z.int() })
+              .nullable()
+              .describe('Vence en 3 días o menos, o venció, y todavía se debe algo de ese estado.'),
+          })
+          .describe(
+            'Calculado al consultar. Una compra, deuda, ahorro, inversión o una transferencia que ' +
+              'sale de la tarjeta suben la deuda; un ingreso (devolución) o una transferencia que ' +
+              'llega (pago, con lo que llegó) la bajan.',
+          ),
+      }),
+    ),
+  ],
+};
+
 function creditCardsPaths(): Record<string, unknown> {
   const unauthorized = problem('Falta el token de acceso o no vale.');
   const forbidden = problem(
@@ -1603,6 +1672,50 @@ function creditCardsPaths(): Record<string, unknown> {
               '(`PAYMENT_METHOD_NOT_CREDIT_CARD`) o está archivado (`PAYMENT_METHOD_ARCHIVED`); o ' +
               `se rompe una regla. ${rules}`,
           ),
+        },
+      },
+    },
+    [`/${API_PREFIX}/credit-cards/status`]: {
+      get: {
+        tags: ['credit-cards'],
+        summary: 'Dónde está cada tarjeta hoy.',
+        description:
+          'Las tarjetas configuradas, archivadas incluidas, cada una con su estado: ciclo, deuda, ' +
+          'utilización, último estado cerrado y alertas.',
+        security: [{ accessToken: [] }],
+        responses: {
+          '200': {
+            description: 'Las tarjetas de la cuenta con su estado.',
+            content: {
+              'application/json': { schema: { type: 'array', items: CREDIT_CARD_STATUS_SCHEMA } },
+            },
+          },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem('El módulo está apagado.'),
+        },
+      },
+    },
+    [`/${API_PREFIX}/credit-cards/{id}/status`]: {
+      get: {
+        tags: ['credit-cards'],
+        summary: 'Dónde está una tarjeta hoy.',
+        security: [{ accessToken: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        responses: {
+          '200': {
+            description: 'La tarjeta con su estado.',
+            content: { 'application/json': { schema: CREDIT_CARD_STATUS_SCHEMA } },
+          },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem(
+            'La tarjeta no existe o es de otra cuenta (`CREDIT_CARD_NOT_FOUND`); o el módulo está ' +
+              'apagado.',
+          ),
+          '422': problem('El id no es un UUID.'),
         },
       },
     },

@@ -2,6 +2,7 @@ import { LocalDate, Money } from '@sol-a-sol/domain';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { FakeTransactionRepository } from '../ports/transaction-repository.fake.js';
+import { FakeTransferRepository } from '../ports/transfer-repository.fake.js';
 import { TransactionsLookup } from './transactions-lookup.js';
 
 const ANA = 'user-ana';
@@ -9,6 +10,7 @@ const BRUNO = 'user-bruno';
 
 describe('TransactionsLookup', () => {
   let transactions: FakeTransactionRepository;
+  let transfers: FakeTransferRepository;
   let lookup: TransactionsLookup;
 
   async function spend(userId: string, date: string, categoryId: string, amount: Money) {
@@ -28,7 +30,8 @@ describe('TransactionsLookup', () => {
 
   beforeEach(() => {
     transactions = new FakeTransactionRepository();
-    lookup = new TransactionsLookup(transactions);
+    transfers = new FakeTransferRepository();
+    lookup = new TransactionsLookup(transactions, transfers);
   });
 
   it('gives the totals of a date range by category, type and currency', async () => {
@@ -82,5 +85,77 @@ describe('TransactionsLookup', () => {
       ['2026-09-01', '10.00'],
       ['2026-09-01', '5.00'],
     ]);
+  });
+
+  describe('paymentMethodTotalsByDay', () => {
+    const CARD = 'method-card';
+    const SAVINGS = 'method-savings';
+    const until = LocalDate.parse('2026-09-30');
+
+    async function charge(userId: string, date: string, type: 'INCOME' | 'DEBT', method = CARD) {
+      return transactions.create({
+        userId,
+        date: LocalDate.parse(date),
+        type,
+        categoryId: 'any',
+        amount: Money.of('10', 'PEN'),
+        description: 'Con la tarjeta',
+        paymentMethodId: method,
+        merchant: null,
+        source: 'MANUAL',
+        tags: [],
+      });
+    }
+
+    async function transfer(userId: string, date: string, from: string, to: string) {
+      return transfers.create({
+        userId,
+        date: LocalDate.parse(date),
+        fromPaymentMethodId: from,
+        toPaymentMethodId: to,
+        amount: Money.of('370', 'PEN'),
+        receivedAmount: Money.of('100', 'USD'),
+        description: 'Pago',
+        source: 'MANUAL',
+      });
+    }
+
+    function plain(totals: Awaited<ReturnType<TransactionsLookup['paymentMethodTotalsByDay']>>) {
+      return totals.map((total) => [
+        total.date.toString(),
+        total.kind,
+        total.amount.currency,
+        total.amount.toFixed(),
+      ]);
+    }
+
+    it('gives the transactions with the method by type, and the transfers by direction', async () => {
+      await charge(ANA, '2026-09-10', 'DEBT');
+      await charge(ANA, '2026-09-11', 'INCOME');
+      await transfer(ANA, '2026-09-12', SAVINGS, CARD);
+      await transfer(ANA, '2026-09-13', CARD, SAVINGS);
+
+      expect(plain(await lookup.paymentMethodTotalsByDay(ANA, CARD, until))).toEqual([
+        ['2026-09-10', 'DEBT', 'PEN', '10.00'],
+        ['2026-09-11', 'INCOME', 'PEN', '10.00'],
+        // Lo que llegó a la tarjeta, en su moneda; y lo que salió de ella.
+        ['2026-09-12', 'TRANSFER_IN', 'USD', '100.00'],
+        ['2026-09-13', 'TRANSFER_OUT', 'PEN', '370.00'],
+      ]);
+    });
+
+    it('leaves out later days, other methods, deleted movements and other accounts', async () => {
+      await charge(ANA, '2026-10-01', 'DEBT');
+      await charge(ANA, '2026-09-10', 'DEBT', SAVINGS);
+      await charge(BRUNO, '2026-09-10', 'DEBT');
+      const gone = await charge(ANA, '2026-09-10', 'DEBT');
+      await transactions.softDelete(ANA, gone.id, new Date());
+      await transfer(ANA, '2026-10-01', SAVINGS, CARD);
+      await transfer(BRUNO, '2026-09-12', SAVINGS, CARD);
+      const undone = await transfer(ANA, '2026-09-12', SAVINGS, CARD);
+      await transfers.softDelete(ANA, undone.id, new Date());
+
+      await expect(lookup.paymentMethodTotalsByDay(ANA, CARD, until)).resolves.toEqual([]);
+    });
   });
 });

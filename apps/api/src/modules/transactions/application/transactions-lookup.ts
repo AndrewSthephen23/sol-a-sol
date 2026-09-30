@@ -5,6 +5,7 @@ import {
   TRANSACTION_REPOSITORY,
   type TransactionRepository,
 } from '../ports/transaction-repository.js';
+import { TRANSFER_REPOSITORY, type TransferRepository } from '../ports/transfer-repository.js';
 
 /** Lo gastado (o ingresado) en una categoría, en un tipo y una moneda. */
 export interface CategoryTotal {
@@ -25,18 +26,33 @@ export interface DayTotal {
   count: number;
 }
 
+/** Una transacción con el método (por su tipo), o una transferencia que llega a él o sale. */
+export type PaymentMethodMovementKind = TransactionType | 'TRANSFER_IN' | 'TRANSFER_OUT';
+
+/** Lo que se movió con un método de pago un día, de un tipo y en una moneda. */
+export interface PaymentMethodDayTotal {
+  date: LocalDate;
+  kind: PaymentMethodMovementKind;
+  /** De una transferencia que llega, lo que **llegó**, en la moneda de este método. */
+  amount: Money;
+  /** Cuántos movimientos suma `amount`. */
+  count: number;
+}
+
 /**
  * Lecturas que `transactions` ofrece a otros módulos por su API pública (`index.ts`), para que el
  * presupuesto, los reportes, las tarjetas (H5) o los resúmenes (H6) no lean sus tablas ni importen
  * su interior. Igual que `CatalogLookup` en `catalog`.
  *
- * Solo transacciones **vigentes** (las borradas no cuentan) y nunca transferencias, que mueven
- * plata entre cuentas propias sin gastarla. Nunca se convierte moneda. Exige el `userId`.
+ * Solo movimientos **vigentes** (los borrados no cuentan). Las transferencias mueven plata entre
+ * cuentas propias sin gastarla: solo las ve `paymentMethodTotalsByDay`, que es lo que necesita
+ * una tarjeta. Nunca se convierte moneda. Exige el `userId`.
  */
 @Injectable()
 export class TransactionsLookup {
   constructor(
     @Inject(TRANSACTION_REPOSITORY) private readonly transactions: TransactionRepository,
+    @Inject(TRANSFER_REPOSITORY) private readonly transfers: TransferRepository,
   ) {}
 
   /** Totales por categoría, tipo y moneda entre dos fechas, las dos incluidas. */
@@ -47,5 +63,31 @@ export class TransactionsLookup {
   /** Totales por día, tipo y moneda entre dos fechas, las dos incluidas: las barras del dashboard. */
   async totalsByDay(userId: string, from: LocalDate, to: LocalDate): Promise<DayTotal[]> {
     return this.transactions.totalsByDay(userId, { from, to });
+  }
+
+  /**
+   * Todo lo que pasó con un método de pago hasta `to` (incluido), por día, tipo y moneda: las
+   * transacciones con él y las transferencias que llegan (`TRANSFER_IN`, con lo que llegó) o salen
+   * (`TRANSFER_OUT`, con lo que salió). Qué significa cada una para una tarjeta lo decide quien lee.
+   */
+  async paymentMethodTotalsByDay(
+    userId: string,
+    paymentMethodId: string,
+    to: LocalDate,
+  ): Promise<PaymentMethodDayTotal[]> {
+    const [transactions, transfers] = await Promise.all([
+      this.transactions.totalsByDay(userId, { to, paymentMethodId }),
+      this.transfers.totalsByDayFor(userId, paymentMethodId, to),
+    ]);
+
+    return [
+      ...transactions.map(({ date, type, amount, count }) => ({ date, kind: type, amount, count })),
+      ...transfers.map(({ date, direction, amount, count }) => ({
+        date,
+        kind: direction === 'IN' ? ('TRANSFER_IN' as const) : ('TRANSFER_OUT' as const),
+        amount,
+        count,
+      })),
+    ];
   }
 }

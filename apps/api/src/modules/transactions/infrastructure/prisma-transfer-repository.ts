@@ -8,6 +8,7 @@ import type {
   NewTransfer,
   Transfer,
   TransferChanges,
+  TransferDayAmount,
   TransferFilter,
   TransferRepository,
 } from '../ports/transfer-repository.js';
@@ -83,6 +84,37 @@ export class PrismaTransferRepository implements TransferRepository {
     });
 
     return rows.flatMap((row) => (row.importKey === null ? [] : [row.importKey]));
+  }
+
+  async totalsByDayFor(
+    userId: string,
+    paymentMethodId: string,
+    to: LocalDate,
+  ): Promise<TransferDayAmount[]> {
+    // El `userId` va dentro de cada mitad: una transferencia de otra cuenta ni se suma.
+    const rows = await this.prisma.$queryRaw<
+      { date: string; direction: 'IN' | 'OUT'; currency: Currency; amount: string; count: number }[]
+    >`
+      SELECT date::text AS date, 'IN' AS direction, received_currency::text AS currency,
+             sum(received_amount)::text AS amount, count(*)::int AS count
+        FROM transfers
+       WHERE user_id = ${userId}::uuid AND deleted_at IS NULL
+         AND to_payment_method_id = ${paymentMethodId}::uuid AND date <= ${to.toString()}::date
+       GROUP BY date, received_currency
+      UNION ALL
+      SELECT date::text AS date, 'OUT' AS direction, currency::text AS currency,
+             sum(amount)::text AS amount, count(*)::int AS count
+        FROM transfers
+       WHERE user_id = ${userId}::uuid AND deleted_at IS NULL
+         AND from_payment_method_id = ${paymentMethodId}::uuid AND date <= ${to.toString()}::date
+       GROUP BY date, currency`;
+
+    return rows.map((row) => ({
+      date: LocalDate.parse(row.date),
+      direction: row.direction,
+      amount: Money.of(row.amount, row.currency),
+      count: row.count,
+    }));
   }
 
   /** En SQL parametrizado, como el de transacciones: la búsqueda sin tildes lo necesita. */
