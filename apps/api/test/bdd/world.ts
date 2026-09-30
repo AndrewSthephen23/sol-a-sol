@@ -21,6 +21,22 @@ import {
   type MonthlyDashboard,
 } from '../../src/modules/reports/application/monthly-dashboard.js';
 import { FakeReportCatalogReader } from '../../src/modules/reports/ports/report-readers.fake.js';
+import {
+  type CreditCardStatusView,
+  GetCreditCardStatuses,
+} from '../../src/modules/credit-cards/application/credit-card-status.js';
+import {
+  ConfigureCreditCard,
+  ListCreditCards,
+  UpdateCreditCard,
+} from '../../src/modules/credit-cards/application/credit-cards.js';
+import {
+  CreateInstallmentPlan,
+  type InstallmentPlanView,
+} from '../../src/modules/credit-cards/application/installment-plans.js';
+import { FakeCreditCardCatalogReader } from '../../src/modules/credit-cards/ports/catalog-reader.fake.js';
+import { FakeCreditCardRepository } from '../../src/modules/credit-cards/ports/credit-card-repository.fake.js';
+import { FakeInstallmentPlanRepository } from '../../src/modules/credit-cards/ports/installment-plan-repository.fake.js';
 import { TransactionsLookup } from '../../src/modules/transactions/application/transactions-lookup.js';
 import { CreateTransfer } from '../../src/modules/transactions/application/transfers.js';
 import {
@@ -76,6 +92,10 @@ export class TransactionsWorld extends World {
   readonly budgetLines = new FakeBudgetRepository();
   readonly budgetCatalog = new FakeBudgetCatalogReader();
   readonly reportCatalog = new FakeReportCatalogReader();
+  readonly creditCards = new FakeCreditCardRepository();
+  readonly installmentPlans = new FakeInstallmentPlanRepository();
+  /** Los métodos de pago vistos por `credit-cards`, con su tipo: el mismo id que en `catalog`. */
+  readonly cardCatalog = new FakeCreditCardCatalogReader();
   clock: Clock = FixedClock.at(DEFAULT_NOW);
 
   /** El tipo de cada categoría, para registrar un movimiento del tipo que le corresponde. */
@@ -93,6 +113,9 @@ export class TransactionsWorld extends World {
   budget: Budget | null = null;
   copied: CopiedBudget | null = null;
   dashboard: MonthlyDashboard | null = null;
+  /** La tarjeta que el escenario acaba de ver, y el plan de cuotas que acaba de registrar. */
+  cardStatus: CreditCardStatusView | null = null;
+  installmentPlan: InstallmentPlanView | null = null;
   /** Transacciones de las que el escenario habla después («la del 10/09», «uno de la primera página»). */
   readonly remembered = new Map<string, Transaction>();
   /** Ids de los que el escenario habla después («esa cuenta», «la categoría de Bruno»). */
@@ -142,6 +165,14 @@ export class TransactionsWorld extends World {
     const id = `${userId}/method/${alias}`;
     this.methodIds.set(`${userId}/${alias}`, id);
     this.catalog.withPaymentMethod(userId, id, { currency, alias, archived });
+
+    return id;
+  }
+
+  /** Una tarjeta de crédito bimoneda, sin configurar todavía. Devuelve el id de su método de pago. */
+  addCreditCard(userId: string, alias: string): string {
+    const id = this.addPaymentMethod(userId, alias, null);
+    this.cardCatalog.withMethod(userId, id, { kind: 'CREDIT_CARD', currency: null });
 
     return id;
   }
@@ -249,6 +280,38 @@ export class TransactionsWorld extends World {
     const lookup = new TransactionsLookup(this.transactions, this.transfers);
 
     return new GetMonthlyDashboard(lookup, this.reportCatalog, this.clock);
+  }
+
+  // --- Tarjetas: leen lo que se compró y se pagó por la API pública de `transactions` ---
+
+  get transactionsLookup(): TransactionsLookup {
+    return new TransactionsLookup(this.transactions, this.transfers);
+  }
+
+  get configureCreditCard(): ConfigureCreditCard {
+    return new ConfigureCreditCard(this.creditCards, this.cardCatalog, this.clock);
+  }
+
+  get updateCreditCard(): UpdateCreditCard {
+    return new UpdateCreditCard(this.creditCards, this.cardCatalog, this.clock);
+  }
+
+  get creditCardStatuses(): GetCreditCardStatuses {
+    return new GetCreditCardStatuses(
+      new ListCreditCards(this.creditCards, this.cardCatalog),
+      this.transactionsLookup,
+      this.installmentPlans,
+      this.clock,
+    );
+  }
+
+  get createInstallmentPlan(): CreateInstallmentPlan {
+    return new CreateInstallmentPlan(
+      this.creditCards,
+      this.installmentPlans,
+      this.transactionsLookup,
+      this.clock,
+    );
   }
 
   /** Registra y guarda lo registrado como `last`; si se rechaza, guarda el error. */
