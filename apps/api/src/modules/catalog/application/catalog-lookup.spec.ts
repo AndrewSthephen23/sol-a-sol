@@ -135,15 +135,24 @@ describe('catalog lookup', () => {
       await methods.update(ANA, id, { archivedAt: ARCHIVED_AT });
 
       await expect(lookup.allPaymentMethods(ANA)).resolves.toEqual([
-        { id, alias: 'Sueldo BCP', currency: 'PEN', archived: true },
+        {
+          id,
+          kind: 'ACCOUNT',
+          alias: 'Sueldo BCP',
+          institution: 'BCP',
+          last4: null,
+          currency: 'PEN',
+          archived: true,
+        },
       ]);
       await expect(lookup.allPaymentMethods(BRUNO)).resolves.toEqual([]);
     });
   });
 
   describe('a payment method', () => {
-    it('tells its currency and that it is active', async () => {
+    it('tells its kind, its currency and that it is active', async () => {
       await expect(lookup.paymentMethod(ANA, await payroll())).resolves.toEqual({
+        kind: 'ACCOUNT',
         currency: 'PEN',
         archived: false,
       });
