@@ -21,6 +21,14 @@ overrides:
   # GHSA-q8mj-m7cp-5q26, GHSA-x5fp-wj9c-mxmx y GHSA-4mjr-xmp4-gh2g (moderate), corregidos en 6.16.0
   # (misma versión mayor); validado corriendo Stryker.
   qs: 6.16.0
+  # brace-expansion llega por minimatch (eslint, glob, testcontainers, Stryker…) en tres mayores.
+  # GHSA-6j4f-fj2g-mc7p y GHSA-qhr7-859c-m2p7 (high) y GHSA-q2hr-2g5m-vwhr (moderate), todas de
+  # denegación de servicio al expandir patrones; se corrigen en un parche de la misma mayor, así
+  # que se sube cada una a la suya y no se cruza de mayor. Solo desarrollo y CI: no viaja en las
+  # imágenes.
+  brace-expansion@1: 1.1.21
+  brace-expansion@2: 2.1.7
+  brace-expansion@5: 5.0.12
 
 # Solo se ejecutan scripts de instalación explícitamente aprobados (revisados uno por uno).
 allowBuilds:
