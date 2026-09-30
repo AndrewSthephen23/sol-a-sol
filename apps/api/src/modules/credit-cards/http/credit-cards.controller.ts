@@ -10,6 +10,7 @@ import {
   updateCreditCardRequestSchema,
 } from '@sol-a-sol/contracts';
 import {
+  type CardStatus,
   type CreditCardSettings,
   LocalDate,
   Money,
@@ -26,6 +27,10 @@ import {
   ListCreditCards,
   UpdateCreditCard,
 } from '../application/credit-cards.js';
+import {
+  type CreditCardStatusView,
+  GetCreditCardStatuses,
+} from '../application/credit-card-status.js';
 
 interface MoneyResponse {
   /** String decimal con 2 decimales, nunca número. */
@@ -48,6 +53,62 @@ export interface CreditCardResponse {
   statementDay: number;
   paymentDueRule: PaymentDueRule;
   openingBalance: { date: string; amounts: MoneyResponse[] } | null;
+}
+
+/** Dónde está la tarjeta hoy. Montos como string decimal; el porcentaje, sin redondear. */
+export interface CardStatusResponse {
+  cycle: { start: string; end: string };
+  currencies: { currency: string; debt: string; cycleCharges: string }[];
+  statement: {
+    start: string;
+    end: string;
+    dueDate: string;
+    daysLeft: number;
+    paid: boolean;
+    balances: { currency: string; balance: string; credited: string; remaining: string }[];
+  } | null;
+  utilization: { percentage: string | null; level: string | null };
+  paymentAlert: { status: string; daysLeft: number } | null;
+}
+
+export type CreditCardStatusResponse = CreditCardResponse & { status: CardStatusResponse };
+
+function statusOf(status: CardStatus): CardStatusResponse {
+  const { statement } = status;
+
+  return {
+    cycle: { start: status.cycle.start.toString(), end: status.cycle.end.toString() },
+    currencies: status.currencies.map((entry) => ({
+      currency: entry.currency,
+      debt: entry.debt.toFixed(),
+      cycleCharges: entry.cycleCharges.toFixed(),
+    })),
+    statement:
+      statement === null
+        ? null
+        : {
+            start: statement.cycle.start.toString(),
+            end: statement.cycle.end.toString(),
+            dueDate: statement.dueDate.toString(),
+            daysLeft: statement.daysLeft,
+            paid: statement.paid,
+            balances: statement.balances.map((entry) => ({
+              currency: entry.balance.currency,
+              balance: entry.balance.toFixed(),
+              credited: entry.credited.toFixed(),
+              remaining: entry.remaining.toFixed(),
+            })),
+          },
+    utilization: {
+      percentage: status.utilization.percentage?.toString() ?? null,
+      level: status.utilization.level,
+    },
+    paymentAlert: status.paymentAlert,
+  };
+}
+
+function toStatusResponse(view: CreditCardStatusView): CreditCardStatusResponse {
+  return { ...toResponse(view), status: statusOf(view.status) };
 }
 
 function moneyOf(money: Money): MoneyResponse {
@@ -124,12 +185,27 @@ export class CreditCardsController {
     private readonly listCards: ListCreditCards,
     private readonly configureCard: ConfigureCreditCard,
     private readonly updateCard: UpdateCreditCard,
+    private readonly statuses: GetCreditCardStatuses,
   ) {}
 
   /** Las configuradas, archivadas incluidas, en el orden en que se configuraron. */
   @Get()
   async list(@CurrentUser() userId: string): Promise<CreditCardResponse[]> {
     return (await this.listCards.execute(userId)).map(toResponse);
+  }
+
+  /** Todas, con dónde está cada una hoy (Lima): para la pantalla y el dashboard. */
+  @Get('status')
+  async listStatuses(@CurrentUser() userId: string): Promise<CreditCardStatusResponse[]> {
+    return (await this.statuses.all(userId)).map(toStatusResponse);
+  }
+
+  @Get(':id/status')
+  async status(
+    @CurrentUser() userId: string,
+    @Param(new ZodValidationPipe(creditCardParamsSchema)) params: CreditCardParams,
+  ): Promise<CreditCardStatusResponse> {
+    return toStatusResponse(await this.statuses.one(userId, params.id));
   }
 
   @Post()

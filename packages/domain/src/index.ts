@@ -277,3 +277,15 @@ export {
   type OpeningBalance,
   OpeningBalanceCurrencyRepeatedError,
 } from './credit-cards/credit-card-settings.js';
+export {
+  type CardMovement,
+  cardMovementEffect,
+  type CardMovementEffect,
+  type CardMovementKind,
+  type CardStatus,
+  type CardStatusRequest,
+  computeCardStatus,
+  type CurrencyCardStatus,
+  type StatementBalance,
+  type StatementStatus,
+} from './credit-cards/card-status.js';

@@ -59,6 +59,15 @@ export interface TransferFilter {
  * Todo método **exige el `userId`**, y va dentro del `WHERE`. Las borradas no aparecen en las
  * consultas normales.
  */
+/** Lo que entró a un método (`IN`) o salió de él (`OUT`) un día, en una moneda. */
+export interface TransferDayAmount {
+  date: LocalDate;
+  direction: 'IN' | 'OUT';
+  /** Lo que llegó, si entra; lo que salió, si sale: cada uno en la moneda de ese método. */
+  amount: Money;
+  count: number;
+}
+
 export interface TransferRepository {
   create(transfer: NewTransfer): Promise<Transfer>;
 
@@ -76,6 +85,16 @@ export interface TransferRepository {
 
   /** De estas huellas, las que ya tiene alguna transferencia de la cuenta (borradas incluidas). */
   importedKeys(userId: string, keys: readonly string[]): Promise<string[]>;
+
+  /**
+   * Las vigentes que llegan a un método o salen de él hasta `to` (incluido), sumadas por día,
+   * sentido y moneda: lo que las tarjetas leen por `TransactionsLookup`.
+   */
+  totalsByDayFor(
+    userId: string,
+    paymentMethodId: string,
+    to: LocalDate,
+  ): Promise<TransferDayAmount[]>;
 
   /** Una página de vigentes en el orden del listado (`newestFirst`), después de `after`. */
   list(

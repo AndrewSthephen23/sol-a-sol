@@ -225,7 +225,7 @@ export class TransactionsWorld extends World {
     return new GetBudget(
       this.budgetLines,
       this.budgetCatalog,
-      new TransactionsLookup(this.transactions),
+      new TransactionsLookup(this.transactions, this.transfers),
     );
   }
 
@@ -246,7 +246,7 @@ export class TransactionsWorld extends World {
   }
 
   get monthlyDashboard(): GetMonthlyDashboard {
-    const lookup = new TransactionsLookup(this.transactions);
+    const lookup = new TransactionsLookup(this.transactions, this.transfers);
 
     return new GetMonthlyDashboard(lookup, this.reportCatalog, this.clock);
   }

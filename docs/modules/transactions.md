@@ -155,7 +155,8 @@ Responde **201** con `{ transactions, transfers, alreadyImported, createdCategor
 
 - `totalsByCategory(userId, desde, hasta)`: totales por categoría (la de cada transacción, sin subir a su madre), tipo y moneda, entre dos fechas incluidas. Lo usan el presupuesto y el dashboard.
 - `totalsByDay(userId, desde, hasta)`: lo mismo por día, tipo y moneda: las barras del dashboard.
-- Solo transacciones **vigentes** (las borradas no cuentan) y **nunca transferencias**. Nunca convierte moneda. Exige el `userId`, que va dentro de la consulta.
+- `paymentMethodTotalsByDay(userId, métodoDePago, hasta)`: todo lo que pasó con un método de pago hasta una fecha incluida, por día, tipo y moneda. Las transacciones con el método llegan con su tipo; las transferencias, como `TRANSFER_IN` (las que llegan, con el monto **recibido**) o `TRANSFER_OUT` (las que salen, con el monto que salió). Es la única lectura que ve transferencias: la usan las tarjetas (H5), que deciden qué sube y qué baja la deuda.
+- Solo movimientos **vigentes** (los borrados no cuentan). `totalsByCategory` y `totalsByDay` **nunca ven transferencias**, que mueven plata entre cuentas propias sin gastarla. Nunca convierte moneda. Exige el `userId`, que va dentro de la consulta.
 
 Devuelve lo mínimo a propósito: quien consulta no queda atado a la forma de las entidades.
 
