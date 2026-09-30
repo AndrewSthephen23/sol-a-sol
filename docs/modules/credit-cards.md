@@ -1,6 +1,6 @@
 # Módulo Tarjetas (`credit-cards`)
 
-> Ficha del módulo. Estado: **en construcción** (hito H5). Hoy existen el módulo y su tabla; las reglas, los endpoints y la pantalla llegan con las tareas siguientes. Flag **apagado**.
+> Ficha del módulo. Estado: **encendido** desde el cierre de H5 (versión 0.6.0): configurar cada tarjeta, su estado (ciclo, deuda, utilización, estado de cuenta y fecha límite de pago), las compras en cuotas y los avisos en el dashboard.
 
 ## Qué resuelve
 
@@ -120,7 +120,8 @@ El bloque **«Tarjetas»** de `/` (decisión 12) lo arma la **web**, pidiendo `G
 
 ## Estado
 
-- Feature flag: `FEATURE_CREDIT_CARDS` (**apagado** hasta cumplir la Definition of Done).
+- Feature flag: `FEATURE_CREDIT_CARDS`, **encendido** al cerrar H5. El mismo flag enciende la API, el menú («Tarjetas»), las alertas del dashboard, las cuotas del formulario de movimientos y la marca «3 de 6 cuotas» de la lista; apagado, la web no pide nada de tarjetas.
+- Aislamiento: **los 8 endpoints** tienen su prueba con la sesión de otra cuenta en `apps/api/test/credit-cards/` (404 y lo ajeno intacto), incluida la **propiedad por el método de pago**: no se configura el método de otra cuenta, y la base lo exige con la clave compuesta `(payment_method_id, user_id, kind)`.
 - Escenarios: [`features/credit-cards/`](../../features/credit-cards/), en verde con `pnpm test:bdd`. Corren contra los casos de uso reales, con los fakes de los puertos, y leen lo que se compró y se pagó con el `TransactionsLookup` real sobre las transacciones y transferencias que el escenario registra. Cada regla se comprobó rompiéndola (dominio, casos de uso y fakes); lo que vive en las consultas de Prisma (borradas, otra cuenta, monto recibido) lo cubren las pruebas de integración de `apps/api/test/credit-cards/`.
 - Web: la pantalla **«Tarjetas»** (`/credit-cards`, en el menú) lista las configuradas con su estado en texto (ciclo, lo que se debe y el consumo del ciclo por moneda, uso de la línea con su barra `<progress>` y su nivel, último estado con su **fecha límite de pago** y si está pagado) y las que no, con **«Configura tu tarjeta»**. Configurar y corregir piden línea, día de corte, fecha límite de pago y el saldo inicial opcional; **nunca** número completo, CVV ni vencimiento. Cada tarjeta enlaza a sus movimientos (`/transactions?paymentMethodId=…`, filtro que la lista ahora también muestra).
 - Cuotas en la web: al registrar (o corregir) una compra con una tarjeta **configurada**, «En cuotas» pide el número y, si hay intereses, el total del banco, y **muestra el reparto antes de guardar**, calculado con `computeInstallmentPlan` del dominio (la web no divide). Se guarda la compra y luego su plan; el plan se revisa antes, y si aun así falla, la compra queda sin cuotas y se lleva a corregirla con lo escrito y el motivo en español. Con una tarjeta sin configurar se dice por qué no hay cuotas; una compra que ya se paga en cuotas se deshace desde Tarjetas, donde cada tarjeta lista sus compras en cuotas (facturadas, la próxima y en qué estado va, lo que falta). En la lista de movimientos, «3 de 6 cuotas».
