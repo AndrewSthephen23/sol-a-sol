@@ -26,7 +26,7 @@ export default function HomePage() {
   return (
     // El mes se lee de la query: sin `Suspense`, Next no podría prerenderizar el resto.
     <Suspense>
-      <DashboardScreen />
+      <DashboardScreen showCardAlerts={isFeatureEnabled('FEATURE_CREDIT_CARDS')} />
     </Suspense>
   );
 }

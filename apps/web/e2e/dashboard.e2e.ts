@@ -1,6 +1,6 @@
 import { expect, test } from './support/test';
 import { createAccount } from './support/accounts';
-import { seedMovements } from './support/movements';
+import { seedCardOverThreshold, seedMovements } from './support/movements';
 
 test.describe('resumen del mes', () => {
   test('muestra el mes con sus gráficos, cambia de mes y lleva a los movimientos de una categoría', async ({
@@ -31,5 +31,24 @@ test.describe('resumen del mes', () => {
     await legend.getByRole('link', { name: /Comida/u }).click();
     await expect(page).toHaveURL(/\/transactions\?month=\d{4}-\d{2}&categoryId=/u);
     await expect(page.getByRole('region').getByText('Mercado', { exact: true })).toBeVisible();
+  });
+
+  test('avisa en el resumen qué tarjeta necesita atención, con el motivo en texto', async ({
+    page,
+  }) => {
+    const account = await createAccount();
+    const cardId = await seedCardOverThreshold(account);
+    await page.goto('/');
+    await page.getByLabel('Correo').fill(account.email);
+    await page.getByLabel('Contraseña').fill(account.password);
+    await page.getByRole('button', { name: 'Entrar' }).click();
+    await expect(page).toHaveURL('/');
+
+    const cards = page.getByRole('region', { name: 'Tarjetas' });
+    await expect(cards).toContainText('Usas el 50.00 % de la línea');
+    await expect(cards.getByRole('link', { name: 'Visa BCP •••• 4321' })).toHaveAttribute(
+      'href',
+      `/credit-cards#tarjeta-${cardId}`,
+    );
   });
 });

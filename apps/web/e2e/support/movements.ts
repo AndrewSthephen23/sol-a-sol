@@ -52,3 +52,48 @@ export async function seedMovements({ email, password }: Account): Promise<void>
     if (!created.data) throw new Error(`Transaction answered ${String(created.response.status)}.`);
   }
 }
+
+/**
+ * Deja una Visa configurada (línea S/ 1,000.00, corte 20, pago a 25 días) con una compra de hoy de
+ * S/ 500.00: usa la mitad de la línea, por encima del 30 %. Devuelve el id de la tarjeta.
+ */
+export async function seedCardOverThreshold({ email, password }: Account): Promise<string> {
+  const login = await api.POST('/api/v1/auth/login', { body: { email, password } });
+  if (!login.data) throw new Error(`Login answered ${String(login.response.status)}.`);
+  const headers = { Authorization: `Bearer ${login.data.accessToken}` };
+
+  const categories = await api.GET('/api/v1/categories', { headers });
+  const food = categories.data?.find((category) => category.name === 'Comida');
+  if (!food) throw new Error('The seeded category «Comida» is missing.');
+
+  const visa = await api.POST('/api/v1/payment-methods', {
+    headers,
+    body: { kind: 'CREDIT_CARD', alias: 'Visa', institution: 'BCP', last4: '4321' },
+  });
+  if (!visa.data) throw new Error(`Payment method answered ${String(visa.response.status)}.`);
+  const card = await api.POST('/api/v1/credit-cards', {
+    headers,
+    body: {
+      paymentMethodId: visa.data.id,
+      creditLimit: { amount: '1000.00', currency: 'PEN' },
+      statementDay: 20,
+      paymentDueRule: { kind: 'DAYS_AFTER_STATEMENT', days: 25 },
+    },
+  });
+  if (!card.data) throw new Error(`Credit card answered ${String(card.response.status)}.`);
+  const purchase = await api.POST('/api/v1/transactions', {
+    headers,
+    body: {
+      date: limaDates().today,
+      type: food.type,
+      categoryId: food.id,
+      amount: '500.00',
+      currency: 'PEN',
+      description: 'Supermercado',
+      paymentMethodId: visa.data.id,
+    },
+  });
+  if (!purchase.data) throw new Error(`Transaction answered ${String(purchase.response.status)}.`);
+
+  return card.data.id;
+}
