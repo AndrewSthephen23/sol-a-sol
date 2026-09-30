@@ -21,6 +21,8 @@ export interface Filters {
   month: string;
   show: Show;
   categoryId: string | null;
+  /** Con qué se pagó: una tarjeta enlaza aquí sus movimientos. Incluye las transferencias. */
+  paymentMethodId: string | null;
   tag: string | null;
   q: string | null;
 }
@@ -47,6 +49,7 @@ function nonBlank(value: string | null): string | null {
 export function readFilters(params: URLSearchParams, defaultMonth: string): Filters {
   const show = params.get('show');
   const categoryId = params.get('categoryId');
+  const paymentMethodId = params.get('paymentMethodId');
 
   return {
     month: readMonth(params.get('month'), defaultMonth),
@@ -54,6 +57,8 @@ export function readFilters(params: URLSearchParams, defaultMonth: string): Filt
     // Una transferencia no tiene categoría ni etiquetas: con `TRANSFER` esos filtros sobran.
     categoryId:
       show !== 'TRANSFER' && categoryId !== null && UUID.test(categoryId) ? categoryId : null,
+    paymentMethodId:
+      paymentMethodId !== null && UUID.test(paymentMethodId) ? paymentMethodId : null,
     tag: show === 'TRANSFER' ? null : nonBlank(params.get('tag')),
     q: nonBlank(params.get('q')),
   };
@@ -65,6 +70,7 @@ export function writeFilters(filters: Filters, defaultMonth: string): string {
   if (filters.month !== defaultMonth) params.set('month', filters.month);
   if (filters.show !== 'ALL') params.set('show', filters.show);
   if (filters.categoryId !== null) params.set('categoryId', filters.categoryId);
+  if (filters.paymentMethodId !== null) params.set('paymentMethodId', filters.paymentMethodId);
   if (filters.tag !== null) params.set('tag', filters.tag);
   if (filters.q !== null) params.set('q', filters.q);
 
@@ -78,6 +84,7 @@ export function toListQuery(filters: Filters): ListQuery {
     ...(filters.show === 'TRANSFER' ? { kind: 'transfer' as const } : {}),
     ...(filters.show !== 'ALL' && filters.show !== 'TRANSFER' ? { type: filters.show } : {}),
     ...(filters.categoryId === null ? {} : { categoryId: filters.categoryId }),
+    ...(filters.paymentMethodId === null ? {} : { paymentMethodId: filters.paymentMethodId }),
     ...(filters.tag === null ? {} : { tag: filters.tag }),
     ...(filters.q === null ? {} : { q: filters.q }),
   };
