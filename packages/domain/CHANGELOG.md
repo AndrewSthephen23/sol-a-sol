@@ -1,5 +1,48 @@
 # @sol-a-sol/domain
 
+## 0.6.0
+
+### Minor Changes
+
+- 3d735d8: Cierra el hito **H5 — Tarjetas de crédito**: el módulo `credit-cards` queda **encendido**.
+
+  - Configurar cada tarjeta (línea en una moneda, día de corte, fecha límite de pago y saldo inicial opcional) y ver dónde está hoy: ciclo, lo que se debe por moneda, uso de la línea, el último estado de cuenta con su fecha límite y si está pagado.
+  - Compras en cuotas, con el reparto visto antes de guardar y lo que falta en cada tarjeta.
+  - Avisos en el resumen cuando una tarjeta usa más del 30 % de su línea o su pago vence pronto.
+
+### Patch Changes
+
+- b05a2dc: Configurar una tarjeta de crédito (módulo `credit-cards`, todavía apagado): `GET /credit-cards`, `POST /credit-cards` y `PATCH /credit-cards/{id}`.
+
+  - Un método de pago `CREDIT_CARD` propio y activo se configura **una vez** con su línea (en una moneda que acepte), su día de corte, su regla de pago y, si hace falta, un saldo inicial por moneda con fecha de hoy o antes.
+  - La lista incluye las tarjetas cuyo método se archivó; se pueden seguir corrigiendo.
+  - `CatalogLookup` dice el tipo del método y, en la lista, su banco y sus últimos 4.
+  - El cliente de la web se regeneró con las rutas nuevas.
+
+- f08e279: Ciclo de facturación y fecha límite de pago de una tarjeta de crédito: `computeBillingCycle` (con `previousBillingCycle` y `nextBillingCycle`) y `computePaymentDueDate`, con sus reglas (`assertStatementDay`, `assertPaymentDueRule`).
+
+  - El día de corte **cierra su ciclo**: con corte 20, el ciclo va del 21 del mes anterior al 20.
+  - Un día de corte o de pago que el mes no tiene cae el **último día**, y el mes siguiente vuelve a su día.
+  - Fecha de pago a **N días del corte** o en un **día fijo del mes**: la primera vez que llega ese día después del corte, nunca el mismo día. Sin ajuste por fines de semana ni feriados.
+
+- 554650c: Compras en cuotas (módulo `credit-cards`, todavía apagado): `GET/POST /credit-cards/{id}/installments` y `DELETE /credit-cards/{id}/installments/{planId}`, con la tabla `installment_plans`.
+
+  - Una compra con la tarjeta se marca en 2 a 36 cuotas, con o sin intereses (el total del banco). Las cuotas suman exactamente el total.
+  - **El plan sigue a la compra**: se lee como está hoy; borrada se ignora hasta que se restaure, y si deja de tener sentido queda inválido.
+  - En el estado de la tarjeta: la deuda incluye la compra y el interés, el estado de cuenta solo las cuotas facturadas y el consumo del ciclo la cuota del ciclo. Presupuesto y dashboard no cambian.
+
+- 174ec7c: Estado de una tarjeta de crédito (módulo `credit-cards`, todavía apagado): `GET /credit-cards/status` y `GET /credit-cards/{id}/status`.
+
+  - Ciclo en curso, lo que se debe y lo cargado en el ciclo, por moneda y sin convertir nunca; utilización de la línea; el último estado cerrado con su monto (la deuda total el día del corte), lo pagado después, lo que falta, la fecha límite y si está pagado; y el aviso de pago.
+  - Suben la deuda las compras, los cargos y sacar efectivo con la tarjeta; la bajan pagarla (con lo que llegó) y las devoluciones.
+  - `TransactionsLookup` suma por día lo que pasó con un método de pago, transferencias incluidas (`paymentMethodTotalsByDay`).
+
+- af551ba: Utilización, alertas y cuotas de una tarjeta de crédito:
+
+  - `computeUtilization`: deuda / línea sin redondear, con niveles fijos: `HIGH` por encima del 30 %, `CRITICAL` desde el 70 %. Con línea en cero no hay porcentaje ni nivel.
+  - `paymentAlert`: avisa si todavía se debe algo y el pago vence en 3 días o menos (`DUE_SOON`) o ya venció (`OVERDUE`).
+  - `computeInstallmentPlan`: de 2 a 36 cuotas repartidas con `allocate`, sin perder un céntimo, cada una con el estado de cuenta en que se factura; `pendingInstallments` y `installmentInterest`.
+
 ## 0.5.0
 
 ### Patch Changes

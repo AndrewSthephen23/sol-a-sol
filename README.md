@@ -16,6 +16,8 @@ Plataforma personal para ordenar mis finanzas y avanzar hacia la libertad financ
 
 ✅ **H4 — Presupuesto y dashboard** publicado en [v0.5.0](https://github.com/AndrewSthephen23/sol-a-sol/releases/tag/v0.5.0): `budgeting` y `reports` encendidos. El **presupuesto** de cualquier mes, por categoría madre y moneda, con lo real al lado: lo que queda o cuánto me pasé en un límite, lo que falta o si se cumplió una meta, el % ejecutado y lo gastado sin partida; se copia del mes anterior y sigue las fusiones de categorías. El **dashboard del mes** en la página de inicio: KPIs por moneda, gasto por día, dona por categoría y tablas por tipo, con cada gráfico explicado también en texto y la política de contenido todavía sin `'unsafe-inline'`.
 
+✅ **H5 — Tarjetas de crédito** publicado en [v0.6.0](https://github.com/AndrewSthephen23/sol-a-sol/releases/tag/v0.6.0): `credit-cards` encendido. Cada tarjeta se configura con su línea, su día de corte, su fecha límite de pago y, si ya se debía algo, su saldo inicial; y dice **dónde está hoy**: el ciclo en curso, lo que se debe por moneda (sin convertir nunca), cuánto de la línea se usa, el último estado de cuenta con su fecha límite y si está pagado. **Compras en cuotas**, con el reparto visto antes de guardar y lo que falta en cada tarjeta, y **avisos en el resumen** cuando una tarjeta usa más del 30 % de su línea o su pago vence pronto. Todo lo derivado se calcula al consultar: no hay tablas de saldos. Solo alias, banco y últimos 4: nunca número, CVV ni vencimiento.
+
 ## Documentación
 
 | Documento                                                        | Para qué                                                               |
@@ -195,8 +197,8 @@ Las rutas de un módulo con su feature flag apagado **no aparecen** en el docume
 Cada versión publica en GHCR las mismas imágenes de producción que construye `docker-compose.test.yml`:
 
 ```bash
-docker pull ghcr.io/andrewsthephen23/sol-a-sol-api:0.5.0
-docker pull ghcr.io/andrewsthephen23/sol-a-sol-web:0.5.0
+docker pull ghcr.io/andrewsthephen23/sol-a-sol-api:0.6.0
+docker pull ghcr.io/andrewsthephen23/sol-a-sol-web:0.6.0
 ```
 
 Cada imagen lleva dos etiquetas: `X.Y.Z` y `sha-<commit>`. No hay `latest`: obliga a decir qué versión se despliega. El job solo corre cuando el push a `main` trae una versión nueva, tiene `packages: write` únicamente para él, y **no publica nada** hasta que las imágenes pasan el bloqueo de Trivy y un smoke test que las arranca.

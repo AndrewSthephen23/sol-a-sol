@@ -1,5 +1,30 @@
 # @sol-a-sol/contracts
 
+## 0.6.0
+
+### Minor Changes
+
+- 3d735d8: Cierra el hito **H5 — Tarjetas de crédito**: el módulo `credit-cards` queda **encendido**.
+
+  - Configurar cada tarjeta (línea en una moneda, día de corte, fecha límite de pago y saldo inicial opcional) y ver dónde está hoy: ciclo, lo que se debe por moneda, uso de la línea, el último estado de cuenta con su fecha límite y si está pagado.
+  - Compras en cuotas, con el reparto visto antes de guardar y lo que falta en cada tarjeta.
+  - Avisos en el resumen cuando una tarjeta usa más del 30 % de su línea o su pago vence pronto.
+
+### Patch Changes
+
+- b05a2dc: Configurar una tarjeta de crédito (módulo `credit-cards`, todavía apagado): `GET /credit-cards`, `POST /credit-cards` y `PATCH /credit-cards/{id}`.
+
+  - Un método de pago `CREDIT_CARD` propio y activo se configura **una vez** con su línea (en una moneda que acepte), su día de corte, su regla de pago y, si hace falta, un saldo inicial por moneda con fecha de hoy o antes.
+  - La lista incluye las tarjetas cuyo método se archivó; se pueden seguir corrigiendo.
+  - `CatalogLookup` dice el tipo del método y, en la lista, su banco y sus últimos 4.
+  - El cliente de la web se regeneró con las rutas nuevas.
+
+- 554650c: Compras en cuotas (módulo `credit-cards`, todavía apagado): `GET/POST /credit-cards/{id}/installments` y `DELETE /credit-cards/{id}/installments/{planId}`, con la tabla `installment_plans`.
+
+  - Una compra con la tarjeta se marca en 2 a 36 cuotas, con o sin intereses (el total del banco). Las cuotas suman exactamente el total.
+  - **El plan sigue a la compra**: se lee como está hoy; borrada se ignora hasta que se restaure, y si deja de tener sentido queda inválido.
+  - En el estado de la tarjeta: la deuda incluye la compra y el interés, el estado de cuenta solo las cuotas facturadas y el consumo del ciclo la cuota del ciclo. Presupuesto y dashboard no cambian.
+
 ## 0.5.0
 
 ### Patch Changes
