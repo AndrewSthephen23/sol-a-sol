@@ -66,7 +66,7 @@ En `@sol-a-sol/domain` (`credit-cards/`), puro y sin `new Date()`:
 
 ## Eventos de dominio
 
-- **Emite:** nada todavía (`CreditCardThresholdExceeded` llega con las alertas).
+- **Emite:** nada. El estado y sus alertas **se calculan al consultar**, así que `CreditCardThresholdExceeded` (sección 5.4 del plan) **no se crea** mientras nadie lo escuche: emitirlo en cada consulta lo repetiría mil veces. Llega cuando haga falta avisar fuera de la pantalla (notificaciones, H8), y entonces habrá que decidir cuándo se emite (una vez por cruce de umbral).
 - **Escucha:** nada. Lo que se compró y se pagó se lee al consultar con `TransactionsLookup.paymentMethodTotalsByDay`, y cada compra en cuotas con `TransactionsLookup.liveTransactions`, detrás del puerto propio `CreditCardMovementsReader`.
 
 ## Endpoints
@@ -109,6 +109,14 @@ Los montos viajan como `{ amount: "5000.00", currency: "PEN" }`; la regla de pag
 | `INSTALLMENT_TOTAL_BELOW_PRICE`     | 422    | El total del banco baja del precio                                 |
 | `INSTALLMENT_COUNT_INVALID`         | 422    | Fuera de 2 a 36 cuotas                                             |
 | `INSTALLMENT_TOO_SMALL`             | 422    | Alguna cuota quedaría en cero                                      |
+
+## Alertas en el dashboard
+
+El bloque **«Tarjetas»** de `/` (decisión 12) lo arma la **web**, pidiendo `GET /credit-cards/status` junto al resumen; `reports` no se toca. Así, con `FEATURE_CREDIT_CARDS` apagado, la página ni dibuja el bloque ni pide nada de tarjetas, y el dashboard no delata el módulo.
+
+- Aparece **solo si alguna tarjeta necesita atención**: utilización `HIGH` o `CRITICAL`, o un pago `DUE_SOON` u `OVERDUE`. Una tarjeta **archivada no avisa**.
+- Cada aviso dice **en texto** qué pasa, nunca solo con color: «Usas el 36.67 % de la línea», «…: nivel crítico», «Pagas S/ 1,234.50 el viernes, 16 de octubre, en 3 días» (o «hoy», «mañana»), «El pago venció el …: falta pagar …». En una bimoneda nombra cada moneda que falta.
+- El nivel y los días vienen de la API; la web solo los escribe (`card-alerts-model.ts`). Cada aviso enlaza a su tarjeta en `/credit-cards`.
 
 ## Estado
 

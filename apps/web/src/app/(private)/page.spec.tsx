@@ -4,7 +4,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import HomePage from './page';
 
 vi.mock('@/features/dashboard/dashboard-screen', () => ({
-  DashboardScreen: () => <p>dashboard</p>,
+  DashboardScreen: ({ showCardAlerts }: { showCardAlerts: boolean }) => (
+    <p>{showCardAlerts ? 'dashboard con tarjetas' : 'dashboard'}</p>
+  ),
 }));
 
 describe('HomePage', () => {
@@ -25,5 +27,13 @@ describe('HomePage', () => {
     render(<HomePage />);
 
     expect(screen.getByText('dashboard')).toBeInTheDocument();
+  });
+
+  it('adds the card alerts only when credit cards are on', () => {
+    vi.stubEnv('FEATURE_REPORTS', 'true');
+    vi.stubEnv('FEATURE_CREDIT_CARDS', 'true');
+    render(<HomePage />);
+
+    expect(screen.getByText('dashboard con tarjetas')).toBeInTheDocument();
   });
 });

@@ -8,6 +8,7 @@ import type { Clock } from '@sol-a-sol/domain';
 
 import { currentMonth, formatMonth, readMonth, systemClock } from '@/shared/time/dates';
 import { MonthNavigator } from '@/shared/time/month-navigator';
+import { CardAlerts } from '@/features/credit-cards/card-alerts';
 import { categoriesById } from '@/features/transactions/labels';
 import { useCategories } from '@/features/transactions/queries';
 
@@ -23,8 +24,14 @@ const CURRENCY_TITLES = { PEN: 'Soles', USD: 'Dólares' } as const;
 /**
  * Cómo va el mes (sección 2.4 del plan), por moneda y sin convertir: KPIs, gasto diario, dona por
  * categoría y tablas por tipo. El mes vive en la URL, como en la lista y el presupuesto.
+ *
+ * `showCardAlerts` lo decide la página con el flag de tarjetas, en el servidor: apagado, el bloque
+ * no existe y no se pide nada de tarjetas, así que el dashboard no delata el módulo.
  */
-export function DashboardScreen({ clock = systemClock }: Readonly<{ clock?: Clock }>) {
+export function DashboardScreen({
+  clock = systemClock,
+  showCardAlerts = false,
+}: Readonly<{ clock?: Clock; showCardAlerts?: boolean }>) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -38,6 +45,7 @@ export function DashboardScreen({ clock = systemClock }: Readonly<{ clock?: Cloc
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 py-6">
       <h1 className="text-2xl font-bold tracking-tight">Resumen</h1>
+      {showCardAlerts && <CardAlerts />}
       <MonthNavigator
         month={month}
         onChange={(next) => {

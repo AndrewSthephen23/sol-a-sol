@@ -97,8 +97,11 @@ const SEPTEMBER = {
   ],
 };
 
-/** Una API falsa: `report` responde el dashboard, y cada petición queda anotada. */
-function setup(report: (url: URL) => Response) {
+/**
+ * Una API falsa: `report` responde el dashboard, y cada petición queda anotada. Con `cards`, el
+ * flag de tarjetas está encendido y `/credit-cards/status` responde esas tarjetas.
+ */
+function setup(report: (url: URL) => Response, cards?: unknown[]) {
   const requests: URL[] = [];
   const session = new Session({
     fetch: (input) => {
@@ -107,6 +110,9 @@ function setup(report: (url: URL) => Response) {
       const url = new URL(input.url);
       if (url.pathname === '/api/v1/categories') return Promise.resolve(Response.json(CATEGORIES));
       requests.push(url);
+      if (url.pathname === '/api/v1/credit-cards/status') {
+        return Promise.resolve(Response.json(cards ?? []));
+      }
 
       return Promise.resolve(report(url));
     },
@@ -116,7 +122,7 @@ function setup(report: (url: URL) => Response) {
   render(
     <SessionProvider session={session}>
       <QueryProvider client={createQueryClient()}>
-        <DashboardScreen clock={CLOCK} />
+        <DashboardScreen clock={CLOCK} showCardAlerts={cards !== undefined} />
       </QueryProvider>
     </SessionProvider>,
   );
@@ -225,5 +231,78 @@ describe('DashboardScreen', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Reintentar' }));
 
     expect(await screen.findByLabelText('Resumen en soles')).toBeInTheDocument();
+  });
+
+  describe('card alerts', () => {
+    function visa(status: Record<string, unknown>) {
+      return {
+        id: 'card-visa',
+        paymentMethod: {
+          id: 'method-visa',
+          alias: 'Visa',
+          institution: 'BCP',
+          last4: '4321',
+          currency: null,
+          archived: false,
+        },
+        creditLimit: { amount: '5000.00', currency: 'PEN' },
+        statementDay: 20,
+        paymentDueRule: { kind: 'DAYS_AFTER_STATEMENT', days: 26 },
+        openingBalance: null,
+        status: {
+          cycle: { start: '2026-09-21', end: '2026-10-20' },
+          currencies: [],
+          statement: {
+            start: '2026-08-21',
+            end: '2026-09-20',
+            dueDate: '2026-10-16',
+            daysLeft: 18,
+            paid: false,
+            balances: [
+              { currency: 'PEN', balance: '1234.50', credited: '0.00', remaining: '1234.50' },
+            ],
+          },
+          utilization: { percentage: '10', level: 'OK' },
+          paymentAlert: null,
+          ...status,
+        },
+      };
+    }
+
+    it('asks nothing about cards while they are off', async () => {
+      const { requests } = setup(() => Response.json(SEPTEMBER));
+
+      await screen.findByLabelText('Resumen en soles');
+      expect(requests.map((url) => url.pathname)).not.toContain('/api/v1/credit-cards/status');
+      expect(screen.queryByRole('region', { name: 'Tarjetas' })).not.toBeInTheDocument();
+    });
+
+    it('shows no block when no card needs attention', async () => {
+      const { requests } = setup(() => Response.json(SEPTEMBER), [visa({})]);
+
+      await screen.findByLabelText('Resumen en soles');
+      expect(requests.map((url) => url.pathname)).toContain('/api/v1/credit-cards/status');
+      expect(screen.queryByRole('region', { name: 'Tarjetas' })).not.toBeInTheDocument();
+    });
+
+    it('says in words what happens with each card, and links to it', async () => {
+      setup(
+        () => Response.json(SEPTEMBER),
+        [
+          visa({
+            utilization: { percentage: '82.5', level: 'CRITICAL' },
+            paymentAlert: { status: 'DUE_SOON', daysLeft: 3 },
+          }),
+        ],
+      );
+
+      const block = await screen.findByRole('region', { name: 'Tarjetas' });
+      expect(block).toHaveTextContent('Usas el 82.50 % de la línea: nivel crítico');
+      expect(block).toHaveTextContent('Pagas S/ 1,234.50 el viernes, 16 de octubre, en 3 días');
+      expect(within(block).getByRole('link', { name: 'Visa BCP •••• 4321' })).toHaveAttribute(
+        'href',
+        '/credit-cards#tarjeta-card-visa',
+      );
+    });
   });
 });
