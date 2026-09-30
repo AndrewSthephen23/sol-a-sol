@@ -5,7 +5,7 @@ import { ImportConflictError } from '../domain/errors.js';
 import type { ImportWriter } from '../ports/import-writer.js';
 import type { NewTransaction } from '../ports/transaction-repository.js';
 import type { NewTransfer } from '../ports/transfer-repository.js';
-import { toDatabaseDate } from './database-date.js';
+import { toDatabaseDate } from '../../../shared/prisma/database-date.js';
 
 /** Prisma señala la violación de una restricción única con este código. */
 const UNIQUE_VIOLATION = 'P2002';

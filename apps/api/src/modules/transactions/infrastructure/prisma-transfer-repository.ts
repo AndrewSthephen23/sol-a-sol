@@ -11,7 +11,7 @@ import type {
   TransferFilter,
   TransferRepository,
 } from '../ports/transfer-repository.js';
-import { fromDatabaseDate, toDatabaseDate } from './database-date.js';
+import { fromDatabaseDate, toDatabaseDate } from '../../../shared/prisma/database-date.js';
 import { afterPosition, containsText } from './sql-conditions.js';
 
 /** `select` explícito: ni `userId` ni `deletedAt` salen de aquí. */

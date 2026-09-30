@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { Currency, TransactionType } from '@sol-a-sol/domain';
+import type { Currency, PaymentMethodKind, TransactionType } from '@sol-a-sol/domain';
 
 import { CATEGORY_REPOSITORY, type CategoryRepository } from '../ports/category-repository.js';
 import {
@@ -21,14 +21,21 @@ export interface CategoryEntry extends CategoryReference {
   name: string;
 }
 
-/** Un método de pago de la cuenta, para buscarlo por alias (la importación). */
+/**
+ * Un método de pago de la cuenta, para buscarlo por alias (la importación) o mostrar qué tarjeta
+ * es (`credit-cards`): alias, banco y últimos 4, nunca más.
+ */
 export interface PaymentMethodEntry extends PaymentMethodReference {
   id: string;
   alias: string;
+  institution: string | null;
+  last4: string | null;
 }
 
 /** Lo que otro módulo necesita saber de un método de pago para usarlo. */
 export interface PaymentMethodReference {
+  /** `credit-cards` solo configura los `CREDIT_CARD`. */
+  kind: PaymentMethodKind;
   /** Nula = acepta soles y dólares (tarjeta bimoneda, efectivo). */
   currency: Currency | null;
   archived: boolean;
@@ -90,7 +97,10 @@ export class CatalogLookup {
 
     return methods.map((method) => ({
       id: method.id,
+      kind: method.kind,
       alias: method.alias,
+      institution: method.institution,
+      last4: method.last4,
       currency: method.currency,
       archived: method.archivedAt !== null,
     }));
@@ -100,6 +110,6 @@ export class CatalogLookup {
     const method = await this.methods.find(userId, id);
     if (method === null) return null;
 
-    return { currency: method.currency, archived: method.archivedAt !== null };
+    return { kind: method.kind, currency: method.currency, archived: method.archivedAt !== null };
   }
 }

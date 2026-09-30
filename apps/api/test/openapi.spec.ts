@@ -51,6 +51,7 @@ describe('GET /openapi.json', () => {
     process.env.FEATURE_TRANSACTIONS = 'true';
     process.env.FEATURE_BUDGETING = 'true';
     process.env.FEATURE_REPORTS = 'true';
+    process.env.FEATURE_CREDIT_CARDS = 'true';
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     configureApp(app);
@@ -64,6 +65,7 @@ describe('GET /openapi.json', () => {
     delete process.env.FEATURE_TRANSACTIONS;
     delete process.env.FEATURE_BUDGETING;
     delete process.env.FEATURE_REPORTS;
+    delete process.env.FEATURE_CREDIT_CARDS;
     await app.close();
   });
 
@@ -159,6 +161,24 @@ describe('GET /openapi.json', () => {
 
       process.env.FEATURE_REPORTS = 'true';
       expect(JSON.stringify(response.body)).not.toContain('/reports');
+    });
+
+    it('leaves the credit cards out too', async () => {
+      process.env.FEATURE_CREDIT_CARDS = 'false';
+
+      const response = await request(server).get(DOCUMENT).expect(200);
+
+      process.env.FEATURE_CREDIT_CARDS = 'true';
+      expect(JSON.stringify(response.body)).not.toContain('/credit-cards');
+    });
+
+    it('documents the credit cards while they are on', async () => {
+      const response = await request(server).get(DOCUMENT).expect(200);
+      const { paths } = response.body as OpenApiDocument;
+
+      expect(Object.keys(paths)).toEqual(
+        expect.arrayContaining([`/${API_PREFIX}/credit-cards`, `/${API_PREFIX}/credit-cards/{id}`]),
+      );
     });
   });
 });

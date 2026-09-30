@@ -4142,6 +4142,421 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/credit-cards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lista las tarjetas configuradas.
+         * @description En el orden en que se configuraron, **archivadas incluidas**: su configuración se conserva. Un método `CREDIT_CARD` sin configurar no aparece aquí.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Las tarjetas de la cuenta. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** @description Lo que identifica la tarjeta, leído del método de pago: nunca más que esto. */
+                            paymentMethod: {
+                                /** Format: uuid */
+                                id: string;
+                                alias: string;
+                                institution: string | null;
+                                last4: string | null;
+                                /**
+                                 * @description Nula = bimoneda.
+                                 * @enum {string|null}
+                                 */
+                                currency: "PEN" | "USD" | null;
+                                /** @description Archivada, la tarjeta se sigue viendo y corrigiendo, pero no avisa. */
+                                archived: boolean;
+                            };
+                            /** @description Una sola línea, en una moneda. Cero se permite (una adicional): sin porcentaje de uso. */
+                            creditLimit: {
+                                /** @description String decimal con 2 decimales (`"5000.00"`). */
+                                amount: string;
+                                /** @enum {string} */
+                                currency: "PEN" | "USD";
+                            };
+                            /** @description Día de corte; si el mes no lo tiene, el último día del mes. */
+                            statementDay: number;
+                            paymentDueRule: {
+                                /** @enum {string} */
+                                kind: "DAYS_AFTER_STATEMENT";
+                                days: number;
+                            } | {
+                                /** @enum {string} */
+                                kind: "DAY_OF_MONTH";
+                                day: number;
+                            };
+                            /** @description Lo que ya se debía antes de registrar en la app. Nulo: la deuda arranca en cero. */
+                            openingBalance: {
+                                /** Format: date */
+                                date: string;
+                                /** @description Uno por moneda, primero soles. */
+                                amounts: {
+                                    /** @description String decimal con 2 decimales (`"5000.00"`). */
+                                    amount: string;
+                                    /** @enum {string} */
+                                    currency: "PEN" | "USD";
+                                }[];
+                            } | null;
+                        }[];
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: las tarjetas solo se gestionan desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Configura un método de pago como tarjeta de crédito.
+         * @description Un método `CREDIT_CARD` propio y activo, **una vez**. Sin saldo inicial, la deuda arranca en cero.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        paymentMethodId: string;
+                        creditLimit: {
+                            amount: string;
+                            /** @enum {string} */
+                            currency: "PEN" | "USD";
+                        };
+                        statementDay: number;
+                        paymentDueRule: {
+                            /** @enum {string} */
+                            kind: "DAYS_AFTER_STATEMENT";
+                            days: number;
+                        } | {
+                            /** @enum {string} */
+                            kind: "DAY_OF_MONTH";
+                            day: number;
+                        };
+                        openingBalance?: {
+                            /** Format: date */
+                            date: string;
+                            amounts: {
+                                amount: string;
+                                /** @enum {string} */
+                                currency: "PEN" | "USD";
+                            }[];
+                        } | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description La tarjeta configurada. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** @description Lo que identifica la tarjeta, leído del método de pago: nunca más que esto. */
+                            paymentMethod: {
+                                /** Format: uuid */
+                                id: string;
+                                alias: string;
+                                institution: string | null;
+                                last4: string | null;
+                                /**
+                                 * @description Nula = bimoneda.
+                                 * @enum {string|null}
+                                 */
+                                currency: "PEN" | "USD" | null;
+                                /** @description Archivada, la tarjeta se sigue viendo y corrigiendo, pero no avisa. */
+                                archived: boolean;
+                            };
+                            /** @description Una sola línea, en una moneda. Cero se permite (una adicional): sin porcentaje de uso. */
+                            creditLimit: {
+                                /** @description String decimal con 2 decimales (`"5000.00"`). */
+                                amount: string;
+                                /** @enum {string} */
+                                currency: "PEN" | "USD";
+                            };
+                            /** @description Día de corte; si el mes no lo tiene, el último día del mes. */
+                            statementDay: number;
+                            paymentDueRule: {
+                                /** @enum {string} */
+                                kind: "DAYS_AFTER_STATEMENT";
+                                days: number;
+                            } | {
+                                /** @enum {string} */
+                                kind: "DAY_OF_MONTH";
+                                day: number;
+                            };
+                            /** @description Lo que ya se debía antes de registrar en la app. Nulo: la deuda arranca en cero. */
+                            openingBalance: {
+                                /** Format: date */
+                                date: string;
+                                /** @description Uno por moneda, primero soles. */
+                                amounts: {
+                                    /** @description String decimal con 2 decimales (`"5000.00"`). */
+                                    amount: string;
+                                    /** @enum {string} */
+                                    currency: "PEN" | "USD";
+                                }[];
+                            } | null;
+                        };
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: las tarjetas solo se gestionan desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El método de pago no existe o es de otra cuenta (`PAYMENT_METHOD_NOT_FOUND`); o el módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El método ya está configurado (`CREDIT_CARD_ALREADY_CONFIGURED`). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El cuerpo no tiene la forma esperada; el método no es una tarjeta (`PAYMENT_METHOD_NOT_CREDIT_CARD`) o está archivado (`PAYMENT_METHOD_ARCHIVED`); o se rompe una regla. La línea y el saldo inicial en una moneda que la tarjeta acepte, cero o más (`CREDIT_LIMIT_NEGATIVE`, `OPENING_BALANCE_NEGATIVE`, `CREDIT_CARD_CURRENCY_NOT_ACCEPTED`); corte de 1 a 31 (`STATEMENT_DAY_INVALID`); regla de pago de 1 a 60 días o un día de 1 a 31 (`PAYMENT_DUE_RULE_INVALID`); saldo inicial con al menos un monto, sin repetir moneda y con fecha de hoy o antes (`OPENING_BALANCE_EMPTY`, `OPENING_BALANCE_CURRENCY_REPEATED`, `OPENING_BALANCE_DATE_IN_FUTURE`). */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/credit-cards/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Corrige la configuración de una tarjeta.
+         * @description Solo cambia lo que llega; `openingBalance: null` quita el saldo inicial. Se revisa la tarjeta **como quedaría**, también si su método está archivado. Cambiar el día de corte recalcula todos los ciclos, los pasados incluidos: solo se guarda el día actual.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        creditLimit?: {
+                            amount: string;
+                            /** @enum {string} */
+                            currency: "PEN" | "USD";
+                        };
+                        statementDay?: number;
+                        paymentDueRule?: {
+                            /** @enum {string} */
+                            kind: "DAYS_AFTER_STATEMENT";
+                            days: number;
+                        } | {
+                            /** @enum {string} */
+                            kind: "DAY_OF_MONTH";
+                            day: number;
+                        };
+                        openingBalance?: {
+                            /** Format: date */
+                            date: string;
+                            amounts: {
+                                amount: string;
+                                /** @enum {string} */
+                                currency: "PEN" | "USD";
+                            }[];
+                        } | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description La tarjeta como quedó. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** @description Lo que identifica la tarjeta, leído del método de pago: nunca más que esto. */
+                            paymentMethod: {
+                                /** Format: uuid */
+                                id: string;
+                                alias: string;
+                                institution: string | null;
+                                last4: string | null;
+                                /**
+                                 * @description Nula = bimoneda.
+                                 * @enum {string|null}
+                                 */
+                                currency: "PEN" | "USD" | null;
+                                /** @description Archivada, la tarjeta se sigue viendo y corrigiendo, pero no avisa. */
+                                archived: boolean;
+                            };
+                            /** @description Una sola línea, en una moneda. Cero se permite (una adicional): sin porcentaje de uso. */
+                            creditLimit: {
+                                /** @description String decimal con 2 decimales (`"5000.00"`). */
+                                amount: string;
+                                /** @enum {string} */
+                                currency: "PEN" | "USD";
+                            };
+                            /** @description Día de corte; si el mes no lo tiene, el último día del mes. */
+                            statementDay: number;
+                            paymentDueRule: {
+                                /** @enum {string} */
+                                kind: "DAYS_AFTER_STATEMENT";
+                                days: number;
+                            } | {
+                                /** @enum {string} */
+                                kind: "DAY_OF_MONTH";
+                                day: number;
+                            };
+                            /** @description Lo que ya se debía antes de registrar en la app. Nulo: la deuda arranca en cero. */
+                            openingBalance: {
+                                /** Format: date */
+                                date: string;
+                                /** @description Uno por moneda, primero soles. */
+                                amounts: {
+                                    /** @description String decimal con 2 decimales (`"5000.00"`). */
+                                    amount: string;
+                                    /** @enum {string} */
+                                    currency: "PEN" | "USD";
+                                }[];
+                            } | null;
+                        };
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: las tarjetas solo se gestionan desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description La tarjeta no existe o es de otra cuenta (`CREDIT_CARD_NOT_FOUND`); o el módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El id no es un UUID, el cuerpo no tiene la forma esperada, o se rompe una regla. La línea y el saldo inicial en una moneda que la tarjeta acepte, cero o más (`CREDIT_LIMIT_NEGATIVE`, `OPENING_BALANCE_NEGATIVE`, `CREDIT_CARD_CURRENCY_NOT_ACCEPTED`); corte de 1 a 31 (`STATEMENT_DAY_INVALID`); regla de pago de 1 a 60 días o un día de 1 a 31 (`PAYMENT_DUE_RULE_INVALID`); saldo inicial con al menos un monto, sin repetir moneda y con fecha de hoy o antes (`OPENING_BALANCE_EMPTY`, `OPENING_BALANCE_CURRENCY_REPEATED`, `OPENING_BALANCE_DATE_IN_FUTURE`). */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {

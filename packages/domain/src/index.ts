@@ -263,3 +263,17 @@ export {
   MIN_INSTALLMENTS,
   pendingInstallments,
 } from './credit-cards/installment-plan.js';
+export {
+  assertConfigurableMethod,
+  assertCreditCardSettings,
+  CreditCardCurrencyNotAcceptedError,
+  type CreditCardMethod,
+  CreditCardMethodArchivedError,
+  type CreditCardSettings,
+  EmptyOpeningBalanceError,
+  FutureOpeningBalanceError,
+  NegativeOpeningBalanceError,
+  NotACreditCardError,
+  type OpeningBalance,
+  OpeningBalanceCurrencyRepeatedError,
+} from './credit-cards/credit-card-settings.js';

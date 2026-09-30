@@ -54,6 +54,9 @@ const STATUS_BY_DOMAIN_CODE = new Map<string, number>([
   ['IMPORT_CONFLICT', HttpStatus.CONFLICT],
   // Otra petición creó al mismo tiempo una etiqueta con ese nombre: volver a intentar la fusiona.
   ['TAG_NAME_TAKEN', HttpStatus.CONFLICT],
+  ['CREDIT_CARD_NOT_FOUND', HttpStatus.NOT_FOUND],
+  // El método de pago ya tiene su tarjeta: se corrige esa, no se configura otra.
+  ['CREDIT_CARD_ALREADY_CONFIGURED', HttpStatus.CONFLICT],
 ]);
 
 /** Una regla de negocio rechazó una petición bien formada: contenido no procesable. */

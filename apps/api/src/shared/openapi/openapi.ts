@@ -1,6 +1,7 @@
 import {
   changePasswordRequestSchema,
   createCategoryRequestSchema,
+  createCreditCardRequestSchema,
   createPaymentMethodRequestSchema,
   createPersonalAccessTokenRequestSchema,
   createTransactionRequestSchema,
@@ -20,6 +21,7 @@ import {
   transactionSourceSchema,
   transactionTypeSchema,
   updateCategoryRequestSchema,
+  updateCreditCardRequestSchema,
   updatePaymentMethodRequestSchema,
   updateTransactionRequestSchema,
   updateTransferRequestSchema,
@@ -1500,6 +1502,140 @@ function reportsPaths(): Record<string, unknown> {
   };
 }
 
+const MONEY_RESPONSE = z.object({
+  amount: z.string().describe('String decimal con 2 decimales (`"5000.00"`).'),
+  currency: currencySchema,
+});
+
+const CREDIT_CARD_SCHEMA = schemaOf(
+  z.object({
+    id: z.uuid(),
+    paymentMethod: z
+      .object({
+        id: z.uuid(),
+        alias: z.string(),
+        institution: z.string().nullable(),
+        last4: z.string().nullable(),
+        currency: currencySchema.nullable().describe('Nula = bimoneda.'),
+        archived: z
+          .boolean()
+          .describe('Archivada, la tarjeta se sigue viendo y corrigiendo, pero no avisa.'),
+      })
+      .describe('Lo que identifica la tarjeta, leído del método de pago: nunca más que esto.'),
+    creditLimit: MONEY_RESPONSE.describe(
+      'Una sola línea, en una moneda. Cero se permite (una adicional): sin porcentaje de uso.',
+    ),
+    statementDay: z
+      .int()
+      .min(1)
+      .max(31)
+      .describe('Día de corte; si el mes no lo tiene, el último día del mes.'),
+    paymentDueRule: z.discriminatedUnion('kind', [
+      z.object({ kind: z.literal('DAYS_AFTER_STATEMENT'), days: z.int().min(1).max(60) }),
+      z.object({ kind: z.literal('DAY_OF_MONTH'), day: z.int().min(1).max(31) }),
+    ]),
+    openingBalance: z
+      .object({
+        date: z.iso.date(),
+        amounts: z.array(MONEY_RESPONSE).describe('Uno por moneda, primero soles.'),
+      })
+      .nullable()
+      .describe('Lo que ya se debía antes de registrar en la app. Nulo: la deuda arranca en cero.'),
+  }),
+);
+
+function creditCardsPaths(): Record<string, unknown> {
+  const unauthorized = problem('Falta el token de acceso o no vale.');
+  const forbidden = problem(
+    'Llegó un token personal: las tarjetas solo se gestionan desde una sesión.',
+  );
+  const card = {
+    content: { 'application/json': { schema: CREDIT_CARD_SCHEMA } },
+  };
+  const rules =
+    'La línea y el saldo inicial en una moneda que la tarjeta acepte, cero o más ' +
+    '(`CREDIT_LIMIT_NEGATIVE`, `OPENING_BALANCE_NEGATIVE`, `CREDIT_CARD_CURRENCY_NOT_ACCEPTED`); ' +
+    'corte de 1 a 31 (`STATEMENT_DAY_INVALID`); regla de pago de 1 a 60 días o un día de 1 a 31 ' +
+    '(`PAYMENT_DUE_RULE_INVALID`); saldo inicial con al menos un monto, sin repetir moneda y con ' +
+    'fecha de hoy o antes (`OPENING_BALANCE_EMPTY`, `OPENING_BALANCE_CURRENCY_REPEATED`, ' +
+    '`OPENING_BALANCE_DATE_IN_FUTURE`).';
+
+  return {
+    [`/${API_PREFIX}/credit-cards`]: {
+      get: {
+        tags: ['credit-cards'],
+        summary: 'Lista las tarjetas configuradas.',
+        description:
+          'En el orden en que se configuraron, **archivadas incluidas**: su configuración se ' +
+          'conserva. Un método `CREDIT_CARD` sin configurar no aparece aquí.',
+        security: [{ accessToken: [] }],
+        responses: {
+          '200': {
+            description: 'Las tarjetas de la cuenta.',
+            content: {
+              'application/json': { schema: { type: 'array', items: CREDIT_CARD_SCHEMA } },
+            },
+          },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem('El módulo está apagado.'),
+        },
+      },
+      post: {
+        tags: ['credit-cards'],
+        summary: 'Configura un método de pago como tarjeta de crédito.',
+        description:
+          'Un método `CREDIT_CARD` propio y activo, **una vez**. Sin saldo inicial, la deuda ' +
+          'arranca en cero.',
+        security: [{ accessToken: [] }],
+        requestBody: jsonBody(createCreditCardRequestSchema),
+        responses: {
+          '201': { description: 'La tarjeta configurada.', ...card },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem(
+            'El método de pago no existe o es de otra cuenta (`PAYMENT_METHOD_NOT_FOUND`); o el ' +
+              'módulo está apagado.',
+          ),
+          '409': problem('El método ya está configurado (`CREDIT_CARD_ALREADY_CONFIGURED`).'),
+          '422': problem(
+            'El cuerpo no tiene la forma esperada; el método no es una tarjeta ' +
+              '(`PAYMENT_METHOD_NOT_CREDIT_CARD`) o está archivado (`PAYMENT_METHOD_ARCHIVED`); o ' +
+              `se rompe una regla. ${rules}`,
+          ),
+        },
+      },
+    },
+    [`/${API_PREFIX}/credit-cards/{id}`]: {
+      patch: {
+        tags: ['credit-cards'],
+        summary: 'Corrige la configuración de una tarjeta.',
+        description:
+          'Solo cambia lo que llega; `openingBalance: null` quita el saldo inicial. Se revisa la ' +
+          'tarjeta **como quedaría**, también si su método está archivado. Cambiar el día de corte ' +
+          'recalcula todos los ciclos, los pasados incluidos: solo se guarda el día actual.',
+        security: [{ accessToken: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        requestBody: jsonBody(updateCreditCardRequestSchema),
+        responses: {
+          '200': { description: 'La tarjeta como quedó.', ...card },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem(
+            'La tarjeta no existe o es de otra cuenta (`CREDIT_CARD_NOT_FOUND`); o el módulo está ' +
+              'apagado.',
+          ),
+          '422': problem(
+            `El id no es un UUID, el cuerpo no tiene la forma esperada, o se rompe una regla. ${rules}`,
+          ),
+        },
+      },
+    },
+  };
+}
+
 /** Rutas que aporta cada módulo de negocio, para omitirlas cuando su flag está apagado. */
 const PATHS_BY_MODULE: Partial<Record<FeatureModule, () => Record<string, unknown>>> = {
   identity: identityPaths,
@@ -1507,6 +1643,7 @@ const PATHS_BY_MODULE: Partial<Record<FeatureModule, () => Record<string, unknow
   transactions: transactionsPaths,
   budgeting: budgetingPaths,
   reports: reportsPaths,
+  'credit-cards': creditCardsPaths,
 };
 
 export interface OpenApiOptions {
