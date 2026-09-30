@@ -8,6 +8,8 @@ import type { Clock } from '@sol-a-sol/domain';
 
 import { currentMonth, formatMonth, systemClock } from '@/shared/time/dates';
 
+import { useInstallmentBadges } from '@/features/credit-cards/queries';
+
 import { FilterBar } from './filter-bar';
 import { type Filters, readFilters, writeFilters } from './filters';
 import { categoriesById } from './labels';
@@ -22,7 +24,10 @@ const NOTICE = 'rounded-lg border border-stone-200 bg-white p-6 text-center text
  * Los movimientos de un mes: filtros, totales y la lista por día. Los filtros viven en la URL,
  * así que filtrar no recarga la página y el botón atrás deshace un filtro.
  */
-export function TransactionsScreen({ clock = systemClock }: Readonly<{ clock?: Clock }>) {
+export function TransactionsScreen({
+  clock = systemClock,
+  cardsEnabled = false,
+}: Readonly<{ clock?: Clock; cardsEnabled?: boolean }>) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -43,6 +48,8 @@ export function TransactionsScreen({ clock = systemClock }: Readonly<{ clock?: C
   const movements = useMovements(filters);
   const categoryTree = useCategories();
   const paymentMethods = usePaymentMethods();
+  // «3 de 6 cuotas» junto a cada compra en cuotas; con el flag de tarjetas apagado no se pide nada.
+  const installmentBadges = useInstallmentBadges(cardsEnabled);
   const tags = useTags();
   const deleteWithUndo = useDeleteWithUndo();
   const [deleteFailed, setDeleteFailed] = useState(false);
@@ -116,6 +123,7 @@ export function TransactionsScreen({ clock = systemClock }: Readonly<{ clock?: C
             </p>
           ) : (
             <MovementList
+              notes={installmentBadges}
               movements={items}
               categories={categories}
               paymentMethods={methods}

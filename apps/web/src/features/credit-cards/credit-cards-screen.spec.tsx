@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
@@ -80,6 +80,8 @@ function setup(
     onSave?: () => Response;
     /** Cuántas veces falla la lista antes de responder bien. */
     failures?: number;
+    /** Las compras en cuotas de cada tarjeta. */
+    plans?: unknown[];
   } = {},
 ) {
   const sent: Sent[] = [];
@@ -96,6 +98,14 @@ function setup(
         }
 
         return Response.json(options.cards ?? []);
+      }
+      if (url.pathname.endsWith('/installments') && input.method === 'GET') {
+        return Response.json(options.plans ?? []);
+      }
+      if (input.method === 'DELETE') {
+        sent.push({ method: input.method, path: url.pathname, body: null });
+
+        return new Response(null, { status: 204 });
       }
       if (url.pathname === '/api/v1/payment-methods' && input.method === 'GET') {
         return Response.json(options.methods ?? []);
@@ -280,5 +290,99 @@ describe('CreditCardsScreen', () => {
     await userEvent.click(within(alert).getByRole('button', { name: 'Reintentar' }));
 
     expect(await screen.findByRole('article', { name: /Visa/u })).toBeInTheDocument();
+  });
+
+  describe('purchases in installments', () => {
+    const PLAN = {
+      id: '44444444-4444-4444-8444-444444444444',
+      transactionId: '55555555-5555-4555-8555-555555555555',
+      count: 3,
+      state: 'ACTIVE',
+      purchase: {
+        date: '2026-09-10',
+        description: 'Televisor',
+        amount: { amount: '1200.00', currency: 'PEN' },
+      },
+      total: { amount: '1260.00', currency: 'PEN' },
+      interest: { amount: '60.00', currency: 'PEN' },
+      installments: [
+        {
+          number: 1,
+          amount: { amount: '420.00', currency: 'PEN' },
+          statementDate: '2026-09-20',
+          billed: true,
+        },
+        {
+          number: 2,
+          amount: { amount: '420.00', currency: 'PEN' },
+          statementDate: '2026-10-20',
+          billed: false,
+        },
+        {
+          number: 3,
+          amount: { amount: '420.00', currency: 'PEN' },
+          statementDate: '2026-11-20',
+          billed: false,
+        },
+      ],
+      pending: { count: 2, amount: { amount: '840.00', currency: 'PEN' } },
+    };
+
+    it('lists them with what is left and the next statement', async () => {
+      setup({ cards: [visaStatus()], plans: [PLAN] });
+
+      const plans = await screen.findByRole('region', { name: 'Compras en cuotas' });
+      expect(plans).toHaveTextContent('Televisor · 3 cuotas de S/ 1,260.00 en total');
+      expect(plans).toHaveTextContent('1 de 3 cuotas facturadas');
+      expect(plans).toHaveTextContent('Próxima cuota: S/ 420.00 en el estado del 20 de octubre');
+      expect(plans).toHaveTextContent('Faltan S/ 840.00');
+      expect(plans).toHaveTextContent('Intereses: S/ 60.00');
+    });
+
+    it('explains a plan whose purchase was deleted', async () => {
+      setup({
+        cards: [visaStatus()],
+        plans: [
+          {
+            ...PLAN,
+            state: 'PURCHASE_DELETED',
+            purchase: null,
+            total: null,
+            interest: null,
+            installments: [],
+            pending: null,
+          },
+        ],
+      });
+
+      const plans = await screen.findByRole('region', { name: 'Compras en cuotas' });
+      expect(plans).toHaveTextContent('Compra borrada');
+      expect(plans).toHaveTextContent('sus cuotas no cuentan hasta que la restaures');
+    });
+
+    it('undoes a plan', async () => {
+      const { sent } = setup({ cards: [visaStatus()], plans: [PLAN] });
+
+      await userEvent.click(
+        await screen.findByRole('button', { name: 'Deshacer las cuotas de «Televisor»' }),
+      );
+
+      await waitFor(() => {
+        expect(sent).toEqual([
+          {
+            method: 'DELETE',
+            path: `/api/v1/credit-cards/${CARD}/installments/${PLAN.id}`,
+            body: null,
+          },
+        ]);
+      });
+    });
+
+    it('shows nothing about installments when there are none', async () => {
+      setup({ cards: [visaStatus()] });
+
+      await screen.findByRole('article', { name: /Visa/u });
+      expect(screen.queryByRole('region', { name: 'Compras en cuotas' })).not.toBeInTheDocument();
+    });
   });
 });

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { formatMoney } from '@/shared/format/money';
 
 import type { CardWithStatus } from './card-alerts-model';
+import { InstallmentPlans } from './installment-plans';
 import {
   cycleText,
   debtText,
@@ -81,6 +82,8 @@ export function CardStatusView({ card }: Readonly<{ card: CardWithStatus }>) {
           </p>
         </div>
       )}
+
+      <InstallmentPlans cardId={card.id} />
 
       <Link
         href={`/transactions?paymentMethodId=${card.paymentMethod.id}`}
