@@ -6,6 +6,14 @@ import { IdentityModule } from '../identity/index.js';
 import { TransactionsLookup, TransactionsModule } from '../transactions/index.js';
 import { GetCreditCardStatuses } from './application/credit-card-status.js';
 import {
+  CreateInstallmentPlan,
+  DeleteInstallmentPlan,
+  ListInstallmentPlans,
+} from './application/installment-plans.js';
+import { InstallmentPlansController } from './http/installment-plans.controller.js';
+import { PrismaInstallmentPlanRepository } from './infrastructure/prisma-installment-plan-repository.js';
+import { INSTALLMENT_PLAN_REPOSITORY } from './ports/installment-plan-repository.js';
+import {
   ConfigureCreditCard,
   ListCreditCards,
   UpdateCreditCard,
@@ -27,12 +35,16 @@ import { CREDIT_CARD_MOVEMENTS_READER } from './ports/movements-reader.js';
  */
 @Module({
   imports: [PrismaModule, IdentityModule, CatalogModule, TransactionsModule],
-  controllers: [CreditCardsController],
+  controllers: [CreditCardsController, InstallmentPlansController],
   providers: [
     ListCreditCards,
     ConfigureCreditCard,
     UpdateCreditCard,
     GetCreditCardStatuses,
+    ListInstallmentPlans,
+    CreateInstallmentPlan,
+    DeleteInstallmentPlan,
+    { provide: INSTALLMENT_PLAN_REPOSITORY, useClass: PrismaInstallmentPlanRepository },
     { provide: CREDIT_CARD_REPOSITORY, useClass: PrismaCreditCardRepository },
     { provide: CREDIT_CARD_CATALOG_READER, useExisting: CatalogLookup },
     { provide: CREDIT_CARD_MOVEMENTS_READER, useExisting: TransactionsLookup },

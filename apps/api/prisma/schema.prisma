@@ -40,6 +40,7 @@ model User {
   budgets              Budget[]
   budgetLines          BudgetLine[]
   creditCards          CreditCard[]
+  installmentPlans     InstallmentPlan[]
 
   @@map("users")
 }
@@ -347,6 +348,9 @@ model Transaction {
 
   /// Destino de la clave foránea compuesta de `TransactionTag`: `id` ya es único; esto solo le da
   /// a PostgreSQL el índice que exige para referenciar las dos columnas juntas.
+  /// A lo sumo uno (`transaction_id` es único): la compra pagada en cuotas.
+  installmentPlans InstallmentPlan[]
+
   @@unique([id, userId])
   /// Una fila del CSV entra una sola vez por cuenta; las que no se importaron (nulas) no chocan.
   @@unique([userId, importKey])
@@ -533,6 +537,40 @@ model CreditCard {
   /// Sin cascada: un método con tarjeta configurada no se borra, se archiva.
   paymentMethod         PaymentMethod     @relation(fields: [paymentMethodId, userId, kind], references: [id, userId, kind], onDelete: NoAction, onUpdate: NoAction)
 
+  installmentPlans InstallmentPlan[]
+
+  /// Destino de la clave foránea compuesta de `InstallmentPlan.creditCard`.
+  @@unique([id, userId])
   @@index([userId])
   @@map("credit_cards")
+}
+
+/// Una compra con la tarjeta que se paga en cuotas (decisiones 6 a 8 de H5 y 2026-09-30).
+///
+/// Solo guarda lo que la compra no tiene: en cuántas cuotas y, si hay intereses, el total que da
+/// el banco. **El plan sigue a la compra:** el monto, la fecha y la moneda se leen de la
+/// transacción al consultar, y el monto de cada cuota sale de `computeInstallmentPlan`, así que
+/// la suma nunca se desvía del total. Si la compra se borra, el plan se ignora hasta que vuelva.
+model InstallmentPlan {
+  id            String      @id @default(uuid(7)) @db.Uuid
+  userId        String      @map("user_id") @db.Uuid
+  creditCardId  String      @map("credit_card_id") @db.Uuid
+  /// Una compra, a lo más un plan.
+  transactionId String      @unique @map("transaction_id") @db.Uuid
+  /// 2 a 36 (`CHECK`).
+  count         Int         @db.SmallInt
+  /// Con intereses, el total del banco en la moneda de la compra. Nulo sin intereses: el total es
+  /// el monto de la compra, el que tenga hoy.
+  totalAmount   Decimal?    @map("total_amount") @db.Decimal(18, 2)
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+  /// Directo al usuario, como las tarjetas: al borrar la cuenta se va en el mismo nivel.
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// La tarjeta y la compra, de la misma cuenta (claves compuestas).
+  creditCard    CreditCard  @relation(fields: [creditCardId, userId], references: [id, userId], onDelete: Cascade)
+  /// Sin cascada: las transacciones solo se borran de forma lógica.
+  transaction   Transaction @relation(fields: [transactionId, userId], references: [id, userId], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([creditCardId])
+  @@map("installment_plans")
 }

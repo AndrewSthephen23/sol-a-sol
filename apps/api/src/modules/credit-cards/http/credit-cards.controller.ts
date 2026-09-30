@@ -58,7 +58,12 @@ export interface CreditCardResponse {
 /** Dónde está la tarjeta hoy. Montos como string decimal; el porcentaje, sin redondear. */
 export interface CardStatusResponse {
   cycle: { start: string; end: string };
-  currencies: { currency: string; debt: string; cycleCharges: string }[];
+  currencies: {
+    currency: string;
+    debt: string;
+    cycleCharges: string;
+    pendingInstallments: string;
+  }[];
   statement: {
     start: string;
     end: string;
@@ -82,6 +87,7 @@ function statusOf(status: CardStatus): CardStatusResponse {
       currency: entry.currency,
       debt: entry.debt.toFixed(),
       cycleCharges: entry.cycleCharges.toFixed(),
+      pendingInstallments: entry.pendingInstallments.toFixed(),
     })),
     statement:
       statement === null

@@ -105,6 +105,10 @@ export { type MonthlyReportQuery, monthlyReportQuerySchema } from './reports/mon
 export {
   type CreateCreditCardRequest,
   createCreditCardRequestSchema,
+  type CreateInstallmentPlanRequest,
+  createInstallmentPlanRequestSchema,
+  type InstallmentPlanParams,
+  installmentPlanParamsSchema,
   type CreditCardParams,
   creditCardParamsSchema,
   type MoneyRequest,

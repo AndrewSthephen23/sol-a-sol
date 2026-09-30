@@ -278,6 +278,7 @@ export {
   OpeningBalanceCurrencyRepeatedError,
 } from './credit-cards/credit-card-settings.js';
 export {
+  type CardInstallmentPlan,
   type CardMovement,
   cardMovementEffect,
   type CardMovementEffect,
@@ -289,3 +290,12 @@ export {
   type StatementBalance,
   type StatementStatus,
 } from './credit-cards/card-status.js';
+export {
+  assertInstallablePurchase,
+  InstallmentPurchaseNotAChargeError,
+  InstallmentPurchaseNotOnCardError,
+  type InstallmentPlanState,
+  installmentPlanState,
+  installmentPlanTotal,
+  type PlannedPurchase,
+} from './credit-cards/installment-purchase.js';

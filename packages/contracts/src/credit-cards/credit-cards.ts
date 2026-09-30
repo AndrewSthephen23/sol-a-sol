@@ -61,3 +61,20 @@ export type OpeningBalanceRequest = z.infer<typeof openingBalanceSchema>;
 export type CreateCreditCardRequest = z.infer<typeof createCreditCardRequestSchema>;
 export type UpdateCreditCardRequest = z.infer<typeof updateCreditCardRequestSchema>;
 export type CreditCardParams = z.infer<typeof creditCardParamsSchema>;
+
+/**
+ * Marca una compra hecha con la tarjeta como pagada en cuotas. Sin intereses no se manda
+ * `totalAmount`: el total es el monto de la compra, el que tenga. El número de cuotas (2 a 36) y
+ * que el total no baje del precio los decide el dominio.
+ */
+export const createInstallmentPlanRequestSchema = z.strictObject({
+  transactionId: z.uuid(),
+  count: z.int(),
+  totalAmount: decimalAmountSchema.nullable().optional(),
+});
+
+/** La tarjeta y el plan de la ruta: UUID, o la petición no llega a buscar nada. */
+export const installmentPlanParamsSchema = z.object({ id: z.uuid(), planId: z.uuid() });
+
+export type CreateInstallmentPlanRequest = z.infer<typeof createInstallmentPlanRequestSchema>;
+export type InstallmentPlanParams = z.infer<typeof installmentPlanParamsSchema>;

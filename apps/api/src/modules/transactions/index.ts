@@ -6,6 +6,7 @@ export {
   type DayTotal,
   type PaymentMethodDayTotal,
   type PaymentMethodMovementKind,
+  type TransactionReference,
   TransactionsLookup,
 } from './application/transactions-lookup.js';
 export {

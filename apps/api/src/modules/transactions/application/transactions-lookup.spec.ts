@@ -158,4 +158,32 @@ describe('TransactionsLookup', () => {
       await expect(lookup.paymentMethodTotalsByDay(ANA, CARD, until)).resolves.toEqual([]);
     });
   });
+
+  describe('liveTransactions', () => {
+    it('gives the live ones of the account, once each, and nothing else', async () => {
+      const kept = await spend(ANA, '2026-09-10', 'food', Money.of('25.50', 'PEN'));
+      const gone = await spend(ANA, '2026-09-11', 'food', Money.of('1', 'PEN'));
+      await transactions.softDelete(ANA, gone.id, new Date());
+      const hers = await spend(BRUNO, '2026-09-12', 'food', Money.of('1', 'PEN'));
+
+      const found = await lookup.liveTransactions(ANA, [
+        kept.id,
+        kept.id,
+        gone.id,
+        hers.id,
+        'none',
+      ]);
+
+      expect(
+        found.map((entry) => [
+          entry.id,
+          entry.date.toString(),
+          entry.type,
+          entry.amount.toFixed(),
+          entry.paymentMethodId,
+          entry.description,
+        ]),
+      ).toEqual([[kept.id, '2026-09-10', 'VARIABLE_EXPENSE', '25.50', null, 'Gasto']]);
+    });
+  });
 });

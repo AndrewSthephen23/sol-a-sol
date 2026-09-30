@@ -4493,8 +4493,10 @@ export interface paths {
                                     currency: "PEN" | "USD";
                                     /** @description Lo que se debe hoy, de cualquier ciclo. Negativo: saldo a favor. */
                                     debt: string;
-                                    /** @description Lo cargado en el ciclo en curso. */
+                                    /** @description Lo cargado en el ciclo en curso. De una compra en cuotas, solo la cuota que se factura en este ciclo. */
                                     cycleCharges: string;
+                                    /** @description Cuotas que todavía no se facturan; ya son parte de `debt`. */
+                                    pendingInstallments: string;
                                 }[];
                                 /** @description El último estado cerrado. Nulo si el saldo inicial es posterior a su corte. */
                                 statement: {
@@ -4667,8 +4669,10 @@ export interface paths {
                                     currency: "PEN" | "USD";
                                     /** @description Lo que se debe hoy, de cualquier ciclo. Negativo: saldo a favor. */
                                     debt: string;
-                                    /** @description Lo cargado en el ciclo en curso. */
+                                    /** @description Lo cargado en el ciclo en curso. De una compra en cuotas, solo la cuota que se factura en este ciclo. */
                                     cycleCharges: string;
+                                    /** @description Cuotas que todavía no se facturan; ya son parte de `debt`. */
+                                    pendingInstallments: string;
                                 }[];
                                 /** @description El último estado cerrado. Nulo si el saldo inicial es posterior a su corte. */
                                 statement: {
@@ -4756,6 +4760,363 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/credit-cards/{id}/installments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Las compras en cuotas de una tarjeta, con lo que falta. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Los planes, en el orden en que se registraron. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            transactionId: string;
+                            count: number;
+                            /**
+                             * @description El plan sigue a la compra: solo `ACTIVE` cuenta. Borrada, se ignora hasta que se restaure; si cambió de tarjeta, pasó a ingreso o supera el total del banco, queda inválido hasta corregirla.
+                             * @enum {string}
+                             */
+                            state: "ACTIVE" | "PURCHASE_DELETED" | "PURCHASE_NOT_ON_CARD" | "PURCHASE_NOT_A_CHARGE" | "TOTAL_BELOW_PRICE";
+                            /** @description La compra como está hoy; nula si se borró. */
+                            purchase: {
+                                /** Format: date */
+                                date: string;
+                                description: string;
+                                amount: {
+                                    /** @description String decimal con 2 decimales (`"5000.00"`). */
+                                    amount: string;
+                                    /** @enum {string} */
+                                    currency: "PEN" | "USD";
+                                };
+                            } | null;
+                            /** @description Lo que se paga en cuotas: el total del banco, o sin intereses el monto de la compra. */
+                            total: {
+                                /** @description String decimal con 2 decimales (`"5000.00"`). */
+                                amount: string;
+                                /** @enum {string} */
+                                currency: "PEN" | "USD";
+                            } | null;
+                            /** @description Total − precio. Solo cuenta en la deuda de la tarjeta: no es una transacción. */
+                            interest: {
+                                /** @description String decimal con 2 decimales (`"5000.00"`). */
+                                amount: string;
+                                /** @enum {string} */
+                                currency: "PEN" | "USD";
+                            } | null;
+                            /** @description Suman exactamente el total; los céntimos sobrantes van a las primeras. */
+                            installments: {
+                                number: number;
+                                amount: {
+                                    /** @description String decimal con 2 decimales (`"5000.00"`). */
+                                    amount: string;
+                                    /** @enum {string} */
+                                    currency: "PEN" | "USD";
+                                };
+                                /**
+                                 * Format: date
+                                 * @description El estado de cuenta en que se factura.
+                                 */
+                                statementDate: string;
+                                /** @description Ya se facturó (el estado que cierra hoy incluido). */
+                                billed: boolean;
+                            }[];
+                            /** @description Las cuotas que faltan facturar; nulo si no queda ninguna. */
+                            pending: {
+                                count: number;
+                                amount: {
+                                    /** @description String decimal con 2 decimales (`"5000.00"`). */
+                                    amount: string;
+                                    /** @enum {string} */
+                                    currency: "PEN" | "USD";
+                                };
+                            } | null;
+                        }[];
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: las tarjetas solo se gestionan desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description La tarjeta no existe o es de otra cuenta (`CREDIT_CARD_NOT_FOUND`); o el módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El id no es un UUID. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Marca una compra hecha con la tarjeta como pagada en cuotas.
+         * @description De 2 a 36 cuotas. Sin intereses no se manda `totalAmount`: el total sigue siendo el monto de la compra aunque se corrija. Con intereses, el total del banco (en la moneda de la compra); la diferencia es deuda de la tarjeta. La compra entera sigue siendo gasto el día que se hizo: presupuesto y dashboard no cambian.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        transactionId: string;
+                        count: number;
+                        totalAmount?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description El plan con sus cuotas. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            transactionId: string;
+                            count: number;
+                            /**
+                             * @description El plan sigue a la compra: solo `ACTIVE` cuenta. Borrada, se ignora hasta que se restaure; si cambió de tarjeta, pasó a ingreso o supera el total del banco, queda inválido hasta corregirla.
+                             * @enum {string}
+                             */
+                            state: "ACTIVE" | "PURCHASE_DELETED" | "PURCHASE_NOT_ON_CARD" | "PURCHASE_NOT_A_CHARGE" | "TOTAL_BELOW_PRICE";
+                            /** @description La compra como está hoy; nula si se borró. */
+                            purchase: {
+                                /** Format: date */
+                                date: string;
+                                description: string;
+                                amount: {
+                                    /** @description String decimal con 2 decimales (`"5000.00"`). */
+                                    amount: string;
+                                    /** @enum {string} */
+                                    currency: "PEN" | "USD";
+                                };
+                            } | null;
+                            /** @description Lo que se paga en cuotas: el total del banco, o sin intereses el monto de la compra. */
+                            total: {
+                                /** @description String decimal con 2 decimales (`"5000.00"`). */
+                                amount: string;
+                                /** @enum {string} */
+                                currency: "PEN" | "USD";
+                            } | null;
+                            /** @description Total − precio. Solo cuenta en la deuda de la tarjeta: no es una transacción. */
+                            interest: {
+                                /** @description String decimal con 2 decimales (`"5000.00"`). */
+                                amount: string;
+                                /** @enum {string} */
+                                currency: "PEN" | "USD";
+                            } | null;
+                            /** @description Suman exactamente el total; los céntimos sobrantes van a las primeras. */
+                            installments: {
+                                number: number;
+                                amount: {
+                                    /** @description String decimal con 2 decimales (`"5000.00"`). */
+                                    amount: string;
+                                    /** @enum {string} */
+                                    currency: "PEN" | "USD";
+                                };
+                                /**
+                                 * Format: date
+                                 * @description El estado de cuenta en que se factura.
+                                 */
+                                statementDate: string;
+                                /** @description Ya se facturó (el estado que cierra hoy incluido). */
+                                billed: boolean;
+                            }[];
+                            /** @description Las cuotas que faltan facturar; nulo si no queda ninguna. */
+                            pending: {
+                                count: number;
+                                amount: {
+                                    /** @description String decimal con 2 decimales (`"5000.00"`). */
+                                    amount: string;
+                                    /** @enum {string} */
+                                    currency: "PEN" | "USD";
+                                };
+                            } | null;
+                        };
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: las tarjetas solo se gestionan desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description La tarjeta (`CREDIT_CARD_NOT_FOUND`) o la compra (`TRANSACTION_NOT_FOUND`) no existe, está borrada o es de otra cuenta; o el módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description La compra ya se paga en cuotas (`INSTALLMENT_PLAN_ALREADY_EXISTS`). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El cuerpo no tiene la forma esperada, o la compra no es de esta tarjeta (`INSTALLMENT_PURCHASE_NOT_ON_CARD`), es un ingreso (`INSTALLMENT_PURCHASE_NOT_A_CHARGE`), el total baja del precio (`INSTALLMENT_TOTAL_BELOW_PRICE`), las cuotas no van de 2 a 36 (`INSTALLMENT_COUNT_INVALID`) o alguna quedaría en cero (`INSTALLMENT_TOO_SMALL`). */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/credit-cards/{id}/installments/{planId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Deshace un plan de cuotas.
+         * @description La compra vuelve a pagarse entera en su estado de cuenta.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    planId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Deshecho. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: las tarjetas solo se gestionan desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El plan no existe, es de otra tarjeta o de otra cuenta (`INSTALLMENT_PLAN_NOT_FOUND`); o el módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Algún id no es un UUID. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
