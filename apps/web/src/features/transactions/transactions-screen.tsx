@@ -79,6 +79,7 @@ export function TransactionsScreen({ clock = systemClock }: Readonly<{ clock?: C
       <FilterBar
         filters={filters}
         categories={[...categories.values()]}
+        paymentMethods={paymentMethods.data ?? []}
         tags={tags.data ?? []}
         onChange={setFilters}
       />

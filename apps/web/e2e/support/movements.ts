@@ -97,3 +97,66 @@ export async function seedCardOverThreshold({ email, password }: Account): Promi
 
   return card.data.id;
 }
+
+/** Lo que hace falta para mover plata con una tarjeta desde la API, sin pasar por la pantalla. */
+export interface CardFixture {
+  headers: { Authorization: string };
+  visaId: string;
+  savingsId: string;
+  foodId: string;
+}
+
+/** Una Visa sin configurar y una cuenta de ahorros en soles, listas para comprar y pagar. */
+export async function seedUnconfiguredCard({ email, password }: Account): Promise<CardFixture> {
+  const login = await api.POST('/api/v1/auth/login', { body: { email, password } });
+  if (!login.data) throw new Error(`Login answered ${String(login.response.status)}.`);
+  const headers = { Authorization: `Bearer ${login.data.accessToken}` };
+
+  const categories = await api.GET('/api/v1/categories', { headers });
+  const food = categories.data?.find((category) => category.name === 'Comida');
+  if (!food) throw new Error('The seeded category «Comida» is missing.');
+  const visa = await api.POST('/api/v1/payment-methods', {
+    headers,
+    body: { kind: 'CREDIT_CARD', alias: 'Visa', institution: 'BCP', last4: '4321' },
+  });
+  if (!visa.data) throw new Error(`Payment method answered ${String(visa.response.status)}.`);
+  const savings = await api.POST('/api/v1/payment-methods', {
+    headers,
+    body: { kind: 'ACCOUNT', alias: 'Ahorros', institution: 'BCP', currency: 'PEN' },
+  });
+  if (!savings.data) throw new Error(`Payment method answered ${String(savings.response.status)}.`);
+
+  return { headers, visaId: visa.data.id, savingsId: savings.data.id, foodId: food.id };
+}
+
+/** Una compra de hoy con la Visa. */
+export async function buyWithCard(fixture: CardFixture, amount: string): Promise<void> {
+  const created = await api.POST('/api/v1/transactions', {
+    headers: fixture.headers,
+    body: {
+      date: limaDates().today,
+      type: 'VARIABLE_EXPENSE',
+      categoryId: fixture.foodId,
+      amount,
+      currency: 'PEN',
+      description: 'Supermercado',
+      paymentMethodId: fixture.visaId,
+    },
+  });
+  if (!created.data) throw new Error(`Transaction answered ${String(created.response.status)}.`);
+}
+
+/** Paga la Visa desde la cuenta de ahorros, hoy. */
+export async function payCard(fixture: CardFixture, amount: string): Promise<void> {
+  const created = await api.POST('/api/v1/transfers', {
+    headers: fixture.headers,
+    body: {
+      date: limaDates().today,
+      fromPaymentMethodId: fixture.savingsId,
+      toPaymentMethodId: fixture.visaId,
+      amount,
+      description: 'Pago de la Visa',
+    },
+  });
+  if (!created.data) throw new Error(`Transfer answered ${String(created.response.status)}.`);
+}

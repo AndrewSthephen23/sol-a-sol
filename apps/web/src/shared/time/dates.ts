@@ -49,6 +49,11 @@ const DAY_HEADING = new Intl.DateTimeFormat('es-PE', {
   month: 'long',
   timeZone: 'UTC',
 });
+const DAY_MONTH = new Intl.DateTimeFormat('es-PE', {
+  day: 'numeric',
+  month: 'long',
+  timeZone: 'UTC',
+});
 const MONTH_HEADING = new Intl.DateTimeFormat('es-PE', {
   month: 'long',
   year: 'numeric',
@@ -63,4 +68,9 @@ export function formatDay(date: string): string {
 /** `2026-09` → `setiembre de 2026`. */
 export function formatMonth(month: string): string {
   return MONTH_HEADING.format(calendarDay(`${month}-01`));
+}
+
+/** `2026-09-21` → `21 de setiembre`: sin el día de la semana, para rangos como un ciclo. */
+export function formatDayMonth(date: string): string {
+  return DAY_MONTH.format(calendarDay(date));
 }

@@ -6,7 +6,7 @@ import { MonthNavigator } from '@/shared/time/month-navigator';
 
 import { type Filters, type Show, TRANSACTION_TYPES } from './filters';
 import { type CategoryInfo, SHOW_LABELS } from './labels';
-import type { Tag } from './queries';
+import type { PaymentMethod, Tag } from './queries';
 
 /** Espera tras la última tecla antes de buscar: no una petición por letra. */
 export const SEARCH_DEBOUNCE_MS = 300;
@@ -19,11 +19,18 @@ const FIELD =
 interface FilterBarProps {
   filters: Filters;
   categories: readonly CategoryInfo[];
+  paymentMethods: readonly PaymentMethod[];
   tags: readonly Tag[];
   onChange: (filters: Filters) => void;
 }
 
-export function FilterBar({ filters, categories, tags, onChange }: Readonly<FilterBarProps>) {
+export function FilterBar({
+  filters,
+  categories,
+  paymentMethods,
+  tags,
+  onChange,
+}: Readonly<FilterBarProps>) {
   const [search, setSearch] = useState(filters.q ?? '');
   const [appliedQ, setAppliedQ] = useState(filters.q);
 
@@ -56,6 +63,7 @@ export function FilterBar({ filters, categories, tags, onChange }: Readonly<Filt
   const filtered =
     filters.show !== 'ALL' ||
     filters.categoryId !== null ||
+    filters.paymentMethodId !== null ||
     filters.tag !== null ||
     filters.q !== null;
 
@@ -82,9 +90,16 @@ export function FilterBar({ filters, categories, tags, onChange }: Readonly<Filt
       </label>
 
       {/* Plegados: en el teléfono empujarían la lista fuera de la pantalla. Abiertos si hay alguno. */}
-      <details open={filters.show !== 'ALL' || filters.categoryId !== null || filters.tag !== null}>
+      <details
+        open={
+          filters.show !== 'ALL' ||
+          filters.categoryId !== null ||
+          filters.paymentMethodId !== null ||
+          filters.tag !== null
+        }
+      >
         <summary className="cursor-pointer text-sm font-medium text-stone-700">Filtros</summary>
-        <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1 text-sm font-medium">
             <span>Mostrar</span>
             <select
@@ -131,6 +146,25 @@ export function FilterBar({ filters, categories, tags, onChange }: Readonly<Filt
           </label>
 
           <label className="flex flex-col gap-1 text-sm font-medium">
+            <span>Método de pago</span>
+            <select
+              value={filters.paymentMethodId ?? ''}
+              onChange={(event) => {
+                onChange({ ...filters, paymentMethodId: event.target.value || null });
+              }}
+              className={FIELD}
+            >
+              <option value="">Todos</option>
+              {paymentMethods.map((method) => (
+                <option key={method.id} value={method.id}>
+                  {method.alias}
+                  {method.archivedAt === null ? '' : ' (archivado)'}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm font-medium">
             <span>Etiqueta</span>
             <select
               value={filters.tag ?? ''}
@@ -159,7 +193,14 @@ export function FilterBar({ filters, categories, tags, onChange }: Readonly<Filt
         <button
           type="button"
           onClick={() => {
-            onChange({ month: filters.month, show: 'ALL', categoryId: null, tag: null, q: null });
+            onChange({
+              month: filters.month,
+              show: 'ALL',
+              categoryId: null,
+              paymentMethodId: null,
+              tag: null,
+              q: null,
+            });
           }}
           className="self-start text-sm text-stone-600 underline"
         >

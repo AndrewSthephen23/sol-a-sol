@@ -122,4 +122,4 @@ El bloque **«Tarjetas»** de `/` (decisión 12) lo arma la **web**, pidiendo `G
 
 - Feature flag: `FEATURE_CREDIT_CARDS` (**apagado** hasta cumplir la Definition of Done).
 - Escenarios: [`features/credit-cards/`](../../features/credit-cards/), `@pendiente` hasta la tarea 10.
-- Web: el manifest (`/credit-cards`) está en el registro de navegación y no se ve con el flag apagado; la pantalla llega con la tarea 08.
+- Web: la pantalla **«Tarjetas»** (`/credit-cards`, en el menú) lista las configuradas con su estado en texto (ciclo, lo que se debe y el consumo del ciclo por moneda, uso de la línea con su barra `<progress>` y su nivel, último estado con su **fecha límite de pago** y si está pagado) y las que no, con **«Configura tu tarjeta»**. Configurar y corregir piden línea, día de corte, fecha límite de pago y el saldo inicial opcional; **nunca** número completo, CVV ni vencimiento. Cada tarjeta enlaza a sus movimientos (`/transactions?paymentMethodId=…`, filtro que la lista ahora también muestra).
