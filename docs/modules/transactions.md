@@ -65,7 +65,7 @@ Plata que **cambia de lugar** sin ser ingreso ni gasto: del banco a Yape, de sol
 | Misma moneda       | Llega lo mismo que salió; un monto recibido distinto se rechaza (`TRANSFER_RECEIVED_AMOUNT_MISMATCH`)                                                                                                                                                                                                                                                                                           |
 | Cambio de moneda   | **Dos montos**, lo que sale y lo que llega, **copiados del voucher**; el recibido es obligatorio (`TRANSFER_RECEIVED_AMOUNT_REQUIRED`). **Nunca se convierte**. El tipo de cambio se deriva de los dos montos, no se guarda                                                                                                                                                                     |
 | Montos y fecha     | Positivos (`TRANSFER_AMOUNT_NOT_POSITIVE`), hasta 2 decimales, y fecha hasta hoy en Lima, como en las transacciones                                                                                                                                                                                                                                                                             |
-| Tarjeta de crédito | Comprar con la tarjeta es un **gasto**; **pagarla** es una transferencia cuenta → tarjeta. En H5, lo que se debe = compras − transferencias a la tarjeta                                                                                                                                                                                                                                        |
+| Tarjeta de crédito | Comprar con la tarjeta es un **gasto**; **pagarla** es una transferencia cuenta → tarjeta. Lo que se debe lo calcula `credit-cards` (H5): lo sube lo cargado a la tarjeta y lo bajan los pagos (transferencias a ella) y las devoluciones                                                                                                                                                       |
 | Corregir           | Como las transacciones: se juzga **como quedaría**; una cuenta archivada que ya tenía sigue valiendo. En un cambio de moneda, **corregir el monto enviado exige mandar también el recibido**: cambiar uno solo movería el tipo de cambio sin que nadie lo diga (2026-09-28). Si el destino pasa a ser de la moneda de origen, llega lo mismo que salió                                          |
 | Borrar             | Lógico, y se restaura **sin plazo**, como las transacciones                                                                                                                                                                                                                                                                                                                                     |
 
@@ -151,7 +151,7 @@ Responde **201** con `{ transactions, transfers, alreadyImported, createdCategor
 
 ## API pública para otros módulos
 
-`TransactionsLookup` (exportado por `index.ts`) es lo que leen de este módulo el presupuesto y el dashboard (H4) y, más adelante, las tarjetas y los resúmenes, sin tocar sus tablas ni importar su interior. Igual que `CatalogLookup` en `catalog`:
+`TransactionsLookup` (exportado por `index.ts`) es lo que leen de este módulo el presupuesto y el dashboard (H4), las tarjetas (H5) y, más adelante, los resúmenes, sin tocar sus tablas ni importar su interior. Igual que `CatalogLookup` en `catalog`:
 
 - `totalsByCategory(userId, desde, hasta)`: totales por categoría (la de cada transacción, sin subir a su madre), tipo y moneda, entre dos fechas incluidas. Lo usan el presupuesto y el dashboard.
 - `totalsByDay(userId, desde, hasta)`: lo mismo por día, tipo y moneda: las barras del dashboard.
@@ -163,7 +163,7 @@ Devuelve lo mínimo a propósito: quien consulta no queda atado a la forma de la
 
 ## Eventos de dominio
 
-Se publican **después de guardar**, esperando a los oyentes, y llevan solo ids (ADR-0004). Nadie los escucha todavía: el presupuesto y el dashboard (H4) calculan lo real al consultar, con `TransactionsLookup`, así que no necesitan copiarlo. Existen para que las tarjetas (H5) y los resúmenes (H6) no tengan que tocar este módulo.
+Se publican **después de guardar**, esperando a los oyentes, y llevan solo ids (ADR-0004). Nadie los escucha todavía: el presupuesto, el dashboard (H4) y las tarjetas (H5) calculan al consultar, con `TransactionsLookup`, así que no necesitan copiar nada; un plan de cuotas sigue a su compra leyéndola como está hoy. Existen para los resúmenes (H6) y para quien más adelante necesite reaccionar a un cambio.
 
 | Evento                              | Cuándo                                 | Datos                       |
 | ----------------------------------- | -------------------------------------- | --------------------------- |

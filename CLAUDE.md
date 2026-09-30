@@ -31,6 +31,7 @@ Cada funcionalidad entra **con** su capa de calidad (pruebas, documentación, se
    - Un repositorio no expone métodos que consulten sin `userId`, y ese `userId` va **dentro** del `WHERE` o del `UPDATE`, no en una comprobación aparte.
    - Ninguna decisión de seguridad se toma leyendo el texto de la URL: `/health/%2e%2e/api/v1/auth/login` parece una cosa y Express la resuelve como otra. Se decide por el destino real (metadata del controller o del handler).
 6. **Nunca datos sensibles de tarjetas:** solo alias, banco y últimos 4 dígitos. Jamás número completo, CVV ni fecha de vencimiento.
+   - La **fecha límite de pago** de un estado de cuenta es otra cosa: en el código `paymentDueDate`, en la interfaz «fecha límite de pago». **Nunca** «vencimiento» ni `expiry`, que es la del plástico.
 7. **Nunca secretos** en código, fixtures, logs, Dockerfiles ni compose. Si agregas una variable de entorno, actualiza el `.env.example` correspondiente.
 8. **Nunca edites una migración ya aplicada:** crea una nueva.
 9. **La lógica de cálculo vive en `@sol-a-sol/domain`**, pura y determinista, con TDD.
