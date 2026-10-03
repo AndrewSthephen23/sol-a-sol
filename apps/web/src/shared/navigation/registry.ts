@@ -2,6 +2,7 @@ import { dashboardManifest } from '@/features/dashboard/manifest';
 import { transactionsManifest } from '@/features/transactions/manifest';
 import { budgetingManifest } from '@/features/budgeting/manifest';
 import { creditCardsManifest } from '@/features/credit-cards/manifest';
+import { goalsManifest } from '@/features/goals/manifest';
 
 import { type FeatureManifest } from './navigation';
 
@@ -25,4 +26,5 @@ export const featureManifests: readonly FeatureManifest[] = [
   transactionsManifest,
   budgetingManifest,
   creditCardsManifest,
+  goalsManifest,
 ];

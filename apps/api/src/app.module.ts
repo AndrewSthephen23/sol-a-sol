@@ -14,6 +14,7 @@ import { TransactionsModule } from './modules/transactions/transactions.module.j
 import { BudgetingModule } from './modules/budgeting/budgeting.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
 import { CreditCardsModule } from './modules/credit-cards/credit-cards.module.js';
+import { GoalsModule } from './modules/goals/goals.module.js';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { CreditCardsModule } from './modules/credit-cards/credit-cards.module.js
     BudgetingModule,
     ReportsModule,
     CreditCardsModule,
+    GoalsModule,
   ],
 })
 export class AppModule {}

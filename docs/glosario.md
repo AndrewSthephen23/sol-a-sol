@@ -32,6 +32,7 @@ La interfaz y la documentación van en español; el código, en inglés. Esta ta
 | Presupuesto / Partida                                                    | `Budget` / `BudgetLine`                                     |
 | Presupuestado / Real / Diferencia                                        | `planned` / `actual` / `variance`                           |
 | Meta de ahorro / Aporte                                                  | `SavingsGoal` / `GoalContribution`                          |
+| Aporte / Retiro (tipo de movimiento de una meta)                         | `CONTRIBUTION` / `WITHDRAWAL` (`GoalContributionKind`)      |
 | Resumen mensual / Resumen anual                                          | `MonthlySummary` / `AnnualSummary`                          |
 | Tasa de ahorro                                                           | `savingsRate`                                               |
 | Captura / Bandeja                                                        | `Capture` / `inbox`                                         |
