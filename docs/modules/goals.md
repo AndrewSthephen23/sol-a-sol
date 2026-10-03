@@ -1,6 +1,6 @@
 # Módulo Metas (`goals`)
 
-> Ficha del módulo. Estado: **en construcción** (hito H6). Hoy existen el módulo, sus tablas, sus reglas y su API; la pantalla llega con la tarea 04. Flag **apagado**.
+> Ficha del módulo. Estado: **en construcción** (hito H6). Hoy existen el módulo, sus tablas, sus reglas, su API y su pantalla. Flag **apagado**.
 
 ## Qué resuelve
 
@@ -32,6 +32,7 @@ Decididas con el autor el **2026-10-03**:
 - **Falta** = objetivo − ahorrado, nunca negativo; **excedente** = lo que pasa del objetivo.
 - **Porcentaje** = ahorrado / objetivo con `percentageOf`, sin redondear (2 decimales al mostrar); puede pasar de 100.
 - **Esperado** = días transcurridos hasta el último día del mes anterior ÷ días de la meta (contando el de inicio y el de fin). Ejemplo: del 1 de enero al 10 de abril son 100 días; el 15 de marzo se espera el 59 % (al 28 de febrero). Con la fecha fin pasada, 100 %.
+- **Atraso** (`behind`) = lo esperado (esperado × objetivo) − ahorrado, sin redondear; cero si se va al día. Es el «te faltan S/ … para ir al día» de la pantalla.
 - **Estado:** cumplida si no falta nada (aunque haya vencido); si no, vencida si la fecha fin pasó; si no, en riesgo si esperado − porcentaje > 10; si no, en curso. Justo 10 puntos atrás sigue en curso.
 - **Sugerido** = falta ÷ meses desde el mes en curso (o el de inicio) hasta el de fin, incluidos, redondeado hacia arriba al céntimo: S/ 1,000.00 entre octubre, noviembre y diciembre son S/ 333.34.
 
@@ -97,4 +98,4 @@ El progreso viaja en cada meta (`saved`, `remaining`, `excess`, `percentage`, `e
 
 - Feature flag: `FEATURE_GOALS` (**apagado** hasta cumplir la Definition of Done).
 - Escenarios: [`features/goals/`](../../features/goals/), `@pendiente` hasta la tarea 11.
-- Web: el manifest (`/goals`) está en el registro de navegación y no se ve con el flag apagado; la pantalla llega con la tarea 04. El cliente generado (`schema.gen.ts`) ya trae las rutas.
+- Web: **«Metas» (`/goals`)**, en el menú cuando el flag está encendido (`requireFeature('FEATURE_GOALS')`). Cada meta dice en texto cuánto va (con el porcentaje en 2 decimales), cuánto falta, cómo va («Vas bien», «En riesgo: te faltan S/ … para ir al día», «¡Cumplida!», «Vencida: faltaron S/ …») y cuánto aportar al mes; la barra (`<progress>`) solo lo acompaña. Se crea y se corrige una meta, se aporta a mano o enlazando una transacción de ahorro, y quitar un aporte se deshace con «Deshacer», que lo vuelve a registrar. Las archivadas se ven con «Ver archivadas».

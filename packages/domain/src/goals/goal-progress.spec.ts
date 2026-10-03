@@ -238,6 +238,21 @@ describe('computeGoalProgress', () => {
       expect(hundredDays('490.00', '2026-03-15').expectedPercentage.toString()).toBe('59');
     });
 
+    it('says how much is missing to catch up with the expected progress', () => {
+      // Se esperaban S/ 590.00 (59 % de S/ 1,000.00) y van S/ 489.99.
+      expect(hundredDays('489.99', '2026-03-15').behind.toFixed()).toBe('100.01');
+    });
+
+    it('is not behind when ahead of the expected progress, nor exactly on it', () => {
+      expect(hundredDays('600.00', '2026-03-15').behind.toFixed()).toBe('0.00');
+      expect(hundredDays('590.00', '2026-03-15').behind.isZero()).toBe(true);
+    });
+
+    it('keeps what is missing exact until it is shown', () => {
+      // 74.794520…% de S/ 1,200.00 al 30 de setiembre: S/ 897.534246…
+      expect(progress({ today: '2026-10-03' }).behind.amount.toString()).toMatch(/^897\.534246/u);
+    });
+
     it('is on track exactly 10 points behind', () => {
       expect(hundredDays('490.00', '2026-03-15').status).toBe('ON_TRACK');
     });
@@ -311,6 +326,7 @@ describe('computeGoalProgress', () => {
 
       expect(result.status).toBe('OVERDUE');
       expect(result.expectedPercentage.toString()).toBe('100');
+      expect(result.behind.toFixed()).toBe('0.01');
     });
 
     it('is still on track on its end date', () => {
