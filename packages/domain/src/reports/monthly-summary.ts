@@ -366,14 +366,21 @@ function topMerchants(entries: readonly MerchantAmount[], zero: Money): TopMerch
     }));
 }
 
-/** Hay al menos una forma de escribirlo: se agrupa al leer la primera. */
+/**
+ * La forma escrita más veces. Arranca de «ninguna, cero veces»: la primera forma real (al menos
+ * una vez) siempre la reemplaza, y un grupo tiene al menos una.
+ */
 function mostWritten(spellings: ReadonlyMap<string, number>): string {
-  const [name] = [...spellings].reduce((best, candidate) =>
-    // Stryker disable next-line EqualityOperator: las formas son claves de un `Map`, así que nunca
-    // hay dos iguales y `<` da lo mismo que `<=`.
-    candidate[1] > best[1] || (candidate[1] === best[1] && candidate[0] < best[0])
-      ? candidate
-      : best,
+  // Stryker disable next-line StringLiteral: nunca se devuelve, la primera forma lo reemplaza.
+  const none: [string, number] = ['', 0];
+  const [name] = [...spellings].reduce(
+    (best, candidate) =>
+      // Stryker disable next-line EqualityOperator: las formas son claves de un `Map`, así que
+      // nunca hay dos iguales y `<` da lo mismo que `<=`.
+      candidate[1] > best[1] || (candidate[1] === best[1] && candidate[0] < best[0])
+        ? candidate
+        : best,
+    none,
   );
 
   return name;
