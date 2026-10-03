@@ -62,3 +62,21 @@ export function useDownloadSummaryCsv() {
     },
   });
 }
+
+/** El año mes a mes. Cambia con cada movimiento registrado en otra pantalla: se pide al entrar. */
+export function useAnnualSummary(year: number) {
+  const api = useApi();
+
+  return useQuery({
+    queryKey: ['annual-summary', year],
+    staleTime: 0,
+    queryFn: async () => {
+      const { data, response } = await api.GET('/api/v1/reports/annual', {
+        params: { query: { year: String(year) } },
+      });
+      if (data === undefined) throw new ApiRequestError(response.status);
+
+      return data;
+    },
+  });
+}

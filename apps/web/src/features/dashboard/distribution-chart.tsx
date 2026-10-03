@@ -9,7 +9,6 @@ import type { CategoryInfo } from '@/features/transactions/labels';
 
 import { ClientOnly } from './client-only';
 import {
-  categoryLink,
   chartNumber,
   type CurrencyReport,
   shareText,
@@ -20,24 +19,28 @@ import {
 interface DistributionChartProps {
   distribution: CurrencyReport['distribution'];
   currency: Currency;
-  month: string;
   categories: ReadonlyMap<string, CategoryInfo>;
+  /** A dónde lleva cada categoría (sus movimientos); sin esto, la dona y la leyenda no enlazan. */
+  linkFor?: (categoryId: string) => string;
+  emptyText?: string;
 }
 
 /**
  * La dona del gasto por categoría madre (decisión 9 de H4): las 6 mayores y «Otras». La leyenda
- * es la versión en texto, con cada categoría como enlace a sus movimientos del mes.
+ * es la versión en texto; en el dashboard, cada categoría enlaza a sus movimientos del mes. La usa
+ * también el resumen anual, sin enlaces.
  */
 export function DistributionChart({
   distribution,
   currency,
-  month,
   categories,
+  linkFor,
+  emptyText = 'Sin gastos este mes.',
 }: Readonly<DistributionChartProps>) {
   const router = useRouter();
 
   if (distribution.length === 0) {
-    return <p className="text-sm text-stone-600">Sin gastos este mes.</p>;
+    return <p className="text-sm text-stone-600">{emptyText}</p>;
   }
 
   const data = distribution.map((slice) => ({
@@ -64,9 +67,9 @@ export function DistributionChart({
                 isAnimationActive={false}
                 onClick={(_sector, index) => {
                   const id = data[index]?.categoryId;
-                  if (id) router.push(categoryLink(id, month));
+                  if (id && linkFor) router.push(linkFor(id));
                 }}
-                className="cursor-pointer"
+                className={linkFor ? 'cursor-pointer' : undefined}
               />
             </PieChart>
           </ResponsiveContainer>
@@ -90,11 +93,11 @@ export function DistributionChart({
 
           return (
             <li key={slice.categoryId ?? 'others'}>
-              {slice.categoryId === null ? (
+              {slice.categoryId === null || linkFor === undefined ? (
                 <span className="flex items-center gap-2 px-1 py-1.5">{content}</span>
               ) : (
                 <Link
-                  href={categoryLink(slice.categoryId, month)}
+                  href={linkFor(slice.categoryId)}
                   className="flex items-center gap-2 rounded px-1 py-1.5 hover:bg-stone-50"
                 >
                   {content}
