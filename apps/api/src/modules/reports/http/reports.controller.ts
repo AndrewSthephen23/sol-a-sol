@@ -1,12 +1,23 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
-import { type MonthlyReportQuery, monthlyReportQuerySchema } from '@sol-a-sol/contracts';
+import { Controller, Get, Query, Res, UseGuards } from '@nestjs/common';
+import {
+  type MonthlyReportQuery,
+  monthlyReportQuerySchema,
+  type MonthlySummaryExportQuery,
+  monthlySummaryExportQuerySchema,
+} from '@sol-a-sol/contracts';
 
 import { RequiresFeature } from '../../../shared/feature-flags/feature-flag.guard.js';
 import { ZodValidationPipe } from '../../../shared/http/zod-validation.pipe.js';
 import { AccessTokenGuard, CurrentUser } from '../../identity/index.js';
 import { GetMonthlyDashboard, type MonthlyDashboard } from '../application/monthly-dashboard.js';
 import { GetMonthlySummary } from '../application/monthly-summary.js';
+import { monthlySummaryCsv } from '../application/monthly-summary-csv.js';
 import { type MonthlySummaryResponse, monthlySummaryResponse } from './monthly-summary.response.js';
+
+/** Lo mínimo que se necesita de la respuesta, para no atar el controller a Express. */
+interface HeaderResponse {
+  setHeader(name: string, value: string): void;
+}
 
 /** Lo que viaja: montos como **string decimal** y porcentajes como string sin redondear. */
 export interface MonthlyReportResponse {
@@ -87,5 +98,25 @@ export class ReportsController {
     @Query(new ZodValidationPipe(monthlyReportQuerySchema)) query: MonthlyReportQuery,
   ): Promise<MonthlySummaryResponse> {
     return monthlySummaryResponse(await this.monthlySummary.execute({ userId, ...query }));
+  }
+
+  /**
+   * El cierre del mes como archivo CSV (decisión 15 de H6): se descarga, no se guarda en caché (son
+   * datos de la cuenta) y nada del usuario se ejecuta como fórmula al abrirlo.
+   */
+  @Get('monthly-summary/export')
+  async exportMonthlySummary(
+    @CurrentUser() userId: string,
+    @Query(new ZodValidationPipe(monthlySummaryExportQuerySchema)) query: MonthlySummaryExportQuery,
+    @Res({ passthrough: true }) response: HeaderResponse,
+  ): Promise<string> {
+    const file = monthlySummaryCsv(
+      await this.monthlySummary.execute({ userId, year: query.year, month: query.month }),
+    );
+    response.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    response.setHeader('Content-Disposition', `attachment; filename="${file.filename}"`);
+    response.setHeader('Cache-Control', 'no-store');
+
+    return file.content;
   }
 }

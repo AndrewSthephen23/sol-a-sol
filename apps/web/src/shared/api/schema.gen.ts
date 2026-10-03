@@ -4371,6 +4371,87 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/monthly-summary/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Descarga el cierre de un mes como CSV.
+         * @description Un solo archivo con todas las secciones como filas (Sección, Concepto, Moneda, Monto, Comparado con, Diferencia, Porcentaje), separado por `;`, con BOM UTF-8, montos con punto decimal y sin separador de miles, y porcentajes con 2 decimales. Lo que escribió el usuario nunca se ejecuta como fórmula. Las secciones de un módulo apagado no vienen.
+         */
+        get: {
+            parameters: {
+                query: {
+                    year: string;
+                    /** @description 1 a 12. */
+                    month: string;
+                    /** @description Solo `csv` por ahora. */
+                    format: "csv";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description El archivo (`attachment; filename="resumen-AAAA-MM.csv"`). */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/csv": string;
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: los reportes solo se ven desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Falta el año, el mes o el formato, no tienen la forma esperada (un formato que no es `csv`), el mes no existe, o todavía no empieza (`SUMMARY_MONTH_IN_FUTURE`). */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/credit-cards": {
         parameters: {
             query?: never;

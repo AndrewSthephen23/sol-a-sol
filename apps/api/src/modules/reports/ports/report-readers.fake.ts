@@ -67,10 +67,16 @@ export class FakeReportActualsReader implements ReportActualsReader {
 
 /** Categorías en memoria, por cuenta. */
 export class FakeReportCatalogReader implements ReportCatalogReader {
-  private readonly categories: { userId: string; id: string; parentId: string | null }[] = [];
+  private readonly categories: {
+    userId: string;
+    id: string;
+    name: string;
+    parentId: string | null;
+  }[] = [];
 
-  with(userId: string, id: string, parentId: string | null = null): this {
-    this.categories.push({ userId, id, parentId });
+  /** Sin nombre, se llama como su id. */
+  with(userId: string, id: string, parentId: string | null = null, name = id): this {
+    this.categories.push({ userId, id, name, parentId });
 
     return this;
   }
@@ -79,7 +85,7 @@ export class FakeReportCatalogReader implements ReportCatalogReader {
     return Promise.resolve(
       this.categories
         .filter((category) => category.userId === userId)
-        .map(({ id, parentId }) => ({ id, parentId })),
+        .map(({ id, name, parentId }) => ({ id, name, parentId })),
     );
   }
 }
