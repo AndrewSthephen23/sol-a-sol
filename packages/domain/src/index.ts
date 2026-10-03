@@ -7,10 +7,12 @@ export {
   toCurrency,
 } from './currency/currency.js';
 export {
+  countPercentage,
   CurrencyMismatchError,
   type DecimalInput,
   InvalidAllocationError,
   InvalidAmountError,
+  InvalidCountError,
   Money,
   PERCENTAGE_DECIMAL_PLACES,
   formatPercentage,
@@ -299,3 +301,30 @@ export {
   installmentPlanTotal,
   type PlannedPurchase,
 } from './credit-cards/installment-purchase.js';
+export {
+  AT_RISK_GAP_ABOVE,
+  computeGoalProgress,
+  type GoalContributionKind,
+  type GoalMovement,
+  type GoalProgress,
+  type GoalProgressRequest,
+  type GoalStatus,
+} from './goals/goal-progress.js';
+export {
+  assertGoalContribution,
+  assertGoalSettings,
+  assertLinkableTransaction,
+  assertWithdrawalCovered,
+  FutureGoalContributionError,
+  GoalContributionAmountNotPositiveError,
+  GoalCurrencyMismatchError,
+  GoalEndNotAfterStartError,
+  type GoalSettings,
+  GoalTargetNotPositiveError,
+  GoalTransactionNotASavingError,
+  GoalWithdrawalExceedsSavedError,
+  linkedContribution,
+  type LinkedContributionState,
+  linkedContributionState,
+  type LinkedTransaction,
+} from './goals/goal-policy.js';
