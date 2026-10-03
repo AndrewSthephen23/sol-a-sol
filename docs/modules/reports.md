@@ -94,6 +94,7 @@ Montos como **string decimal**; la parte de la dona (`share`) como string **sin 
 - Feature flag: **`FEATURE_REPORTS=true`** desde el cierre de H4 (0.5.0).
 - Escenarios: [`features/reports/`](../../features/reports/), en verde con `pnpm test:bdd`. Corren contra los casos de uso reales, con los fakes de los puertos, y leen lo real de las transacciones que el escenario registra.
 - Web: el dashboard vive en `/` (manifest `dashboard`, decisión 10 de H4). Con el flag apagado, `/` muestra la bienvenida en vez de un 404, porque es a donde se llega al entrar.
+- Escenarios del resumen mensual y del anual en [`features/reports/`](../../features/reports/), en verde con `pnpm test:bdd` (20 nuevos): leen cada módulo con su `…Lookup` real sobre los fakes, como en la aplicación. Cada regla se comprobó rompiéndola.
 
 ## Pantalla (web)
 
