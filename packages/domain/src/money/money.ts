@@ -53,6 +53,14 @@ export class InvalidAllocationError extends DomainError {
   }
 }
 
+export class InvalidCountError extends DomainError {
+  readonly code = 'INVALID_COUNT';
+
+  constructor(part: number, whole: number) {
+    super(`Invalid count: ${String(part)} of ${String(whole)}`);
+  }
+}
+
 /**
  * Monto de dinero en una moneda. Inmutable.
  *
@@ -158,6 +166,20 @@ export class Money {
   }
 }
 
+/**
+ * Qué porcentaje es `part` de `whole`, dos cantidades enteras de cero o más (días de un periodo,
+ * por ejemplo), sin redondear, como `percentageOf`. Devuelve `null` si `whole` es cero.
+ */
+export function countPercentage(part: number, whole: number): Decimal | null {
+  if (!isCount(part) || !isCount(whole)) {
+    throw new InvalidCountError(part, whole);
+  }
+  if (whole === 0) {
+    return null;
+  }
+  return new DomainDecimal(part).dividedBy(whole).times(PERCENT);
+}
+
 /** Redondea un porcentaje a `PERCENTAGE_DECIMAL_PLACES` decimales con redondeo bancario. */
 export function roundPercentage(value: Decimal): Decimal {
   return new DomainDecimal(value).toDecimalPlaces(PERCENTAGE_DECIMAL_PLACES);
@@ -194,6 +216,10 @@ function parseFactor(value: unknown): Decimal {
 }
 
 /** Evita el cero negativo (`-0`), que se mostraría como `"-0.00"`. */
+function isCount(value: number): boolean {
+  return Number.isInteger(value) && value >= 0;
+}
+
 function normalize(amount: Decimal): Decimal {
   return amount.isZero() ? new DomainDecimal(0) : amount;
 }

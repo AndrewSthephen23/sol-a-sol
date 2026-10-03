@@ -4,9 +4,11 @@ import { describe, expect, it } from 'vitest';
 import { InvalidCurrencyError } from '../currency/currency.js';
 import { DomainError } from '../errors/domain-error.js';
 import {
+  countPercentage,
   CurrencyMismatchError,
   InvalidAllocationError,
   InvalidAmountError,
+  InvalidCountError,
   formatPercentage,
   Money,
   roundPercentage,
@@ -199,6 +201,41 @@ describe('Money', () => {
 
     it('rejects a total in a different currency', () => {
       expect(() => pen('1').percentageOf(Money.of('3', 'USD'))).toThrow(CurrencyMismatchError);
+    });
+  });
+
+  describe('countPercentage', () => {
+    it('returns the percentage one count represents of another, like days of a period', () => {
+      expect(countPercentage(31, 124)?.toString()).toBe('25');
+    });
+
+    it('keeps full precision', () => {
+      expect(countPercentage(1, 3)?.toFixed(10)).toBe('33.3333333333');
+    });
+
+    it('allows zero and a part bigger than the whole', () => {
+      expect(countPercentage(0, 7)?.toString()).toBe('0');
+      expect(countPercentage(14, 7)?.toString()).toBe('200');
+    });
+
+    it('returns null when the whole is zero instead of dividing by zero', () => {
+      expect(countPercentage(3, 0)).toBeNull();
+    });
+
+    it.each([
+      [1.5, 3],
+      [1, 2.5],
+      [-1, 3],
+      [1, -3],
+      [Number.NaN, 3],
+    ])('rejects %s of %s: only whole counts from zero up', (part, whole) => {
+      const error = capture(() => countPercentage(part, whole));
+
+      expect(error).toBeInstanceOf(InvalidCountError);
+      expect(error).toMatchObject({
+        code: 'INVALID_COUNT',
+        message: `Invalid count: ${String(part)} of ${String(whole)}`,
+      });
     });
   });
 
