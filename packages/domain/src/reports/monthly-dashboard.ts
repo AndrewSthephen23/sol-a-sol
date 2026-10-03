@@ -69,14 +69,14 @@ export interface CurrencyDashboard {
 }
 
 /** De mayor a menor y, empatados, por categoría: así el orden nunca salta. */
-function biggestFirst(a: { categoryId: string; amount: Money }, b: typeof a): number {
+export function biggestFirst(a: { categoryId: string; amount: Money }, b: typeof a): number {
   return (
     b.amount.subtract(a.amount).amount.comparedTo(0) || a.categoryId.localeCompare(b.categoryId)
   );
 }
 
 /** Suma por categoría, en una moneda. */
-function sumByCategory(entries: readonly CategoryAmount[], currency: Currency) {
+export function sumByCategory(entries: readonly CategoryAmount[], currency: Currency) {
   const sums = new Map<string, Money>();
   for (const entry of entries) {
     sums.set(
