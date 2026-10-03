@@ -41,6 +41,8 @@ model User {
   budgetLines          BudgetLine[]
   creditCards          CreditCard[]
   installmentPlans     InstallmentPlan[]
+  savingsGoals         SavingsGoal[]
+  goalContributions    GoalContribution[]
 
   @@map("users")
 }
@@ -317,40 +319,42 @@ enum TransactionSource {
 /// **Borrado lógico** (`deletedAt`): una transacción borrada se conserva para la auditoría y se
 /// puede deshacer al momento; las consultas normales la excluyen.
 model Transaction {
-  id              String            @id @default(uuid(7)) @db.Uuid
-  userId          String            @map("user_id") @db.Uuid
+  id                String             @id @default(uuid(7)) @db.Uuid
+  userId            String             @map("user_id") @db.Uuid
   /// Día en que pasó, sin hora.
-  date            DateTime          @db.Date
-  type            TransactionType
-  categoryId      String            @map("category_id") @db.Uuid
+  date              DateTime           @db.Date
+  type              TransactionType
+  categoryId        String             @map("category_id") @db.Uuid
   /// Siempre positivo; el signo lo da `type`.
-  amount          Decimal           @db.Decimal(18, 2)
-  currency        Currency
-  description     String
-  paymentMethodId String?           @map("payment_method_id") @db.Uuid
+  amount            Decimal            @db.Decimal(18, 2)
+  currency          Currency
+  description       String
+  paymentMethodId   String?            @map("payment_method_id") @db.Uuid
   /// Dónde se gastó ("TAMBO"), si se sabe.
-  merchant        String?
-  source          TransactionSource
+  merchant          String?
+  source            TransactionSource
   /// Captura del celular de la que salió. Sin relación todavía: la tabla `captures` llega en
   /// H7, y entonces una migración agrega la clave foránea.
-  captureId       String?           @map("capture_id") @db.Uuid
+  captureId         String?            @map("capture_id") @db.Uuid
   /// Huella (SHA-256) de la fila del CSV de la que salió, si se importó. Única por cuenta: la
   /// misma fila no se importa dos veces, aunque la transacción se corrija después.
-  importKey       String?           @map("import_key")
-  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importKey         String?            @map("import_key")
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
   /// Borrado lógico. Nulo = vigente.
-  deletedAt       DateTime?         @map("deleted_at") @db.Timestamptz(3)
-  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category        Category          @relation(fields: [categoryId, userId, type], references: [id, userId, type], onDelete: NoAction, onUpdate: NoAction)
-  paymentMethod   PaymentMethod?    @relation(fields: [paymentMethodId, userId], references: [id, userId], onDelete: NoAction, onUpdate: NoAction)
-  tags            TransactionTag[]
-
-  /// Destino de la clave foránea compuesta de `TransactionTag`: `id` ya es único; esto solo le da
-  /// a PostgreSQL el índice que exige para referenciar las dos columnas juntas.
+  deletedAt         DateTime?          @map("deleted_at") @db.Timestamptz(3)
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category          Category           @relation(fields: [categoryId, userId, type], references: [id, userId, type], onDelete: NoAction, onUpdate: NoAction)
+  paymentMethod     PaymentMethod?     @relation(fields: [paymentMethodId, userId], references: [id, userId], onDelete: NoAction, onUpdate: NoAction)
+  tags              TransactionTag[]
   /// A lo sumo uno (`transaction_id` es único): la compra pagada en cuotas.
-  installmentPlans InstallmentPlan[]
+  installmentPlans  InstallmentPlan[]
+  /// A lo sumo uno (`transaction_id` es único): el aporte a una meta que sigue a esta transacción.
+  goalContributions GoalContribution[]
 
+  /// Destino de las claves foráneas compuestas de `TransactionTag`, `InstallmentPlan` y
+  /// `GoalContribution`: `id` ya es único; esto solo le da a PostgreSQL el índice que exige para
+  /// referenciar las dos columnas juntas.
   @@unique([id, userId])
   /// Una fila del CSV entra una sola vez por cuenta; las que no se importaron (nulas) no chocan.
   @@unique([userId, importKey])
@@ -573,4 +577,84 @@ model InstallmentPlan {
 
   @@index([creditCardId])
   @@map("installment_plans")
+}
+
+/// Un movimiento de una meta de ahorro (decisión 2 de H6, 2026-10-03).
+enum GoalContributionKind {
+  /// Plata que entra a la meta.
+  CONTRIBUTION
+  /// Plata que se saca del ahorro; resta al avance.
+  WITHDRAWAL
+
+  @@map("goal_contribution_kind")
+}
+
+/// Una meta de ahorro: cuánto se quiere juntar, en qué moneda y entre qué fechas (decisiones de
+/// H6, 2026-10-03). Una sola moneda: sus aportes van en ella y nunca se convierte.
+///
+/// Lo que va, lo que falta, el aporte mensual sugerido y el estado (en curso, en riesgo, cumplida,
+/// vencida) **no se guardan**: se calculan al consultar con los aportes.
+///
+/// Nombre único por cuenta sin distinguir mayúsculas, contando las archivadas
+/// (`savings_goals_unique_name`, en la migración), como el alias de un método de pago.
+model SavingsGoal {
+  id            String             @id @default(uuid(7)) @db.Uuid
+  userId        String             @map("user_id") @db.Uuid
+  name          String
+  /// Mayor que cero (`CHECK`).
+  targetAmount  Decimal            @map("target_amount") @db.Decimal(18, 2)
+  currency      Currency
+  /// Fechas libres (una meta a 3 años vale) y el inicio puede ser pasado; el fin va después del
+  /// inicio (`CHECK`).
+  startDate     DateTime           @map("start_date") @db.Date
+  endDate       DateTime           @map("end_date") @db.Date
+  /// Solo se archiva, a mano: nunca se borra ni se archiva sola al cumplirse (decisión 7).
+  archivedAt    DateTime?          @map("archived_at") @db.Timestamptz(3)
+  createdAt     DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contributions GoalContribution[]
+
+  /// Destino de la clave foránea compuesta de `GoalContribution.goal`: `id` ya es único; esto solo
+  /// le da a PostgreSQL el índice que exige para referenciar las dos columnas juntas.
+  @@unique([id, userId])
+  /// Sin `@@index([userId])`: las búsquedas por usuario usan el índice único del nombre, que
+  /// empieza por esa columna.
+  @@map("savings_goals")
+}
+
+/// Un aporte o un retiro de una meta (decisiones 1 y 2 de H6, 2026-10-03). Dos formas:
+///
+/// - **Manual**: con su fecha y su monto, positivo; el tipo dice si suma o resta.
+/// - **Enlazado** a una transacción de ahorro o inversión: **sin fecha ni monto propios**, son los
+///   de la transacción hoy. Si se corrige, el aporte cambia; si se borra, deja de contar (como el
+///   plan de cuotas en H5). Toma la transacción entera, y una transacción aporta a una sola meta.
+///   Solo los aportes se enlazan: un retiro es siempre manual.
+///
+/// La moneda **no se guarda**: es la de la meta. Que la transacción enlazada sea de ahorro o
+/// inversión y de esa moneda lo valida el caso de uso: la transacción se puede corregir después.
+model GoalContribution {
+  id            String               @id @default(uuid(7)) @db.Uuid
+  userId        String               @map("user_id") @db.Uuid
+  goalId        String               @map("goal_id") @db.Uuid
+  kind          GoalContributionKind @default(CONTRIBUTION)
+  /// Solo en los manuales (`CHECK`).
+  date          DateTime?            @db.Date
+  /// Solo en los manuales, mayor que cero (`CHECK`).
+  amount        Decimal?             @db.Decimal(18, 2)
+  /// Solo en los enlazados. Una transacción, a lo más un aporte.
+  transactionId String?              @unique @map("transaction_id") @db.Uuid
+  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  /// Directo al usuario (lección de `budget_lines` en H4): al borrar la cuenta se va en el mismo
+  /// nivel que su meta.
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// La meta, de la misma cuenta (clave compuesta). Borrar la meta borra sus aportes.
+  goal          SavingsGoal          @relation(fields: [goalId, userId], references: [id, userId], onDelete: Cascade)
+  /// La transacción, de la misma cuenta. Sin cascada: las transacciones solo se borran de forma
+  /// lógica.
+  transaction   Transaction?         @relation(fields: [transactionId, userId], references: [id, userId], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([goalId])
+  @@map("goal_contributions")
 }
