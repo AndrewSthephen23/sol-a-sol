@@ -1,6 +1,6 @@
 # Módulo Metas (`goals`)
 
-> Ficha del módulo. Estado: **en construcción** (hito H6). Hoy existen el módulo y sus tablas; las reglas, los endpoints y la pantalla llegan con las tareas siguientes. Flag **apagado**.
+> Ficha del módulo. Estado: **en construcción** (hito H6). Hoy existen el módulo, sus tablas, sus reglas y su API; la pantalla llega con la tarea 04. Flag **apagado**.
 
 ## Qué resuelve
 
@@ -13,7 +13,7 @@ Decididas con el autor el **2026-10-03**:
 | Tema                    | Regla                                                                                                                                                                                                                                                                                                                                                             |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Qué es un aporte        | **Manual** (fecha y monto) u, opcionalmente, **enlazado** a una transacción de ahorro o inversión. El enlazado **toma la transacción entera y la sigue**: si se corrige, cambia; si se borra, deja de contar. Una transacción aporta a una sola meta                                                                                                              |
-| Moneda                  | **Una sola por meta**; sus aportes van en ella y **nunca se convierte**. Una meta en dólares no acepta enlazar una transacción en soles, ni al revés                                                                                                                                                                                                              |
+| Moneda                  | **Una sola por meta**, elegida al crearla y **fija** después (2026-10-03): sus aportes van en ella y **nunca se convierte**. Si fue un error, se archiva y se crea otra. Una meta en dólares no acepta enlazar una transacción en soles, ni al revés                                                                                                              |
 | Retiros                 | **Se permiten**, cuando se saca plata del ahorro: monto **positivo** con tipo `WITHDRAWAL`, que resta al avance. **Un retiro es siempre manual**: no se enlaza a una transacción. **No se saca más de lo que hay**: un retiro que dejaría lo ahorrado en negativo se rechaza                                                                                      |
 | Aporte mensual sugerido | Faltante ÷ meses que quedan, **contando el mes en curso**, **redondeado hacia arriba al céntimo**: aportando lo sugerido nunca te quedas corto. En una meta que todavía no empieza, los meses se cuentan **desde el de inicio**. Cumplida: cero. Con la fecha fin pasada **no hay sugerido**                                                                      |
 | Estados                 | **En curso**, **en riesgo**, **cumplida** y **vencida** (fecha fin pasada sin cumplir). En riesgo: el avance real está **más de 10 puntos** por debajo del esperado aportando parejo, **medido al cierre del mes anterior** (dentro del mes hay hasta fin de mes para aportar; en el primer mes no se espera nada). Una meta que todavía no empieza está en curso |
@@ -21,7 +21,7 @@ Decididas con el autor el **2026-10-03**:
 | Fechas                  | **Libres** (una meta a 3 años vale), con el fin **después** del inicio. **El inicio puede ser pasado**, para registrar una meta que ya venías cumpliendo. Un aporte con fecha futura **se rechaza**, como una transacción; uno **anterior al inicio se acepta y cuenta**: es plata ya ahorrada                                                                    |
 | Editar una meta         | Se pueden cambiar el objetivo y las fechas aunque tenga aportes: **todo se recalcula**, porque el progreso se calcula al consultar                                                                                                                                                                                                                                |
 | Nombre                  | **Único por cuenta sin distinguir mayúsculas**, contando las archivadas, como el alias de un método de pago                                                                                                                                                                                                                                                       |
-| Terminar una meta       | **Solo se archiva, a mano** (se conserva el historial y se puede desarchivar). Una meta cumplida **no** se archiva sola. No se borra                                                                                                                                                                                                                              |
+| Terminar una meta       | **Solo se archiva, a mano** (se conserva el historial y se puede desarchivar). Una meta cumplida **no** se archiva sola. No se borra. **Archivada no recibe aportes nuevos** (`GOAL_ARCHIVED`), pero se sigue corrigiendo y se le pueden deshacer aportes (2026-10-03)                                                                                            |
 | Dónde se ve             | **«Metas»** (`/goals`) en el menú                                                                                                                                                                                                                                                                                                                                 |
 
 ### Cómo se calcula el progreso
@@ -56,15 +56,45 @@ Que la transacción enlazada sea de ahorro o inversión y de la moneda de la met
 
 ## Eventos de dominio
 
-- **Emite:** nada todavía.
-- **Escucha:** nada.
+- **Emite:** nada. `GoalContributionAdded` (plan, sección 5.4) no se creó porque nadie lo escucharía, igual que `CreditCardThresholdExceeded` en H5: llega cuando lo necesite alguien (las notificaciones de H8).
+- **Escucha:** nada. Los aportes enlazados se leen de su transacción al consultar, con `TransactionsLookup.liveTransactions` detrás del puerto `GoalTransactionsReader`: corregirla o borrarla no necesita avisar a nadie.
 
 ## Endpoints
 
-Llegan con la tarea 03 (`GET/POST/PATCH /goals` y los aportes).
+Todos bajo `/api/v1`, solo desde una sesión (un token personal recibe 403) y con `@RequiresFeature('goals')`: **404** y fuera de OpenAPI con el flag apagado. Una meta ajena responde **404**, igual que una que no existe; un aporte de otra meta, también, aunque sea de la misma cuenta.
+
+| Método   | Ruta                                         | Qué hace                                                                                                                             |
+| -------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET`    | `/goals`                                     | Las metas con su progreso, en el orden en que se crearon. Las archivadas, con `?includeArchived=true`                                |
+| `POST`   | `/goals`                                     | Crea una meta (`name`, `currency`, `targetAmount`, `startDate`, `endDate`)                                                           |
+| `PATCH`  | `/goals/{id}`                                | Corrige nombre, objetivo y fechas, o archiva (`archived`). La moneda no se cambia                                                    |
+| `GET`    | `/goals/{id}/contributions`                  | Los aportes como están hoy: primero los más recientes; los enlazados a una transacción borrada, al final                             |
+| `POST`   | `/goals/{id}/contributions`                  | Un aporte o retiro manual (`source: MANUAL`, `kind`, `amount`, `date`) o un aporte enlazado (`source: TRANSACTION`, `transactionId`) |
+| `DELETE` | `/goals/{id}/contributions/{contributionId}` | Deshace un aporte o un retiro                                                                                                        |
+
+El progreso viaja en cada meta (`saved`, `remaining`, `excess`, `percentage`, `expectedPercentage`, `suggestedMonthly`, `status`); los montos como string decimal en la moneda de la meta y los porcentajes sin redondear. Cada aporte trae su `state`: solo `ACTIVE` cuenta.
+
+### Códigos de error
+
+| Código                                  | Estado | Cuándo                                                                                 |
+| --------------------------------------- | ------ | -------------------------------------------------------------------------------------- |
+| `GOAL_NOT_FOUND`                        | 404    | La meta no existe o es de otra cuenta                                                  |
+| `GOAL_CONTRIBUTION_NOT_FOUND`           | 404    | El aporte no existe o es de otra meta                                                  |
+| `TRANSACTION_NOT_FOUND`                 | 404    | La transacción a enlazar no existe, está borrada o es de otra cuenta                   |
+| `GOAL_NAME_TAKEN`                       | 409    | Otra meta de la cuenta, quizá archivada, ya tiene ese nombre sin distinguir mayúsculas |
+| `GOAL_TRANSACTION_ALREADY_LINKED`       | 409    | La transacción ya aporta a una meta                                                    |
+| `GOAL_TARGET_NOT_POSITIVE`              | 422    | Objetivo de cero o menos                                                               |
+| `GOAL_END_NOT_AFTER_START`              | 422    | El fin no va después del inicio                                                        |
+| `GOAL_ARCHIVED`                         | 422    | Aporte a una meta archivada                                                            |
+| `GOAL_CONTRIBUTION_AMOUNT_NOT_POSITIVE` | 422    | Monto de cero o menos (el tipo dice si suma o resta)                                   |
+| `GOAL_CONTRIBUTION_DATE_IN_FUTURE`      | 422    | Aporte con fecha posterior a hoy                                                       |
+| `GOAL_WITHDRAWAL_EXCEEDS_SAVED`         | 422    | Un retiro, o deshacer un aporte, dejaría lo ahorrado en negativo                       |
+| `GOAL_TRANSACTION_NOT_A_SAVING`         | 422    | La transacción a enlazar no es de ahorro ni de inversión                               |
+| `GOAL_CURRENCY_MISMATCH`                | 422    | La transacción a enlazar está en otra moneda que la meta                               |
+| `INVALID_AMOUNT`                        | 422    | Un monto con más de 2 decimales (no se redondea)                                       |
 
 ## Estado
 
 - Feature flag: `FEATURE_GOALS` (**apagado** hasta cumplir la Definition of Done).
 - Escenarios: [`features/goals/`](../../features/goals/), `@pendiente` hasta la tarea 11.
-- Web: el manifest (`/goals`) está en el registro de navegación y no se ve con el flag apagado; la pantalla llega con la tarea 04.
+- Web: el manifest (`/goals`) está en el registro de navegación y no se ve con el flag apagado; la pantalla llega con la tarea 04. El cliente generado (`schema.gen.ts`) ya trae las rutas.

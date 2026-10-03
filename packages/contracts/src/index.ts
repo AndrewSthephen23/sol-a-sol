@@ -120,3 +120,19 @@ export {
   type UpdateCreditCardRequest,
   updateCreditCardRequestSchema,
 } from './credit-cards/credit-cards.js';
+export {
+  type CreateGoalContributionRequest,
+  createGoalContributionRequestSchema,
+  type CreateGoalRequest,
+  createGoalRequestSchema,
+  GOAL_NAME_MAX_LENGTH,
+  type GoalContributionParams,
+  goalContributionKindSchema,
+  goalContributionParamsSchema,
+  type GoalParams,
+  goalParamsSchema,
+  type ListGoalsQuery,
+  listGoalsQuerySchema,
+  type UpdateGoalRequest,
+  updateGoalRequestSchema,
+} from './goals/goals.js';

@@ -5276,6 +5276,675 @@ export interface paths {
         };
         trace?: never;
     };
+    "/api/v1/goals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lista las metas de ahorro con su progreso.
+         * @description En el orden en que se crearon. Las archivadas, solo con `?includeArchived=true`.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    includeArchived?: "true" | "false";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Las metas de la cuenta. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            /**
+                             * @description Fija desde que se crea: sus aportes van en ella.
+                             * @enum {string}
+                             */
+                            currency: "PEN" | "USD";
+                            /** @description String decimal con 2 decimales (`"3000.00"`). */
+                            targetAmount: string;
+                            /** Format: date */
+                            startDate: string;
+                            /** Format: date */
+                            endDate: string;
+                            /** @description Archivada no recibe aportes; se sigue corrigiendo. */
+                            archived: boolean;
+                            /** @description Calculado al consultar, con los aportes de hoy. */
+                            progress: {
+                                /** @description Aportes − retiros hasta hoy. Negativo solo si se borró una transacción enlazada. */
+                                saved: string;
+                                /** @description Lo que falta; cero si ya se llegó. */
+                                remaining: string;
+                                /** @description Lo que pasa del objetivo; cero si no se llegó. */
+                                excess: string;
+                                /** @description Ahorrado / objetivo en %, sin redondear (2 decimales al mostrar). */
+                                percentage: string;
+                                /** @description Lo esperado aportando parejo, al cierre del mes anterior, en %, sin redondear. 100 con la fecha fin pasada. */
+                                expectedPercentage: string;
+                                /** @description Lo que falta entre los meses que quedan (el actual incluido), redondeado hacia arriba al céntimo. Cero si ya se llegó; nulo con la fecha fin pasada. */
+                                suggestedMonthly: string | null;
+                                /**
+                                 * @description AT_RISK: más de 10 puntos por debajo de lo esperado. OVERDUE: la fecha fin pasó sin llegar. ACHIEVED gana a las demás.
+                                 * @enum {string}
+                                 */
+                                status: "ON_TRACK" | "AT_RISK" | "ACHIEVED" | "OVERDUE";
+                            };
+                        }[];
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: las metas solo se gestionan desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description `includeArchived` no es `true` ni `false`. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Crea una meta de ahorro.
+         * @description Fechas libres (una meta a varios años vale) y el inicio puede ser pasado. La moneda queda fija.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name: string;
+                        /** @enum {string} */
+                        currency: "PEN" | "USD";
+                        targetAmount: string;
+                        /** Format: date */
+                        startDate: string;
+                        /** Format: date */
+                        endDate: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description La meta con su progreso. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            /**
+                             * @description Fija desde que se crea: sus aportes van en ella.
+                             * @enum {string}
+                             */
+                            currency: "PEN" | "USD";
+                            /** @description String decimal con 2 decimales (`"3000.00"`). */
+                            targetAmount: string;
+                            /** Format: date */
+                            startDate: string;
+                            /** Format: date */
+                            endDate: string;
+                            /** @description Archivada no recibe aportes; se sigue corrigiendo. */
+                            archived: boolean;
+                            /** @description Calculado al consultar, con los aportes de hoy. */
+                            progress: {
+                                /** @description Aportes − retiros hasta hoy. Negativo solo si se borró una transacción enlazada. */
+                                saved: string;
+                                /** @description Lo que falta; cero si ya se llegó. */
+                                remaining: string;
+                                /** @description Lo que pasa del objetivo; cero si no se llegó. */
+                                excess: string;
+                                /** @description Ahorrado / objetivo en %, sin redondear (2 decimales al mostrar). */
+                                percentage: string;
+                                /** @description Lo esperado aportando parejo, al cierre del mes anterior, en %, sin redondear. 100 con la fecha fin pasada. */
+                                expectedPercentage: string;
+                                /** @description Lo que falta entre los meses que quedan (el actual incluido), redondeado hacia arriba al céntimo. Cero si ya se llegó; nulo con la fecha fin pasada. */
+                                suggestedMonthly: string | null;
+                                /**
+                                 * @description AT_RISK: más de 10 puntos por debajo de lo esperado. OVERDUE: la fecha fin pasó sin llegar. ACHIEVED gana a las demás.
+                                 * @enum {string}
+                                 */
+                                status: "ON_TRACK" | "AT_RISK" | "ACHIEVED" | "OVERDUE";
+                            };
+                        };
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: las metas solo se gestionan desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Otra meta de la cuenta, quizá archivada, ya tiene ese nombre sin distinguir mayúsculas (`GOAL_NAME_TAKEN`). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El cuerpo no tiene la forma esperada, o se rompe una regla. Objetivo mayor que cero (`GOAL_TARGET_NOT_POSITIVE`), con 2 decimales a lo más (`INVALID_AMOUNT`); el fin después del inicio (`GOAL_END_NOT_AFTER_START`). */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/goals/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Corrige, archiva o desarchiva una meta.
+         * @description Solo cambia lo que llega; la moneda no se cambia. Se revisa la meta **como quedaría**, también archivada. Cambiar el objetivo o las fechas con aportes recalcula el progreso.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name?: string;
+                        targetAmount?: string;
+                        /** Format: date */
+                        startDate?: string;
+                        /** Format: date */
+                        endDate?: string;
+                        archived?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description La meta como quedó. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            /**
+                             * @description Fija desde que se crea: sus aportes van en ella.
+                             * @enum {string}
+                             */
+                            currency: "PEN" | "USD";
+                            /** @description String decimal con 2 decimales (`"3000.00"`). */
+                            targetAmount: string;
+                            /** Format: date */
+                            startDate: string;
+                            /** Format: date */
+                            endDate: string;
+                            /** @description Archivada no recibe aportes; se sigue corrigiendo. */
+                            archived: boolean;
+                            /** @description Calculado al consultar, con los aportes de hoy. */
+                            progress: {
+                                /** @description Aportes − retiros hasta hoy. Negativo solo si se borró una transacción enlazada. */
+                                saved: string;
+                                /** @description Lo que falta; cero si ya se llegó. */
+                                remaining: string;
+                                /** @description Lo que pasa del objetivo; cero si no se llegó. */
+                                excess: string;
+                                /** @description Ahorrado / objetivo en %, sin redondear (2 decimales al mostrar). */
+                                percentage: string;
+                                /** @description Lo esperado aportando parejo, al cierre del mes anterior, en %, sin redondear. 100 con la fecha fin pasada. */
+                                expectedPercentage: string;
+                                /** @description Lo que falta entre los meses que quedan (el actual incluido), redondeado hacia arriba al céntimo. Cero si ya se llegó; nulo con la fecha fin pasada. */
+                                suggestedMonthly: string | null;
+                                /**
+                                 * @description AT_RISK: más de 10 puntos por debajo de lo esperado. OVERDUE: la fecha fin pasó sin llegar. ACHIEVED gana a las demás.
+                                 * @enum {string}
+                                 */
+                                status: "ON_TRACK" | "AT_RISK" | "ACHIEVED" | "OVERDUE";
+                            };
+                        };
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: las metas solo se gestionan desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description La meta no existe o es de otra cuenta (`GOAL_NOT_FOUND`); o el módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Otra meta de la cuenta ya tiene ese nombre (`GOAL_NAME_TAKEN`). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El id no es un UUID, el cuerpo no tiene la forma esperada, o se rompe una regla. Objetivo mayor que cero (`GOAL_TARGET_NOT_POSITIVE`), con 2 decimales a lo más (`INVALID_AMOUNT`); el fin después del inicio (`GOAL_END_NOT_AFTER_START`). */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/goals/{id}/contributions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Los aportes y retiros de una meta, como están hoy.
+         * @description Primero los más recientes; los enlazados a una transacción borrada, al final.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Los aportes de la meta. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /**
+                             * @description Manual, o enlazado a una transacción entera que sigue.
+                             * @enum {string}
+                             */
+                            source: "MANUAL" | "TRANSACTION";
+                            /**
+                             * @description Un retiro resta; es siempre manual.
+                             * @enum {string}
+                             */
+                            kind: "CONTRIBUTION" | "WITHDRAWAL";
+                            /**
+                             * @description Solo `ACTIVE` cuenta. Uno enlazado deja de contar si su transacción se borra, deja de ser ahorro o inversión o cambia de moneda, y vuelve si se corrige o se restaura.
+                             * @enum {string}
+                             */
+                            state: "ACTIVE" | "TRANSACTION_DELETED" | "TRANSACTION_NOT_A_SAVING" | "CURRENCY_MISMATCH";
+                            /** @description En la moneda de la meta. Nulo si la transacción enlazada se borró. */
+                            amount: string | null;
+                            /**
+                             * Format: date
+                             * @description Nula si la transacción enlazada se borró.
+                             */
+                            date: string | null;
+                            /** @description La transacción que sigue, si es enlazado y sigue vigente. */
+                            transaction: {
+                                /** Format: uuid */
+                                id: string;
+                                description: string;
+                            } | null;
+                        }[];
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: las metas solo se gestionan desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description La meta no existe o es de otra cuenta (`GOAL_NOT_FOUND`); o el módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El id no es un UUID. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Registra un aporte o un retiro.
+         * @description Manual (`source: MANUAL`): aporte o retiro con monto positivo en la moneda de la meta y fecha de hoy o antes; puede ser anterior al inicio. Enlazado (`source: TRANSACTION`): toma entera una transacción de ahorro o inversión y la sigue si se corrige o se borra.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        source: "MANUAL";
+                        /** @enum {string} */
+                        kind: "CONTRIBUTION" | "WITHDRAWAL";
+                        amount: string;
+                        /** Format: date */
+                        date: string;
+                    } | {
+                        /** @enum {string} */
+                        source: "TRANSACTION";
+                        /** Format: uuid */
+                        transactionId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description El aporte registrado. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /**
+                             * @description Manual, o enlazado a una transacción entera que sigue.
+                             * @enum {string}
+                             */
+                            source: "MANUAL" | "TRANSACTION";
+                            /**
+                             * @description Un retiro resta; es siempre manual.
+                             * @enum {string}
+                             */
+                            kind: "CONTRIBUTION" | "WITHDRAWAL";
+                            /**
+                             * @description Solo `ACTIVE` cuenta. Uno enlazado deja de contar si su transacción se borra, deja de ser ahorro o inversión o cambia de moneda, y vuelve si se corrige o se restaura.
+                             * @enum {string}
+                             */
+                            state: "ACTIVE" | "TRANSACTION_DELETED" | "TRANSACTION_NOT_A_SAVING" | "CURRENCY_MISMATCH";
+                            /** @description En la moneda de la meta. Nulo si la transacción enlazada se borró. */
+                            amount: string | null;
+                            /**
+                             * Format: date
+                             * @description Nula si la transacción enlazada se borró.
+                             */
+                            date: string | null;
+                            /** @description La transacción que sigue, si es enlazado y sigue vigente. */
+                            transaction: {
+                                /** Format: uuid */
+                                id: string;
+                                description: string;
+                            } | null;
+                        };
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: las metas solo se gestionan desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description La meta (`GOAL_NOT_FOUND`) o la transacción (`TRANSACTION_NOT_FOUND`) no existe, está borrada o es de otra cuenta; o el módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description La transacción ya aporta a una meta (`GOAL_TRANSACTION_ALREADY_LINKED`). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El cuerpo no tiene la forma esperada; la meta está archivada (`GOAL_ARCHIVED`); el monto no es positivo (`GOAL_CONTRIBUTION_AMOUNT_NOT_POSITIVE`) o tiene más de 2 decimales (`INVALID_AMOUNT`); la fecha es futura (`GOAL_CONTRIBUTION_DATE_IN_FUTURE`); el retiro saca más de lo ahorrado (`GOAL_WITHDRAWAL_EXCEEDS_SAVED`); o la transacción no es de ahorro o inversión (`GOAL_TRANSACTION_NOT_A_SAVING`) o está en otra moneda (`GOAL_CURRENCY_MISMATCH`). */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/goals/{id}/contributions/{contributionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Deshace un aporte o un retiro.
+         * @description También en una meta archivada.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    contributionId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Deshecho. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: las metas solo se gestionan desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description La meta no existe o es de otra cuenta (`GOAL_NOT_FOUND`); el aporte no existe o es de otra meta (`GOAL_CONTRIBUTION_NOT_FOUND`); o el módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Algún id no es un UUID, o quitar el aporte dejaría la meta en negativo por los retiros ya hechos (`GOAL_WITHDRAWAL_EXCEEDS_SAVED`). */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {

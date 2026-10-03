@@ -2,6 +2,8 @@ import {
   changePasswordRequestSchema,
   createCategoryRequestSchema,
   createCreditCardRequestSchema,
+  createGoalContributionRequestSchema,
+  createGoalRequestSchema,
   createInstallmentPlanRequestSchema,
   createPaymentMethodRequestSchema,
   createPersonalAccessTokenRequestSchema,
@@ -23,6 +25,7 @@ import {
   transactionTypeSchema,
   updateCategoryRequestSchema,
   updateCreditCardRequestSchema,
+  updateGoalRequestSchema,
   updatePaymentMethodRequestSchema,
   updateTransactionRequestSchema,
   updateTransferRequestSchema,
@@ -1891,6 +1894,255 @@ function creditCardsPaths(): Record<string, unknown> {
   };
 }
 
+const GOAL_SCHEMA = schemaOf(
+  z.object({
+    id: z.uuid(),
+    name: z.string(),
+    currency: currencySchema.describe('Fija desde que se crea: sus aportes van en ella.'),
+    targetAmount: z.string().describe('String decimal con 2 decimales (`"3000.00"`).'),
+    startDate: z.iso.date(),
+    endDate: z.iso.date(),
+    archived: z.boolean().describe('Archivada no recibe aportes; se sigue corrigiendo.'),
+    progress: z
+      .object({
+        saved: z
+          .string()
+          .describe(
+            'Aportes − retiros hasta hoy. Negativo solo si se borró una transacción enlazada.',
+          ),
+        remaining: z.string().describe('Lo que falta; cero si ya se llegó.'),
+        excess: z.string().describe('Lo que pasa del objetivo; cero si no se llegó.'),
+        percentage: z
+          .string()
+          .describe('Ahorrado / objetivo en %, sin redondear (2 decimales al mostrar).'),
+        expectedPercentage: z
+          .string()
+          .describe(
+            'Lo esperado aportando parejo, al cierre del mes anterior, en %, sin redondear. 100 ' +
+              'con la fecha fin pasada.',
+          ),
+        suggestedMonthly: z
+          .string()
+          .nullable()
+          .describe(
+            'Lo que falta entre los meses que quedan (el actual incluido), redondeado hacia ' +
+              'arriba al céntimo. Cero si ya se llegó; nulo con la fecha fin pasada.',
+          ),
+        status: z
+          .enum(['ON_TRACK', 'AT_RISK', 'ACHIEVED', 'OVERDUE'])
+          .describe(
+            'AT_RISK: más de 10 puntos por debajo de lo esperado. OVERDUE: la fecha fin pasó sin ' +
+              'llegar. ACHIEVED gana a las demás.',
+          ),
+      })
+      .describe('Calculado al consultar, con los aportes de hoy.'),
+  }),
+);
+
+const GOAL_CONTRIBUTION_SCHEMA = schemaOf(
+  z.object({
+    id: z.uuid(),
+    source: z
+      .enum(['MANUAL', 'TRANSACTION'])
+      .describe('Manual, o enlazado a una transacción entera que sigue.'),
+    kind: z.enum(['CONTRIBUTION', 'WITHDRAWAL']).describe('Un retiro resta; es siempre manual.'),
+    state: z
+      .enum(['ACTIVE', 'TRANSACTION_DELETED', 'TRANSACTION_NOT_A_SAVING', 'CURRENCY_MISMATCH'])
+      .describe(
+        'Solo `ACTIVE` cuenta. Uno enlazado deja de contar si su transacción se borra, deja de ' +
+          'ser ahorro o inversión o cambia de moneda, y vuelve si se corrige o se restaura.',
+      ),
+    amount: z
+      .string()
+      .nullable()
+      .describe('En la moneda de la meta. Nulo si la transacción enlazada se borró.'),
+    date: z.iso.date().nullable().describe('Nula si la transacción enlazada se borró.'),
+    transaction: z
+      .object({ id: z.uuid(), description: z.string() })
+      .nullable()
+      .describe('La transacción que sigue, si es enlazado y sigue vigente.'),
+  }),
+);
+
+function goalsPaths(): Record<string, unknown> {
+  const unauthorized = problem('Falta el token de acceso o no vale.');
+  const forbidden = problem(
+    'Llegó un token personal: las metas solo se gestionan desde una sesión.',
+  );
+  const goal = { content: { 'application/json': { schema: GOAL_SCHEMA } } };
+  const ID_PARAMETER = {
+    name: 'id',
+    in: 'path',
+    required: true,
+    schema: { type: 'string', format: 'uuid' },
+  };
+  const goalNotFound = problem(
+    'La meta no existe o es de otra cuenta (`GOAL_NOT_FOUND`); o el módulo está apagado.',
+  );
+  const rules =
+    'Objetivo mayor que cero (`GOAL_TARGET_NOT_POSITIVE`), con 2 decimales a lo más ' +
+    '(`INVALID_AMOUNT`); el fin después del inicio (`GOAL_END_NOT_AFTER_START`).';
+
+  return {
+    [`/${API_PREFIX}/goals`]: {
+      get: {
+        tags: ['goals'],
+        summary: 'Lista las metas de ahorro con su progreso.',
+        description:
+          'En el orden en que se crearon. Las archivadas, solo con `?includeArchived=true`.',
+        security: [{ accessToken: [] }],
+        parameters: [
+          {
+            name: 'includeArchived',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['true', 'false'], default: 'false' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Las metas de la cuenta.',
+            content: { 'application/json': { schema: { type: 'array', items: GOAL_SCHEMA } } },
+          },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem('El módulo está apagado.'),
+          '422': problem('`includeArchived` no es `true` ni `false`.'),
+        },
+      },
+      post: {
+        tags: ['goals'],
+        summary: 'Crea una meta de ahorro.',
+        description:
+          'Fechas libres (una meta a varios años vale) y el inicio puede ser pasado. La moneda ' +
+          'queda fija.',
+        security: [{ accessToken: [] }],
+        requestBody: jsonBody(createGoalRequestSchema),
+        responses: {
+          '201': { description: 'La meta con su progreso.', ...goal },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem('El módulo está apagado.'),
+          '409': problem(
+            'Otra meta de la cuenta, quizá archivada, ya tiene ese nombre sin distinguir ' +
+              'mayúsculas (`GOAL_NAME_TAKEN`).',
+          ),
+          '422': problem(`El cuerpo no tiene la forma esperada, o se rompe una regla. ${rules}`),
+        },
+      },
+    },
+    [`/${API_PREFIX}/goals/{id}`]: {
+      patch: {
+        tags: ['goals'],
+        summary: 'Corrige, archiva o desarchiva una meta.',
+        description:
+          'Solo cambia lo que llega; la moneda no se cambia. Se revisa la meta **como quedaría**, ' +
+          'también archivada. Cambiar el objetivo o las fechas con aportes recalcula el progreso.',
+        security: [{ accessToken: [] }],
+        parameters: [ID_PARAMETER],
+        requestBody: jsonBody(updateGoalRequestSchema),
+        responses: {
+          '200': { description: 'La meta como quedó.', ...goal },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': goalNotFound,
+          '409': problem('Otra meta de la cuenta ya tiene ese nombre (`GOAL_NAME_TAKEN`).'),
+          '422': problem(
+            `El id no es un UUID, el cuerpo no tiene la forma esperada, o se rompe una regla. ${rules}`,
+          ),
+        },
+      },
+    },
+    [`/${API_PREFIX}/goals/{id}/contributions`]: {
+      get: {
+        tags: ['goals'],
+        summary: 'Los aportes y retiros de una meta, como están hoy.',
+        description:
+          'Primero los más recientes; los enlazados a una transacción borrada, al final.',
+        security: [{ accessToken: [] }],
+        parameters: [ID_PARAMETER],
+        responses: {
+          '200': {
+            description: 'Los aportes de la meta.',
+            content: {
+              'application/json': { schema: { type: 'array', items: GOAL_CONTRIBUTION_SCHEMA } },
+            },
+          },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': goalNotFound,
+          '422': problem('El id no es un UUID.'),
+        },
+      },
+      post: {
+        tags: ['goals'],
+        summary: 'Registra un aporte o un retiro.',
+        description:
+          'Manual (`source: MANUAL`): aporte o retiro con monto positivo en la moneda de la meta ' +
+          'y fecha de hoy o antes; puede ser anterior al inicio. Enlazado (`source: ' +
+          'TRANSACTION`): toma entera una transacción de ahorro o inversión y la sigue si se ' +
+          'corrige o se borra.',
+        security: [{ accessToken: [] }],
+        parameters: [ID_PARAMETER],
+        requestBody: jsonBody(createGoalContributionRequestSchema),
+        responses: {
+          '201': {
+            description: 'El aporte registrado.',
+            content: { 'application/json': { schema: GOAL_CONTRIBUTION_SCHEMA } },
+          },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem(
+            'La meta (`GOAL_NOT_FOUND`) o la transacción (`TRANSACTION_NOT_FOUND`) no existe, ' +
+              'está borrada o es de otra cuenta; o el módulo está apagado.',
+          ),
+          '409': problem(
+            'La transacción ya aporta a una meta (`GOAL_TRANSACTION_ALREADY_LINKED`).',
+          ),
+          '422': problem(
+            'El cuerpo no tiene la forma esperada; la meta está archivada (`GOAL_ARCHIVED`); el ' +
+              'monto no es positivo (`GOAL_CONTRIBUTION_AMOUNT_NOT_POSITIVE`) o tiene más de 2 ' +
+              'decimales (`INVALID_AMOUNT`); la fecha es futura ' +
+              '(`GOAL_CONTRIBUTION_DATE_IN_FUTURE`); el retiro saca más de lo ahorrado ' +
+              '(`GOAL_WITHDRAWAL_EXCEEDS_SAVED`); o la transacción no es de ahorro o inversión ' +
+              '(`GOAL_TRANSACTION_NOT_A_SAVING`) o está en otra moneda (`GOAL_CURRENCY_MISMATCH`).',
+          ),
+        },
+      },
+    },
+    [`/${API_PREFIX}/goals/{id}/contributions/{contributionId}`]: {
+      delete: {
+        tags: ['goals'],
+        summary: 'Deshace un aporte o un retiro.',
+        description: 'También en una meta archivada.',
+        security: [{ accessToken: [] }],
+        parameters: [
+          ID_PARAMETER,
+          {
+            name: 'contributionId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        responses: {
+          '204': { description: 'Deshecho.' },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem(
+            'La meta no existe o es de otra cuenta (`GOAL_NOT_FOUND`); el aporte no existe o es ' +
+              'de otra meta (`GOAL_CONTRIBUTION_NOT_FOUND`); o el módulo está apagado.',
+          ),
+          '422': problem(
+            'Algún id no es un UUID, o quitar el aporte dejaría la meta en negativo por los ' +
+              'retiros ya hechos (`GOAL_WITHDRAWAL_EXCEEDS_SAVED`).',
+          ),
+        },
+      },
+    },
+  };
+}
+
 /** Rutas que aporta cada módulo de negocio, para omitirlas cuando su flag está apagado. */
 const PATHS_BY_MODULE: Partial<Record<FeatureModule, () => Record<string, unknown>>> = {
   identity: identityPaths,
@@ -1899,6 +2151,7 @@ const PATHS_BY_MODULE: Partial<Record<FeatureModule, () => Record<string, unknow
   budgeting: budgetingPaths,
   reports: reportsPaths,
   'credit-cards': creditCardsPaths,
+  goals: goalsPaths,
 };
 
 export interface OpenApiOptions {
