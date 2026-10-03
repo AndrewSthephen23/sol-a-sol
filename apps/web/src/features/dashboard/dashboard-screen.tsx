@@ -44,7 +44,7 @@ export function DashboardScreen({
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 py-6">
-      <h1 className="text-2xl font-bold tracking-tight">Resumen</h1>
+      <h1 className="text-2xl font-bold tracking-tight">Inicio</h1>
       {showCardAlerts && <CardAlerts />}
       <MonthNavigator
         month={month}
@@ -54,6 +54,14 @@ export function DashboardScreen({
           });
         }}
       />
+
+      {/* El cierre del mes vive en «Resumen» (decisión 18 de H6): el dashboard lleva al del mismo mes. */}
+      <Link
+        href={month === defaultMonth ? '/reports' : `/reports?month=${month}`}
+        className="self-end text-sm font-medium text-amber-700 underline"
+      >
+        Ver el cierre del mes
+      </Link>
 
       {report.isPending && <output className={NOTICE}>Cargando el resumen…</output>}
 

@@ -4245,7 +4245,7 @@ export interface paths {
                                 }[];
                             }[];
                             /** @description Solo las partidas límite (gasto fijo, variable y deuda). `NONE`: el mes no tiene partidas límite («sin presupuesto»). */
-                            budget: {
+                            budget?: {
                                 /** @enum {string} */
                                 status: "NONE";
                             } | {
@@ -4276,7 +4276,7 @@ export interface paths {
                                 }[];
                             };
                             /** @description Una archivada aparece solo si se movió en el mes. */
-                            cards: {
+                            cards?: {
                                 /** Format: uuid */
                                 id: string;
                                 alias: string;
@@ -4306,7 +4306,7 @@ export interface paths {
                                 } | null;
                             }[];
                             /** @description Las metas vivas en el mes, medidas a la fecha de corte. */
-                            goals: {
+                            goals?: {
                                 /** Format: uuid */
                                 id: string;
                                 name: string;

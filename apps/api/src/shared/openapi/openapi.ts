@@ -1608,9 +1608,11 @@ function monthlySummarySchema(
           }),
         )
         .describe('Las monedas con movimientos en el mes o en el anterior, primero soles.'),
-      ...(isFeatureEnabled('budgeting') ? { budget } : {}),
-      ...(isFeatureEnabled('credit-cards') ? { cards } : {}),
-      ...(isFeatureEnabled('goals') ? { goals } : {}),
+      // Opcionales: aun documentadas, no vienen si su módulo se apaga (el cliente de la web se genera
+      // con todo encendido y tiene que contar con eso).
+      ...(isFeatureEnabled('budgeting') ? { budget: budget.optional() } : {}),
+      ...(isFeatureEnabled('credit-cards') ? { cards: cards.optional() } : {}),
+      ...(isFeatureEnabled('goals') ? { goals: goals.optional() } : {}),
     }),
   );
 }
