@@ -1,6 +1,6 @@
 # Módulo Metas (`goals`)
 
-> Ficha del módulo. Estado: **en construcción** (hito H6). Hoy existen el módulo, sus tablas, sus reglas, su API y su pantalla. Flag **apagado**.
+> Ficha del módulo. Estado: **publicado en 0.7.0** (cierre de H6): metas de ahorro con sus aportes, en la API y en la web («Metas», `/goals`). Flag **encendido**.
 
 ## Qué resuelve
 
@@ -100,6 +100,6 @@ El progreso viaja en cada meta (`saved`, `remaining`, `excess`, `percentage`, `e
 
 ## Estado
 
-- Feature flag: `FEATURE_GOALS` (**apagado** hasta cumplir la Definition of Done).
+- Feature flag: **`FEATURE_GOALS=true`** desde el cierre de H6 (0.7.0). Enciende la API, el menú («Metas») y la sección de metas del resumen mensual.
 - Escenarios: [`features/goals/`](../../features/goals/), **en verde** con `pnpm test:bdd` (22). Corren contra los casos de uso reales con los fakes de los puertos, y los aportes enlazados leen su transacción con el `TransactionsLookup` real. Cada regla se comprobó rompiéndola (dominio, casos de uso y fakes); lo que vive en Prisma lo cubren `apps/api/test/goals/` y `apps/api/test/prisma/goals-tables.spec.ts`.
 - Web: **«Metas» (`/goals`)**, en el menú cuando el flag está encendido (`requireFeature('FEATURE_GOALS')`). Cada meta dice en texto cuánto va (con el porcentaje en 2 decimales), cuánto falta, cómo va («Vas bien», «En riesgo: te faltan S/ … para ir al día», «¡Cumplida!», «Vencida: faltaron S/ …») y cuánto aportar al mes; la barra (`<progress>`) solo lo acompaña. Se crea y se corrige una meta, se aporta a mano o enlazando una transacción de ahorro, y quitar un aporte se deshace con «Deshacer», que lo vuelve a registrar. Las archivadas se ven con «Ver archivadas».
