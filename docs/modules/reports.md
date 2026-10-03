@@ -1,6 +1,6 @@
 # Módulo Reportes (`reports`)
 
-> Ficha del módulo. Estado: **publicado en 0.5.0** (cierre de H4): el **dashboard del mes**, en la API y en la página de inicio `/`. Flag **encendido**. En H6 llega el **resumen mensual**: hoy están su dominio y su API (`GET /reports/monthly-summary`); la exportación y la pantalla llegan con las tareas 07 y 08. Después, el anual.
+> Ficha del módulo. Estado: **publicado en 0.7.0** (cierre de H6): el **dashboard del mes** («Inicio», `/`, desde 0.5.0) y los **resúmenes mensual y anual** con su exportación a CSV («Resumen», `/reports`). Flag **encendido**.
 
 ## Qué resuelve
 
