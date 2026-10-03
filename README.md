@@ -18,6 +18,8 @@ Plataforma personal para ordenar mis finanzas y avanzar hacia la libertad financ
 
 ✅ **H5 — Tarjetas de crédito** publicado en [v0.6.0](https://github.com/AndrewSthephen23/sol-a-sol/releases/tag/v0.6.0): `credit-cards` encendido. Cada tarjeta se configura con su línea, su día de corte, su fecha límite de pago y, si ya se debía algo, su saldo inicial; y dice **dónde está hoy**: el ciclo en curso, lo que se debe por moneda (sin convertir nunca), cuánto de la línea se usa, el último estado de cuenta con su fecha límite y si está pagado. **Compras en cuotas**, con el reparto visto antes de guardar y lo que falta en cada tarjeta, y **avisos en el resumen** cuando una tarjeta usa más del 30 % de su línea o su pago vence pronto. Todo lo derivado se calcula al consultar: no hay tablas de saldos. Solo alias, banco y últimos 4: nunca número, CVV ni vencimiento.
 
+✅ **H6 — Metas y resúmenes** publicado en [v0.7.0](https://github.com/AndrewSthephen23/sol-a-sol/releases/tag/v0.7.0): `goals` encendido. **Metas de ahorro** con su objetivo y sus fechas, y aportes o retiros escritos a mano o enlazados a un ahorro ya registrado (que la meta sigue si se corrige o se borra): cada una dice cuánto va, cuánto falta, cuánto aportar al mes, redondeado hacia arriba al céntimo, y si va bien, en riesgo, cumplida o vencida. El **resumen mensual** cierra un mes contra el anterior (el mes en curso, hasta el mismo día), con la tasa de ahorro, en qué y dónde se gastó más, el presupuesto, lo que hay que pagar de cada tarjeta y lo aportado a cada meta, y se **descarga en CSV** sin que nada del usuario se ejecute como fórmula. El **resumen anual** muestra el año mes a mes, en barras y en tabla. Un módulo apagado no aparece en ningún resumen.
+
 ## Documentación
 
 | Documento                                                        | Para qué                                                               |
@@ -197,8 +199,8 @@ Las rutas de un módulo con su feature flag apagado **no aparecen** en el docume
 Cada versión publica en GHCR las mismas imágenes de producción que construye `docker-compose.test.yml`:
 
 ```bash
-docker pull ghcr.io/andrewsthephen23/sol-a-sol-api:0.6.0
-docker pull ghcr.io/andrewsthephen23/sol-a-sol-web:0.6.0
+docker pull ghcr.io/andrewsthephen23/sol-a-sol-api:0.7.0
+docker pull ghcr.io/andrewsthephen23/sol-a-sol-web:0.7.0
 ```
 
 Cada imagen lleva dos etiquetas: `X.Y.Z` y `sha-<commit>`. No hay `latest`: obliga a decir qué versión se despliega. El job solo corre cuando el push a `main` trae una versión nueva, tiene `packages: write` únicamente para él, y **no publica nada** hasta que las imágenes pasan el bloqueo de Trivy y un smoke test que las arranca.

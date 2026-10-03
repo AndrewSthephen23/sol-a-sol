@@ -1,5 +1,44 @@
 # @sol-a-sol/domain
 
+## 0.7.0
+
+### Minor Changes
+
+- 196392f: Cierra el hito **H6 — Metas y resúmenes**: el módulo `goals` queda **encendido**.
+
+  - **Metas de ahorro:** cuánto quieres juntar y para cuándo, con aportes y retiros a mano o enlazados a un ahorro que ya registraste. Cada meta dice cuánto va, cuánto falta, cuánto aportar al mes y si va bien, en riesgo, cumplida o vencida.
+  - **Resumen mensual:** el cierre de un mes, comparado con el anterior, con la tasa de ahorro, en qué y dónde se gastó más, el presupuesto, las tarjetas y las metas. Se descarga en CSV.
+  - **Resumen anual:** el año mes a mes, en barras y en una tabla, con la tasa de ahorro del año.
+  - El dashboard pasa a llamarse «Inicio» en el menú; «Resumen» tiene las vistas mensual y anual.
+
+### Patch Changes
+
+- 473e6b3: Resumen anual: `computeAnnualSummary` en el dominio y `GET /reports/annual?year=` en la API.
+
+  - Por moneda, una fila por concepto (ingresos, gasto fijo, gasto variable, total gasto, ahorro, inversión, deuda y saldo) con sus 12 meses y su total. Un mes que todavía no llega viene vacío, no en cero.
+  - La tasa de ahorro del año (con inversión, `null` sin ingresos) y el gasto del año por categoría, con el mismo reparto que la dona del dashboard (`expenseDistribution`, extraído de `buildMonthlyDashboard`).
+  - Un año fuera de 2000 a 2100, o que todavía no empieza, responde 422.
+
+- d035d5d: Progreso de una meta de ahorro: `computeGoalProgress` (ahorrado, falta, excedente, porcentaje, avance esperado, aporte mensual sugerido y estado), con sus reglas (`assertGoalSettings`, `assertGoalContribution`, `assertWithdrawalCovered`) y el estado de un aporte enlazado a una transacción (`linkedContributionState`, `assertLinkableTransaction`, `linkedContribution`). Además, `countPercentage` para el porcentaje entre dos cantidades enteras.
+
+  - Estados `ON_TRACK`, `AT_RISK`, `ACHIEVED` y `OVERDUE`. **En riesgo** con el avance más de 10 puntos por debajo del esperado aportando parejo, medido al cierre del mes anterior.
+  - **Aporte sugerido**: lo que falta entre los meses que quedan, contando el mes en curso (o desde el de inicio), redondeado hacia arriba al céntimo. Sin sugerido con la fecha fin pasada.
+  - Pasarse del objetivo muestra el porcentaje real y el excedente. Un aporte futuro todavía no cuenta; uno anterior al inicio, sí. Un retiro no puede dejar la meta en negativo.
+
+- 1b8a68d: Pantalla de metas (`/goals`), detrás de `FEATURE_GOALS` (todavía apagado): crear y corregir una meta, aportar a mano o enlazando una transacción de ahorro, retirar, quitar un aporte con «Deshacer» y archivar.
+
+  - Cada meta dice en texto cuánto va, cuánto falta, cómo va y cuánto aportar al mes; la barra de avance solo lo acompaña.
+  - El progreso trae `behind`: cuánto falta para ir al día, calculado en el dominio (`computeGoalProgress`), para el «En riesgo: te faltan S/ … para ir al día».
+  - El menú pasa a dos líneas cuando sus secciones no caben en el teléfono, en vez de desbordar la página.
+
+- dad66bf: Resumen mensual en el dominio: `monthlySummaryPeriods` (el mes cerrado entero, o el mes en curso hasta hoy contra el anterior hasta el mismo día; un mes futuro se rechaza) y `computeMonthlySummary`.
+
+  - Por moneda: totales por tipo y saldo, tasa de ahorro (con inversión, `null` sin ingresos), variación contra el mes anterior por tipo y por categoría madre (`null` con base cero), y top 5 de categorías y de comercios de gasto (los comercios se juntan sin tildes ni mayúsculas).
+  - Presupuesto: solo las partidas límite, % ejecutado por moneda y partidas excedidas; «sin presupuesto» si no hay.
+  - Tarjetas: lo cargado en el mes y el estado que vence el mes siguiente; una archivada solo si se movió.
+  - Metas: lo aportado en el mes y el progreso a la fecha de corte.
+  - Las secciones de un módulo apagado no aparecen.
+
 ## 0.6.0
 
 ### Minor Changes

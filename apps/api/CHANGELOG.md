@@ -1,5 +1,73 @@
 # @sol-a-sol/api
 
+## 0.7.0
+
+### Minor Changes
+
+- 196392f: Cierra el hito **H6 — Metas y resúmenes**: el módulo `goals` queda **encendido**.
+
+  - **Metas de ahorro:** cuánto quieres juntar y para cuándo, con aportes y retiros a mano o enlazados a un ahorro que ya registraste. Cada meta dice cuánto va, cuánto falta, cuánto aportar al mes y si va bien, en riesgo, cumplida o vencida.
+  - **Resumen mensual:** el cierre de un mes, comparado con el anterior, con la tasa de ahorro, en qué y dónde se gastó más, el presupuesto, las tarjetas y las metas. Se descarga en CSV.
+  - **Resumen anual:** el año mes a mes, en barras y en una tabla, con la tasa de ahorro del año.
+  - El dashboard pasa a llamarse «Inicio» en el menú; «Resumen» tiene las vistas mensual y anual.
+
+### Patch Changes
+
+- 473e6b3: Resumen anual: `computeAnnualSummary` en el dominio y `GET /reports/annual?year=` en la API.
+
+  - Por moneda, una fila por concepto (ingresos, gasto fijo, gasto variable, total gasto, ahorro, inversión, deuda y saldo) con sus 12 meses y su total. Un mes que todavía no llega viene vacío, no en cero.
+  - La tasa de ahorro del año (con inversión, `null` sin ingresos) y el gasto del año por categoría, con el mismo reparto que la dona del dashboard (`expenseDistribution`, extraído de `buildMonthlyDashboard`).
+  - Un año fuera de 2000 a 2100, o que todavía no empieza, responde 422.
+
+- 47f09e7: API de metas de ahorro, detrás de `FEATURE_GOALS` (todavía apagado): `GET/POST /goals`, `PATCH /goals/{id}` y `GET/POST/DELETE /goals/{id}/contributions`, con el progreso de cada meta calculado al consultar.
+
+  - Un aporte es **manual** (aporte o retiro, con monto positivo y fecha de hoy o antes) o **enlazado** a una transacción entera de ahorro o inversión, que sigue si se corrige, se borra o se restaura. Una transacción aporta a una sola meta.
+  - La moneda de la meta queda fija al crearla. Una meta archivada no recibe aportes nuevos, pero se corrige y se le deshacen aportes.
+  - Un retiro, o deshacer un aporte, no puede dejar la meta en negativo.
+  - Contratos estrictos en `@sol-a-sol/contracts`, rutas en OpenAPI y cliente de la web regenerado.
+
+- 59c99ee: Empieza el hito **H6**: nace el módulo `goals` (apagado con `FEATURE_GOALS=false`) con sus tablas, `savings_goals` y `goal_contributions`. Todavía no tiene endpoints.
+
+  - Una meta tiene nombre (único por cuenta sin distinguir mayúsculas), objetivo mayor que cero en una sola moneda (`NUMERIC(18,2)`) y fechas de inicio y fin libres, con el fin después del inicio.
+  - Un aporte es **manual** (fecha y monto positivo, aporte o retiro) o está **enlazado** a una transacción entera, sin fecha ni monto propios. Una transacción aporta a una sola meta, y un retiro no se enlaza.
+  - La base exige que el aporte sea de la misma cuenta que su meta y que su transacción.
+
+  Las reglas de las metas, decididas con el autor, quedan escritas en `docs/modules/goals.md`.
+
+- 1b8a68d: Pantalla de metas (`/goals`), detrás de `FEATURE_GOALS` (todavía apagado): crear y corregir una meta, aportar a mano o enlazando una transacción de ahorro, retirar, quitar un aporte con «Deshacer» y archivar.
+
+  - Cada meta dice en texto cuánto va, cuánto falta, cómo va y cuánto aportar al mes; la barra de avance solo lo acompaña.
+  - El progreso trae `behind`: cuánto falta para ir al día, calculado en el dominio (`computeGoalProgress`), para el «En riesgo: te faltan S/ … para ir al día».
+  - El menú pasa a dos líneas cuando sus secciones no caben en el teléfono, en vez de desbordar la página.
+
+- 2f43e3c: `GET /reports/monthly-summary?year=&month=`: el cierre de un mes, calculado con `computeMonthlySummary`. Un mes cerrado se compara con el anterior entero; el mes en curso, hasta hoy y contra el anterior hasta el mismo día. Un mes que no empezó responde 422 (`SUMMARY_MONTH_IN_FUTURE`).
+
+  - `reports` lee cada módulo por su API pública y un puerto propio: los totales por comercio de `transactions` (nuevo `totalsByMerchant`) y los nuevos `BudgetingLookup`, `CreditCardsLookup` y `GoalsLookup`.
+  - Si `budgeting`, `credit-cards` o `goals` están apagados, su sección no se consulta ni aparece, tampoco en OpenAPI.
+  - El cliente de la web, regenerado.
+
+- 7573ce9: `GET /reports/monthly-summary/export?year=&month=&format=csv`: el cierre del mes como archivo CSV (`resumen-2026-09.csv`).
+
+  - Un solo archivo con todas las secciones como filas, separado por `;`, con BOM UTF-8, montos con punto decimal y sin separador de miles, y porcentajes con 2 decimales. Las categorías van por su nombre.
+  - Nada de lo que escribió el usuario se ejecuta como fórmula al abrirlo en Excel o Sheets.
+  - Un formato que no sea `csv` responde 422; las secciones de un módulo apagado no vienen.
+
+- ca8b899: Pantalla «Resumen» (`/reports`): el cierre del mes en texto y por moneda, con lo que entró y salió comparado con el mes anterior, la tasa de ahorro, en qué y dónde se gastó más, el presupuesto, las tarjetas y las metas, y «Descargar CSV».
+
+  - El dashboard pasa a llamarse «Inicio» y enlaza «Ver el cierre del mes».
+  - Las secciones de un módulo apagado no se dibujan. El selector de mes no ofrece meses futuros.
+  - En OpenAPI, las secciones `budget`, `cards` y `goals` del resumen pasan a ser opcionales: no vienen si su módulo está apagado.
+
+- Updated dependencies [473e6b3]
+- Updated dependencies [196392f]
+- Updated dependencies [47f09e7]
+- Updated dependencies [d035d5d]
+- Updated dependencies [1b8a68d]
+- Updated dependencies [7573ce9]
+- Updated dependencies [dad66bf]
+  - @sol-a-sol/domain@0.7.0
+  - @sol-a-sol/contracts@0.7.0
+
 ## 0.6.0
 
 ### Minor Changes
