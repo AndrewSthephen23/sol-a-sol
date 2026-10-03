@@ -51,6 +51,22 @@ El **cierre** de un mes: el dashboard sirve para seguirlo día a día, el resume
 
 **En la API:** `GetMonthlySummary` junta los datos, cada uno por la API pública de su módulo y detrás de un **puerto propio** (`useExisting` en `reports.module.ts`): lo real y los comercios de `transactions` (`TransactionsLookup`), las categorías de `catalog` (`CatalogLookup`, para subir cada hija a su madre), las partidas de `budgeting` (`BudgetingLookup`), las tarjetas de `credit-cards` (`CreditCardsLookup`) y las metas de `goals` (`GoalsLookup`). Qué módulos están encendidos lo dice `FeatureFlagsService` detrás del puerto `ReportFeatureFlags`: uno **apagado no se consulta** y su sección no aparece, ni en la respuesta ni en el esquema de OpenAPI, para no delatar lo que su 404 oculta.
 
+## Resumen anual (H6)
+
+El año **mes a mes**. Decidido con el autor el **2026-10-03** (decisiones 16 y 17 de H6, y las que siguen de lo ya decidido):
+
+| Tema           | Regla                                                                                                                                                                                                                      |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Filas          | En este orden: **ingresos, gasto fijo, gasto variable, total gasto (fijo + variable), ahorro, inversión, deuda y saldo** (ingresos menos todo lo demás), cada una con sus 12 meses y su total (decisión 17)                |
+| Columnas       | **Siempre 12**, enero a diciembre. Un mes que todavía no llega viene **vacío (`null`, «—»), no en cero**; un mes pasado sin movimientos, en cero (decisión 16)                                                             |
+| Año en curso   | Suma **hasta hoy**; los totales y la tasa de ahorro, también (decisión 16)                                                                                                                                                 |
+| Tasa de ahorro | La del año, con la regla de la mensual: ahorro **con inversión** sobre ingresos, por moneda, sin redondear; `null` sin ingresos (decisiones 9 y 16)                                                                        |
+| Dona           | El gasto del año por categoría madre, con el mismo reparto que el dashboard (6 porciones y «Otras», `expenseDistribution`)                                                                                                 |
+| Monedas        | Por moneda, **sin convertir nunca**; aparecen las que tuvieron movimientos en el año, primero los soles                                                                                                                    |
+| Qué año        | De **2000 a 2100**, como el presupuesto (`SUMMARY_YEAR_INVALID`). Un año que **todavía no empieza no tiene resumen** (`SUMMARY_YEAR_IN_FUTURE`), como un mes futuro. Un año sin movimientos no es un error: responde vacío |
+
+**En el dominio:** `annualSummaryPeriod` y `computeAnnualSummary` (`packages/domain/src/reports/annual-summary.ts`, mutation testing al 100 %), con `totalsByCurrency` y `expenseDistribution`. **En la API:** `GetAnnualSummary` lee lo de cada día y cada categoría del año con `TransactionsLookup` (`totalsByDay` y `totalsByCategory` sobre el rango del año: no hizo falta una lectura nueva) y sube cada subcategoría a su madre con `CatalogLookup`.
+
 ## Modelo de datos
 
 **Ninguno**: `reports` es solo lectura y se calcula al consultar (sección 6.3 del plan).
@@ -69,6 +85,7 @@ Exige una sesión (un token personal recibe 403), filtra por el `userId` del tok
 | `GET`  | `/reports/monthly?year=&month=`                           | El dashboard del mes en una llamada: por moneda, `kpis`, `daily`, `distribution` y `byType`. Sin movimientos, `currencies: []`                                                                                                                                         |
 | `GET`  | `/reports/monthly-summary?year=&month=`                   | El cierre del mes: `period` y `previousPeriod`, por moneda `totals`, `savingsRate`, `byType`, `byCategory`, `topCategories` y `topMerchants`, y `budget`, `cards` y `goals` si su módulo está encendido. Un mes que no empezó responde 422 (`SUMMARY_MONTH_IN_FUTURE`) |
 | `GET`  | `/reports/monthly-summary/export?year=&month=&format=csv` | El mismo cierre como **archivo CSV** (`attachment; filename="resumen-AAAA-MM.csv"`, sin caché). Otro formato que `csv` responde 422                                                                                                                                    |
+| `GET`  | `/reports/annual?year=`                                   | El año mes a mes: por moneda, `rows` (cada fila con sus 12 `months`, `null` si el mes no llegó, y su `total`), `savingsRate` y `distribution`. Sin movimientos, `currencies: []`                                                                                       |
 
 Montos como **string decimal**; la parte de la dona (`share`) como string **sin redondear** (la web muestra 2 decimales). Un mes que no existe responde **422** (`INVALID_LOCAL_DATE`).
 

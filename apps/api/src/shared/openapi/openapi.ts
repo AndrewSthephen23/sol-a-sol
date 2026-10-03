@@ -1617,6 +1617,59 @@ function monthlySummarySchema(
   );
 }
 
+const ANNUAL_SUMMARY_SCHEMA = schemaOf(
+  z.object({
+    year: z.int(),
+    currencies: z
+      .array(
+        z.object({
+          currency: currencySchema,
+          rows: z
+            .array(
+              z.object({
+                row: z
+                  .enum([
+                    'INCOME',
+                    'FIXED_EXPENSE',
+                    'VARIABLE_EXPENSE',
+                    'EXPENSE',
+                    'SAVING',
+                    'INVESTMENT',
+                    'DEBT',
+                    'BALANCE',
+                  ])
+                  .describe(
+                    '`EXPENSE` = gasto fijo + variable; `BALANCE` = ingresos − todo lo demás.',
+                  ),
+                months: z
+                  .array(z.string().nullable())
+                  .length(12)
+                  .describe('Enero a diciembre. Nulo: un mes que todavía no llega.'),
+                total: z.string().describe('El año hasta hoy.'),
+              }),
+            )
+            .describe('En este orden: las filas de la decisión 17.'),
+          savingsRate: z
+            .string()
+            .nullable()
+            .describe(
+              'Ahorro (con inversión) / ingresos del año, en %, sin redondear. Nula: sin ingresos.',
+            ),
+          distribution: z
+            .array(
+              z.object({
+                categoryId: z.uuid().nullable().describe('Nula: «Otras».'),
+                amount: z.string(),
+                share: z.string().nullable(),
+              }),
+            )
+            .describe('El gasto del año por categoría madre, como la dona del dashboard.'),
+        }),
+      )
+      .describe('Las monedas con movimientos en el año, primero soles.'),
+  }),
+);
+
 const YEAR_MONTH_PARAMETERS = [
   { name: 'year', in: 'query', required: true, schema: { type: 'string', pattern: '^\\d{4}$' } },
   {
@@ -1676,6 +1729,31 @@ function reportsPaths(
           '422': problem(
             'Falta el año o el mes, no tienen la forma esperada, el mes no existe, o todavía no ' +
               'empieza (`SUMMARY_MONTH_IN_FUTURE`).',
+          ),
+        },
+      },
+    },
+    [`/${API_PREFIX}/reports/annual`]: {
+      get: {
+        tags: ['reports'],
+        summary: 'El año mes a mes: ingresos, gastos, ahorro, inversión, deuda y saldo.',
+        description:
+          'Por moneda y sin convertir nunca: una fila por concepto con sus 12 meses (enero a ' +
+          'diciembre) y su total. Un mes que todavía no llega viene `null`, no en cero; el año en ' +
+          'curso suma hasta hoy. Sin transferencias; lo de una subcategoría suma en su madre.',
+        security: [{ accessToken: [] }],
+        parameters: [YEAR_MONTH_PARAMETERS[0]],
+        responses: {
+          '200': {
+            description: 'El resumen del año. Sin movimientos, `currencies` viene vacío.',
+            content: { 'application/json': { schema: ANNUAL_SUMMARY_SCHEMA } },
+          },
+          '401': problem('Falta el token de acceso o no vale.'),
+          '403': problem('Llegó un token personal: los reportes solo se ven desde una sesión.'),
+          '404': problem('El módulo está apagado.'),
+          '422': problem(
+            'Falta el año o no tiene la forma esperada, está fuera de 2000 a 2100 ' +
+              '(`SUMMARY_YEAR_INVALID`) o todavía no empieza (`SUMMARY_YEAR_IN_FUTURE`).',
           ),
         },
       },

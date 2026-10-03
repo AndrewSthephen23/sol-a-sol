@@ -88,6 +88,30 @@ export function sumByCategory(entries: readonly CategoryAmount[], currency: Curr
   return [...sums].map(([categoryId, amount]) => ({ categoryId, amount })).sort(biggestFirst);
 }
 
+/**
+ * El gasto (fijo + variable) por categoría madre para la dona, de mayor a menor: las primeras
+ * `DISTRIBUTION_SLICES` y el resto junto en «Otras» (`categoryId: null`), cada una con su parte del
+ * gasto, sin redondear. Lo usan el dashboard del mes y el resumen del año.
+ */
+export function expenseDistribution(
+  entries: readonly CategoryAmount[],
+  currency: Currency,
+  totalExpense: Money,
+): CategorySlice[] {
+  const expenses = sumByCategory(
+    entries.filter((entry) => countsAsExpense(entry.type)),
+    currency,
+  );
+  const shown = expenses.slice(0, DISTRIBUTION_SLICES);
+  const rest = expenses
+    .slice(DISTRIBUTION_SLICES)
+    .reduce((total, entry) => total.add(entry.amount), Money.zero(currency));
+  const slices: { categoryId: string | null; amount: Money }[] =
+    expenses.length > DISTRIBUTION_SLICES ? [...shown, { categoryId: null, amount: rest }] : shown;
+
+  return slices.map((slice) => ({ ...slice, share: slice.amount.percentageOf(totalExpense) }));
+}
+
 /** Los días del mes que ya pasaron: todos en un mes pasado, hasta hoy en el actual, ninguno en uno futuro. */
 function daysToDraw(year: number, month: number, today: LocalDate): LocalDate[] {
   const first = LocalDate.of(year, month, 1);
@@ -126,19 +150,6 @@ export function buildMonthlyDashboard({
       spentByDay.set(key, (spentByDay.get(key) ?? Money.zero(currency)).add(entry.amount));
     }
 
-    const expenses = sumByCategory(
-      entries.filter((entry) => countsAsExpense(entry.type)),
-      currency,
-    );
-    const shown = expenses.slice(0, DISTRIBUTION_SLICES);
-    const rest = expenses
-      .slice(DISTRIBUTION_SLICES)
-      .reduce((total, entry) => total.add(entry.amount), Money.zero(currency));
-    const slices: { categoryId: string | null; amount: Money }[] =
-      expenses.length > DISTRIBUTION_SLICES
-        ? [...shown, { categoryId: null, amount: rest }]
-        : shown;
-
     return [
       {
         currency,
@@ -153,10 +164,7 @@ export function buildMonthlyDashboard({
           date,
           amount: spentByDay.get(date.toString()) ?? Money.zero(currency),
         })),
-        distribution: slices.map((slice) => ({
-          ...slice,
-          share: slice.amount.percentageOf(totals.expense),
-        })),
+        distribution: expenseDistribution(entries, currency, totals.expense),
         byType: TRANSACTION_TYPES.flatMap((type): TypeTable[] => {
           const categories = sumByCategory(
             entries.filter((entry) => entry.type === type),

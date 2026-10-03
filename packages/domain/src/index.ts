@@ -225,6 +225,7 @@ export {
   type DailyExpense,
   type DayAmount,
   DISTRIBUTION_SLICES,
+  expenseDistribution,
   type MonthlyDashboardInput,
   type TypeTable,
 } from './reports/monthly-dashboard.js';
@@ -252,6 +253,18 @@ export {
   type TopMerchant,
   type TypeComparison,
 } from './reports/monthly-summary.js';
+export {
+  ANNUAL_ROWS,
+  type AnnualCurrencySummary,
+  type AnnualRow,
+  type AnnualRowKind,
+  type AnnualSummary,
+  type AnnualSummaryInput,
+  annualSummaryPeriod,
+  computeAnnualSummary,
+  SummaryYearInFutureError,
+  SummaryYearInvalidError,
+} from './reports/annual-summary.js';
 export {
   assertPaymentDueRule,
   assertStatementDay,
