@@ -13,7 +13,13 @@ describe('TransactionsLookup', () => {
   let transfers: FakeTransferRepository;
   let lookup: TransactionsLookup;
 
-  async function spend(userId: string, date: string, categoryId: string, amount: Money) {
+  async function spend(
+    userId: string,
+    date: string,
+    categoryId: string,
+    amount: Money,
+    merchant: string | null = null,
+  ) {
     return transactions.create({
       userId,
       date: LocalDate.parse(date),
@@ -22,7 +28,7 @@ describe('TransactionsLookup', () => {
       amount,
       description: 'Gasto',
       paymentMethodId: null,
-      merchant: null,
+      merchant,
       source: 'MANUAL',
       tags: [],
     });
@@ -67,6 +73,24 @@ describe('TransactionsLookup', () => {
     await expect(
       lookup.totalsByCategory(ANA, LocalDate.parse('2026-09-01'), LocalDate.parse('2026-09-30')),
     ).resolves.toEqual([]);
+  });
+
+  it('gives the totals by merchant as written, leaving out the ones without merchant', async () => {
+    await spend(ANA, '2026-09-01', 'food', Money.of('10', 'PEN'), ' Tambo ');
+    await spend(ANA, '2026-09-02', 'food', Money.of('5', 'PEN'), null);
+    await spend(ANA, '2026-09-03', 'food', Money.of('5', 'PEN'), '   ');
+    await spend(ANA, '2026-10-01', 'food', Money.of('99', 'PEN'), 'Tambo');
+    await spend(BRUNO, '2026-09-01', 'food', Money.of('99', 'PEN'), 'Tambo');
+
+    const totals = await lookup.totalsByMerchant(
+      ANA,
+      LocalDate.parse('2026-09-01'),
+      LocalDate.parse('2026-09-30'),
+    );
+
+    expect(
+      totals.map((total) => [total.merchant, total.type, total.amount.toFixed(), total.count]),
+    ).toEqual([['Tambo', 'VARIABLE_EXPENSE', '10.00', 1]]);
   });
 
   it('gives the totals of each day, and only of the range', async () => {

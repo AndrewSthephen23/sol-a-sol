@@ -1,5 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { type CardStatus, type Clock, computeCardStatus, today } from '@sol-a-sol/domain';
+import {
+  type CardStatus,
+  type Clock,
+  computeCardStatus,
+  type LocalDate,
+  today,
+} from '@sol-a-sol/domain';
 
 import { CLOCK } from '../../../shared/time/system-clock.js';
 import { CreditCardNotFoundError } from '../domain/errors.js';
@@ -31,8 +37,8 @@ export interface CreditCardStatusView extends CreditCardView {
 export class GetCreditCardStatuses {
   constructor(
     private readonly listCards: ListCreditCards,
-    @Inject(CREDIT_CARD_MOVEMENTS_READER) private readonly movements: CreditCardMovementsReader,
-    @Inject(INSTALLMENT_PLAN_REPOSITORY) private readonly plans: InstallmentPlanRepository,
+    @Inject(CREDIT_CARD_MOVEMENTS_READER) readonly movements: CreditCardMovementsReader,
+    @Inject(INSTALLMENT_PLAN_REPOSITORY) readonly plans: InstallmentPlanRepository,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -53,17 +59,34 @@ export class GetCreditCardStatuses {
 
   private async withStatus(userId: string, view: CreditCardView): Promise<CreditCardStatusView> {
     const day = today(this.clock);
-    const [movements, plans] = await Promise.all([
-      this.movements.paymentMethodTotalsByDay(userId, view.card.paymentMethodId, day),
-      this.plans.listByCard(userId, view.card.id),
-    ]);
-    const installmentPlans = activePlans(
-      await resolveInstallmentPlans(this.movements, userId, view.card, plans, day),
-    );
 
-    return {
-      ...view,
-      status: computeCardStatus({ settings: view.card, movements, installmentPlans, today: day }),
-    };
+    return { ...view, status: await cardStatusAt(this, userId, view, day, day) };
   }
+}
+
+interface CardStatusReaders {
+  movements: CreditCardMovementsReader;
+  plans: InstallmentPlanRepository;
+}
+
+/**
+ * El estado de una tarjeta visto el día `day`, con los movimientos hasta `until` (incluido). Hoy
+ * son el mismo día; el resumen mensual mira un estado ya cerrado a su fecha de corte.
+ */
+export async function cardStatusAt(
+  readers: CardStatusReaders,
+  userId: string,
+  view: CreditCardView,
+  day: LocalDate,
+  until: LocalDate,
+): Promise<CardStatus> {
+  const [movements, plans] = await Promise.all([
+    readers.movements.paymentMethodTotalsByDay(userId, view.card.paymentMethodId, until),
+    readers.plans.listByCard(userId, view.card.id),
+  ]);
+  const installmentPlans = activePlans(
+    await resolveInstallmentPlans(readers.movements, userId, view.card, plans, day),
+  );
+
+  return computeCardStatus({ settings: view.card, movements, installmentPlans, today: day });
 }

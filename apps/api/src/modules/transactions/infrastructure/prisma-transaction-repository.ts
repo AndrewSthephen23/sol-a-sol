@@ -13,6 +13,7 @@ import { PrismaService } from '../../../shared/prisma/prisma.service.js';
 import {
   type CategoryAmount,
   type DayAmount,
+  type MerchantAmount,
   type NewTransaction,
   orderTags,
   type PagePosition,
@@ -253,6 +254,36 @@ export class PrismaTransactionRepository implements TransactionRepository {
       count: row.count,
     }));
   }
+  async totalsByMerchant(userId: string, filter: TransactionFilter): Promise<MerchantAmount[]> {
+    const rows = await this.prisma.$queryRaw<
+      {
+        merchant: string;
+        type: Transaction['type'];
+        currency: Currency;
+        amount: string;
+        count: number;
+      }[]
+    >`
+      SELECT btrim(merchant) AS merchant,
+             type::text AS type,
+             currency::text AS currency,
+             sum(amount)::text AS amount,
+             count(*)::int AS count
+        FROM transactions
+       WHERE ${Prisma.join(
+         [...filterConditions(userId, filter), Prisma.sql`btrim(coalesce(merchant, '')) <> ''`],
+         ' AND ',
+       )}
+       GROUP BY btrim(merchant), type, currency`;
+
+    return rows.map((row) => ({
+      merchant: row.merchant,
+      type: row.type,
+      amount: Money.of(row.amount, row.currency),
+      count: row.count,
+    }));
+  }
+
   async totalsByDay(userId: string, filter: TransactionFilter): Promise<DayAmount[]> {
     const rows = await this.prisma.$queryRaw<
       {

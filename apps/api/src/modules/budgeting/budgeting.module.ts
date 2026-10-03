@@ -4,6 +4,7 @@ import { PrismaModule } from '../../shared/prisma/prisma.module.js';
 import { CatalogLookup, CatalogModule } from '../catalog/index.js';
 import { TransactionsLookup, TransactionsModule } from '../transactions/index.js';
 import { IdentityModule } from '../identity/index.js';
+import { BudgetingLookup } from './application/budgeting-lookup.js';
 import { GetBudget, ReplaceBudget } from './application/budgets.js';
 import { CopyPreviousBudget } from './application/copy-previous-budget.js';
 import { ReassignBudgetCategory } from './application/reassign-budget-category.js';
@@ -20,7 +21,8 @@ import { BUDGET_CATALOG_READER } from './ports/catalog-reader.js';
  *
  * Importa solo la API pública de otros módulos: de `identity`, el guard que resuelve quién pide;
  * de `catalog`, `CatalogLookup`, que cumple el puerto `BudgetCatalogReader`; de `transactions`,
- * `TransactionsLookup`, que cumple `BudgetActualsReader` (lo real de cada mes).
+ * `TransactionsLookup`, que cumple `BudgetActualsReader` (lo real de cada mes). Ofrece
+ * `BudgetingLookup` (las partidas del mes) a quien lo importe.
  */
 @Module({
   imports: [PrismaModule, IdentityModule, CatalogModule, TransactionsModule],
@@ -30,11 +32,13 @@ import { BUDGET_CATALOG_READER } from './ports/catalog-reader.js';
     ReplaceBudget,
     CopyPreviousBudget,
     ReassignBudgetCategory,
+    BudgetingLookup,
     BudgetCategoryMergedListener,
     { provide: BUDGET_REPOSITORY, useClass: PrismaBudgetRepository },
     { provide: BUDGET_CATALOG_READER, useExisting: CatalogLookup },
     { provide: BUDGET_ACTUALS_READER, useExisting: TransactionsLookup },
   ],
-  exports: [],
+  // Lo que otros módulos pueden leer (el resumen mensual de `reports`).
+  exports: [BudgetingLookup],
 })
 export class BudgetingModule {}

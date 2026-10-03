@@ -5,6 +5,8 @@ import { RequiresFeature } from '../../../shared/feature-flags/feature-flag.guar
 import { ZodValidationPipe } from '../../../shared/http/zod-validation.pipe.js';
 import { AccessTokenGuard, CurrentUser } from '../../identity/index.js';
 import { GetMonthlyDashboard, type MonthlyDashboard } from '../application/monthly-dashboard.js';
+import { GetMonthlySummary } from '../application/monthly-summary.js';
+import { type MonthlySummaryResponse, monthlySummaryResponse } from './monthly-summary.response.js';
 
 /** Lo que viaja: montos como **string decimal** y porcentajes como string sin redondear. */
 export interface MonthlyReportResponse {
@@ -58,14 +60,17 @@ function toResponse(dashboard: MonthlyDashboard): MonthlyReportResponse {
 }
 
 /**
- * Reportes: solo lectura. Hoy, el dashboard del mes (H4); el resumen mensual y el anual llegan en
- * H6. Solo desde una sesión; un token personal recibe 403.
+ * Reportes: solo lectura. El dashboard del mes (H4) y el resumen mensual (H6); el anual llega
+ * después. Solo desde una sesión; un token personal recibe 403.
  */
 @Controller('reports')
 @RequiresFeature('reports')
 @UseGuards(AccessTokenGuard)
 export class ReportsController {
-  constructor(private readonly monthly: GetMonthlyDashboard) {}
+  constructor(
+    private readonly monthly: GetMonthlyDashboard,
+    private readonly monthlySummary: GetMonthlySummary,
+  ) {}
 
   @Get('monthly')
   async getMonthly(
@@ -73,5 +78,14 @@ export class ReportsController {
     @Query(new ZodValidationPipe(monthlyReportQuerySchema)) query: MonthlyReportQuery,
   ): Promise<MonthlyReportResponse> {
     return toResponse(await this.monthly.execute({ userId, ...query }));
+  }
+
+  /** El cierre del mes: un mes que no empezó responde 422 (`SUMMARY_MONTH_IN_FUTURE`). */
+  @Get('monthly-summary')
+  async getMonthlySummary(
+    @CurrentUser() userId: string,
+    @Query(new ZodValidationPipe(monthlyReportQuerySchema)) query: MonthlyReportQuery,
+  ): Promise<MonthlySummaryResponse> {
+    return monthlySummaryResponse(await this.monthlySummary.execute({ userId, ...query }));
   }
 }

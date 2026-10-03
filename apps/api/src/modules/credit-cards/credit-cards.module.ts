@@ -5,6 +5,7 @@ import { CatalogLookup, CatalogModule } from '../catalog/index.js';
 import { IdentityModule } from '../identity/index.js';
 import { TransactionsLookup, TransactionsModule } from '../transactions/index.js';
 import { GetCreditCardStatuses } from './application/credit-card-status.js';
+import { CreditCardsLookup } from './application/credit-cards-lookup.js';
 import {
   CreateInstallmentPlan,
   DeleteInstallmentPlan,
@@ -44,11 +45,13 @@ import { CREDIT_CARD_MOVEMENTS_READER } from './ports/movements-reader.js';
     ListInstallmentPlans,
     CreateInstallmentPlan,
     DeleteInstallmentPlan,
+    CreditCardsLookup,
     { provide: INSTALLMENT_PLAN_REPOSITORY, useClass: PrismaInstallmentPlanRepository },
     { provide: CREDIT_CARD_REPOSITORY, useClass: PrismaCreditCardRepository },
     { provide: CREDIT_CARD_CATALOG_READER, useExisting: CatalogLookup },
     { provide: CREDIT_CARD_MOVEMENTS_READER, useExisting: TransactionsLookup },
   ],
-  exports: [],
+  // Lo que otros módulos pueden leer (el resumen mensual de `reports`).
+  exports: [CreditCardsLookup],
 })
 export class CreditCardsModule {}

@@ -4,6 +4,7 @@ export { TransactionsModule } from './transactions.module.js';
 export {
   type CategoryTotal,
   type DayTotal,
+  type MerchantTotal,
   type PaymentMethodDayTotal,
   type PaymentMethodMovementKind,
   type TransactionReference,

@@ -110,6 +110,10 @@ Los montos viajan como `{ amount: "5000.00", currency: "PEN" }`; la regla de pag
 | `INSTALLMENT_COUNT_INVALID`         | 422    | Fuera de 2 a 36 cuotas                                             |
 | `INSTALLMENT_TOO_SMALL`             | 422    | Alguna cuota quedaría en cero                                      |
 
+## API pública para otros módulos
+
+`CreditCardsLookup` (exportado por `index.ts`): `monthlyCards(userId, desde, hasta)` da, para cada tarjeta de la cuenta (archivadas incluidas), lo que la identifica (alias, banco, últimos 4), lo **cargado** en el periodo por moneda (compras, deuda y disposiciones; una compra en cuotas, entera el día que se hizo) y el estado de cuenta que **cerró** en él, con su deuda al corte y lo que faltaba pagar a la fecha `hasta`. Se calcula con `computeCardStatus`, igual que el estado de hoy (`cardStatusAt`). Si el corte cae justo en `hasta`, se mira al día siguiente con los movimientos solo hasta `hasta`: el mismo día del corte el estado todavía no está «cerrado». Lo lee el **resumen mensual** de `reports` (H6). Exige el `userId`.
+
 ## Alertas en el dashboard
 
 El bloque **«Tarjetas»** de `/` (decisión 12) lo arma la **web**, pidiendo `GET /credit-cards/status` junto al resumen; `reports` no se toca. Así, con `FEATURE_CREDIT_CARDS` apagado, la página ni dibuja el bloque ni pide nada de tarjetas, y el dashboard no delata el módulo.

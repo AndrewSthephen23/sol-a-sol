@@ -83,6 +83,10 @@ Cada partida viaja como `{ categoryId, plannedAmount, currency }`, con el monto 
 
 **Copiar del mes anterior** (tarea 05): solo completa lo que falta y **nunca pisa** una partida (misma categoría y moneda); si el mes anterior está vacío, copia del **último mes con presupuesto** (un mes posterior nunca es «anterior»); las categorías archivadas **no se copian** y van en `skipped`, para que no desaparezcan en silencio. **Sin ningún mes anterior con presupuesto responde 200 con `copiedFrom: null`**: no es un error (2026-09-29). Todo se escribe de una vez.
 
+## API pública para otros módulos
+
+`BudgetingLookup` (exportado por `index.ts`): `lines(userId, año, mes)` da las partidas del mes (categoría madre, tipo y lo planeado con su moneda); `[]` si no hay presupuesto. Lo lee el **resumen mensual** de `reports` (H6), que pone lo real con las transacciones que ya consulta. Exige el `userId`; nadie más lee estas tablas.
+
 ## Estado
 
 - Feature flag: **`FEATURE_BUDGETING=true`** desde el cierre de H4 (0.5.0).

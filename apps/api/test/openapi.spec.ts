@@ -174,6 +174,43 @@ describe('GET /openapi.json', () => {
       expect(JSON.stringify(response.body)).not.toContain('/credit-cards');
     });
 
+    it('leaves the sections of switched-off modules out of the monthly summary', async () => {
+      const summaryProperties = async () => {
+        const response = await request(server).get(DOCUMENT).expect(200);
+        const { paths } = response.body as {
+          paths: Record<
+            string,
+            {
+              get: {
+                responses: {
+                  '200': { content: { 'application/json': { schema: { properties: object } } } };
+                };
+              };
+            }
+          >;
+        };
+        const schema =
+          paths[`/${API_PREFIX}/reports/monthly-summary`]?.get.responses['200'].content[
+            'application/json'
+          ].schema;
+
+        return Object.keys(schema?.properties ?? {});
+      };
+
+      const allOn = await summaryProperties();
+      process.env.FEATURE_BUDGETING = 'false';
+      process.env.FEATURE_CREDIT_CARDS = 'false';
+      process.env.FEATURE_GOALS = 'false';
+      const allOff = await summaryProperties();
+      process.env.FEATURE_BUDGETING = 'true';
+      process.env.FEATURE_CREDIT_CARDS = 'true';
+      process.env.FEATURE_GOALS = 'true';
+
+      expect(allOn).toEqual(expect.arrayContaining(['budget', 'cards', 'goals']));
+      expect(allOff).toContain('currencies');
+      expect(allOff.filter((key) => ['budget', 'cards', 'goals'].includes(key))).toEqual([]);
+    });
+
     it('leaves the goals out too', async () => {
       process.env.FEATURE_GOALS = 'false';
 

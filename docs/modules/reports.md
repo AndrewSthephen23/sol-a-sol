@@ -1,6 +1,6 @@
 # Módulo Reportes (`reports`)
 
-> Ficha del módulo. Estado: **publicado en 0.5.0** (cierre de H4): el **dashboard del mes**, en la API y en la página de inicio `/`. Flag **encendido**. En H6 llega el **resumen mensual**: hoy está su dominio (tarea 05); la API y la pantalla llegan con las tareas 06 a 08. Después, el anual.
+> Ficha del módulo. Estado: **publicado en 0.5.0** (cierre de H4): el **dashboard del mes**, en la API y en la página de inicio `/`. Flag **encendido**. En H6 llega el **resumen mensual**: hoy están su dominio y su API (`GET /reports/monthly-summary`); la exportación y la pantalla llegan con las tareas 07 y 08. Después, el anual.
 
 ## Qué resuelve
 
@@ -45,6 +45,8 @@ El **cierre** de un mes: el dashboard sirve para seguirlo día a día, el resume
 
 **En el dominio:** `monthlySummaryPeriods` (qué días mira y con cuáles compara) y `computeMonthlySummary` (`packages/domain/src/reports/monthly-summary.ts`, mutation testing al 100 %), que reutilizan `totalsByCurrency`, `summarizeBudget`, `computeBudgetVariance`, `searchKey` y `computeGoalProgress`. El estado de cada tarjeta llega ya calculado.
 
+**En la API:** `GetMonthlySummary` junta los datos, cada uno por la API pública de su módulo y detrás de un **puerto propio** (`useExisting` en `reports.module.ts`): lo real y los comercios de `transactions` (`TransactionsLookup`), las categorías de `catalog` (`CatalogLookup`, para subir cada hija a su madre), las partidas de `budgeting` (`BudgetingLookup`), las tarjetas de `credit-cards` (`CreditCardsLookup`) y las metas de `goals` (`GoalsLookup`). Qué módulos están encendidos lo dice `FeatureFlagsService` detrás del puerto `ReportFeatureFlags`: uno **apagado no se consulta** y su sección no aparece, ni en la respuesta ni en el esquema de OpenAPI, para no delatar lo que su 404 oculta.
+
 ## Modelo de datos
 
 **Ninguno**: `reports` es solo lectura y se calcula al consultar (sección 6.3 del plan).
@@ -58,9 +60,10 @@ El **cierre** de un mes: el dashboard sirve para seguirlo día a día, el resume
 
 Exige una sesión (un token personal recibe 403), filtra por el `userId` del token y responde **404** con el flag apagado. Detalle en `/api/v1/openapi.json`.
 
-| Método | Ruta                            | Qué hace                                                                                                                       |
-| ------ | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `GET`  | `/reports/monthly?year=&month=` | El dashboard del mes en una llamada: por moneda, `kpis`, `daily`, `distribution` y `byType`. Sin movimientos, `currencies: []` |
+| Método | Ruta                                    | Qué hace                                                                                                                                                                                                                                                               |
+| ------ | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`  | `/reports/monthly?year=&month=`         | El dashboard del mes en una llamada: por moneda, `kpis`, `daily`, `distribution` y `byType`. Sin movimientos, `currencies: []`                                                                                                                                         |
+| `GET`  | `/reports/monthly-summary?year=&month=` | El cierre del mes: `period` y `previousPeriod`, por moneda `totals`, `savingsRate`, `byType`, `byCategory`, `topCategories` y `topMerchants`, y `budget`, `cards` y `goals` si su módulo está encendido. Un mes que no empezó responde 422 (`SUMMARY_MONTH_IN_FUTURE`) |
 
 Montos como **string decimal**; la parte de la dona (`share`) como string **sin redondear** (la web muestra 2 decimales). Un mes que no existe responde **422** (`INVALID_LOCAL_DATE`).
 
