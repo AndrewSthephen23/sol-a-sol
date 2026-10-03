@@ -123,4 +123,15 @@ Los montos llegan como string y se muestran con `formatMoney`. Solo para dibujar
 - **Metas:** lo aportado en el mes y cómo quedó cada una.
 - **«Descargar CSV»:** pide el archivo con el cliente (la sesión vive en memoria, así que un `<a href>` no llevaría el token), arma un `Blob` y lo baja con el nombre que da la API.
 
-Las secciones de presupuesto, tarjetas y metas dependen de sus flags, que la página lee **en el servidor**: apagado, la sección no se dibuja, y la API tampoco la manda. La pantalla pide solo el resumen (y las categorías, para nombrarlas). Las pestañas Mensual y Anual llegan con el resumen anual (tarea 10).
+Las secciones de presupuesto, tarjetas y metas dependen de sus flags, que la página lee **en el servidor**: apagado, la sección no se dibuja, y la API tampoco la manda. La pantalla pide solo el resumen (y las categorías, para nombrarlas). Las pestañas **Mensual** y **Anual** pasan de una vista a la otra.
+
+### «Resumen» › «Anual»: el año mes a mes
+
+`/reports/annual?year=2026`, con un selector de año (el mismo `PeriodNavigator` que el de mes) que no baja de 2000 ni pasa del año de hoy; un año fuera de eso en la URL muestra el de hoy. Por moneda, sin convertir:
+
+- **Barras por mes** de ingresos, gastos (fijo + variable), ahorro e inversión, con Recharts **solo en el navegador** (`ClientOnly`) y el SVG con `aria-hidden`. Un mes que no llegó queda sin barra. El monto pasa a número **solo para el alto de la barra** (`chartNumber`).
+- **La tabla fila × mes** con su total, que es la **alternativa en texto** de las barras y lo que se lee en el teléfono: se desliza de lado dentro de su caja, con la columna del concepto fija, sin mover la página. Un mes que no llegó es «—»; los negativos van en rojo y con su signo.
+- **La tasa de ahorro del año** en texto («En 2026 ahorraste el 15.20 % de lo que ganaste», o «En 2026 no hubo ingresos»).
+- **La dona del gasto del año**, la misma del dashboard (`DistributionChart`) pero **sin enlaces**: los movimientos se filtran por mes, no por año.
+
+La CSP no se abre: los colores van como atributo `fill` del SVG, y la E2E falla si el navegador bloquea algo.

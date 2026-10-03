@@ -15,6 +15,7 @@ import { useCategories } from '@/features/transactions/queries';
 import { DailyChart } from './daily-chart';
 import { DistributionChart } from './distribution-chart';
 import { KpiCards } from './kpi-cards';
+import { categoryLink } from './dashboard-model';
 import { useMonthlyReport } from './queries';
 import { TypeTables } from './type-tables';
 
@@ -109,8 +110,8 @@ export function DashboardScreen({
                 <DistributionChart
                   distribution={entry.distribution}
                   currency={entry.currency}
-                  month={month}
                   categories={categories}
+                  linkFor={(categoryId) => categoryLink(categoryId, month)}
                 />
               </div>
             </div>

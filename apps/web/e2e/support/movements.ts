@@ -174,3 +174,39 @@ export async function configureCard(fixture: CardFixture): Promise<void> {
   });
   if (!card.data) throw new Error(`Credit card answered ${String(card.response.status)}.`);
 }
+
+/**
+ * Deja un año ya cerrado con movimientos en dos meses: un sueldo de S/ 1,000.00 el 5 de marzo y
+ * gastos en «Comida» de S/ 100.00 el 10 de enero y S/ 50.00 el 20 de diciembre. Usa las
+ * categorías de la semilla; el año lo elige quien llama (el anterior, para que no dependa del día).
+ */
+export async function seedYear({ email, password }: Account, year: number): Promise<void> {
+  const login = await api.POST('/api/v1/auth/login', { body: { email, password } });
+  if (!login.data) throw new Error(`Login answered ${String(login.response.status)}.`);
+  const headers = { Authorization: `Bearer ${login.data.accessToken}` };
+
+  const categories = await api.GET('/api/v1/categories', { headers });
+  const food = categories.data?.find((category) => category.name === 'Comida');
+  const salary = categories.data?.find((category) => category.name === 'Sueldo o Salario');
+  if (!food || !salary) throw new Error('The seeded categories are missing.');
+
+  const movements = [
+    { date: `${String(year)}-03-05`, category: salary, amount: '1000.00', description: 'Sueldo' },
+    { date: `${String(year)}-01-10`, category: food, amount: '100.00', description: 'Mercado' },
+    { date: `${String(year)}-12-20`, category: food, amount: '50.00', description: 'Cena' },
+  ];
+  for (const movement of movements) {
+    const created = await api.POST('/api/v1/transactions', {
+      headers,
+      body: {
+        date: movement.date,
+        type: movement.category.type,
+        categoryId: movement.category.id,
+        amount: movement.amount,
+        currency: 'PEN',
+        description: movement.description,
+      },
+    });
+    if (!created.data) throw new Error(`Transaction answered ${String(created.response.status)}.`);
+  }
+}

@@ -12,6 +12,7 @@ import { useCategories } from '@/features/transactions/queries';
 
 import { useDownloadSummaryCsv, useMonthlySummary } from './queries';
 import { BudgetSection, CardsSection, CurrencySection, GoalsSection } from './summary-sections';
+import { ReportTabs } from './report-tabs';
 import { previousLabel } from './summary-model';
 
 const NOTICE = 'rounded-lg border border-stone-200 bg-white p-6 text-center text-sm text-stone-600';
@@ -64,6 +65,7 @@ export function SummaryScreen({
           {download.isPending ? 'Descargando…' : 'Descargar CSV'}
         </button>
       </div>
+      <ReportTabs current="monthly" />
       {download.isError && (
         <p role="alert" className="text-sm text-red-700">
           No se pudo descargar el CSV. Inténtalo de nuevo.
