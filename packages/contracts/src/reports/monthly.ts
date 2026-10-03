@@ -16,3 +16,13 @@ export const monthlyReportQuerySchema = z.object({
 });
 
 export type MonthlyReportQuery = z.infer<typeof monthlyReportQuerySchema>;
+
+/**
+ * Exportar el resumen de un mes: el mismo mes, y el formato. Hoy solo `csv`; el PDF es de una fase
+ * posterior y se rechaza en vez de ignorarse.
+ */
+export const monthlySummaryExportQuerySchema = monthlyReportQuerySchema.extend({
+  format: z.enum(['csv']),
+});
+
+export type MonthlySummaryExportQuery = z.infer<typeof monthlySummaryExportQuerySchema>;

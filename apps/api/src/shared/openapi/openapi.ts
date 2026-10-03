@@ -1678,6 +1678,41 @@ function reportsPaths(
         },
       },
     },
+    [`/${API_PREFIX}/reports/monthly-summary/export`]: {
+      get: {
+        tags: ['reports'],
+        summary: 'Descarga el cierre de un mes como CSV.',
+        description:
+          'Un solo archivo con todas las secciones como filas (Sección, Concepto, Moneda, Monto, ' +
+          'Comparado con, Diferencia, Porcentaje), separado por `;`, con BOM UTF-8, montos con ' +
+          'punto decimal y sin separador de miles, y porcentajes con 2 decimales. Lo que escribió ' +
+          'el usuario nunca se ejecuta como fórmula. Las secciones de un módulo apagado no vienen.',
+        security: [{ accessToken: [] }],
+        parameters: [
+          ...YEAR_MONTH_PARAMETERS,
+          {
+            name: 'format',
+            in: 'query',
+            required: true,
+            schema: { type: 'string', enum: ['csv'] },
+            description: 'Solo `csv` por ahora.',
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'El archivo (`attachment; filename="resumen-AAAA-MM.csv"`).',
+            content: { 'text/csv': { schema: { type: 'string' } } },
+          },
+          '401': problem('Falta el token de acceso o no vale.'),
+          '403': problem('Llegó un token personal: los reportes solo se ven desde una sesión.'),
+          '404': problem('El módulo está apagado.'),
+          '422': problem(
+            'Falta el año, el mes o el formato, no tienen la forma esperada (un formato que no es ' +
+              '`csv`), el mes no existe, o todavía no empieza (`SUMMARY_MONTH_IN_FUTURE`).',
+          ),
+        },
+      },
+    },
   };
 }
 

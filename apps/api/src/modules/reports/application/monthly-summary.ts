@@ -30,6 +30,8 @@ import {
 export interface MonthlySummaryView {
   periods: MonthlySummaryPeriods;
   summary: MonthlySummary;
+  /** Por id: el nombre de cada categoría de la cuenta, archivadas incluidas. */
+  categories: ReadonlyMap<string, string>;
   /** Por id: lo que identifica a cada tarjeta. Vacío si `credit-cards` está apagado. */
   cards: ReadonlyMap<string, ReportCard['label']>;
   /** Por id: el nombre y la moneda de cada meta. Vacío si `goals` está apagado. */
@@ -95,6 +97,7 @@ export class GetMonthlySummary {
         ...(cards === undefined ? {} : { cards }),
         ...(goals === undefined ? {} : { goals }),
       }),
+      categories: new Map(categories.map((category) => [category.id, category.name])),
       cards: new Map((cards ?? []).map((card) => [card.cardId, card.label])),
       goals: new Map((goals ?? []).map((goal) => [goal.goalId, goal])),
     };

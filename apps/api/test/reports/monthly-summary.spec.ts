@@ -351,6 +351,95 @@ describe('monthly summary', () => {
     expect(summary.currencies).toHaveLength(1);
   });
 
+  describe('CSV export', () => {
+    const EXPORT = `${SUMMARY}/export?year=2026&month=9&format=csv`;
+
+    function download(path = EXPORT, session = ana.session): request.Test {
+      return request(server).get(path).set('Authorization', `Bearer ${session}`);
+    }
+
+    function rowsOf(response: request.Response): string[] {
+      return response.text.slice(1).split('\r\n');
+    }
+
+    it('downloads the summary as a CSV that opens well in Excel', async () => {
+      const response = await download().expect(200);
+
+      expect(response.headers['content-type']).toBe('text/csv; charset=utf-8');
+      expect(response.headers['content-disposition']).toBe(
+        'attachment; filename="resumen-2026-09.csv"',
+      );
+      expect(response.headers['cache-control']).toBe('no-store');
+      expect(response.text.codePointAt(0)).toBe(0xfeff);
+      const rows = rowsOf(response);
+      expect(rows[0]).toBe('Sección;Concepto;Moneda;Monto;Comparado con;Diferencia;Porcentaje');
+      expect(rows).toContain('Totales;Ingresos;PEN;3000.00;;;');
+      expect(rows).toContain(
+        'Por categoría;Víveres (gasto variable);PEN;110.00;40.00;70.00;175.00',
+      );
+      expect(rows).toContain('Top comercios;TAMBO (2 compras);PEN;110.00;;;');
+      expect(rows).toContain('Presupuesto excedido;Víveres;PEN;110.00;100.00;-10.00;110.00');
+      expect(rows).toContain('Metas;Viaje · aportado en el mes;PEN;300.00;;;');
+      expect(
+        rows.some((row) => row.startsWith('Tarjetas;Visa BCP •••• 4321 · consumo del mes;')),
+      ).toBe(true);
+    });
+
+    it('never runs what the user wrote as a formula', async () => {
+      await spend(ana, ana.groceries, '2026-09-25', '1.00', '=HYPERLINK("http://x")');
+
+      const rows = rowsOf(await download().expect(200));
+
+      expect(rows).toContain(`Top comercios;"'=HYPERLINK(""http://x"") (1 compra)";PEN;1.00;;;`);
+    });
+
+    it('has only what belongs to the account', async () => {
+      const mine = await download().expect(200);
+      const brunos = await download(EXPORT, bruno.session).expect(200);
+
+      expect(mine.text).not.toContain('999.00');
+      expect(rowsOf(brunos)).toContain('Top comercios;Tambo (1 compra);PEN;999.00;;;');
+      expect(brunos.text).not.toContain('110.00');
+    });
+
+    it('leaves out the sections of a switched-off module', async () => {
+      process.env.FEATURE_CREDIT_CARDS = 'false';
+      process.env.FEATURE_GOALS = 'false';
+
+      const rows = rowsOf(await download().expect(200));
+
+      expect(rows.some((row) => /^(Tarjetas|Metas);/u.test(row))).toBe(false);
+      expect(rows.some((row) => row.startsWith('Presupuesto;'))).toBe(true);
+    });
+
+    it.each(['pdf', 'CSV', ''])('refuses the format %j with 422', async (format) => {
+      await download(`${SUMMARY}/export?year=2026&month=9&format=${format}`).expect(422);
+    });
+
+    it('refuses a month that has not started', async () => {
+      const response = await download(`${SUMMARY}/export?year=2026&month=11&format=csv`).expect(
+        422,
+      );
+
+      expect((response.body as ProblemDetails).type).toBe(problemType('SUMMARY_MONTH_IN_FUTURE'));
+    });
+
+    it('requires a session, refuses a personal token, and answers 404 with the reports off', async () => {
+      await request(server).get(EXPORT).expect(401);
+      const created = await request(server)
+        .post(TOKENS)
+        .set('Authorization', `Bearer ${ana.session}`)
+        .send({ name: 'iPhone', scopes: ['captures:write'] })
+        .expect(201);
+      await request(server)
+        .get(EXPORT)
+        .set('Authorization', `Bearer ${(created.body as { token: string }).token}`)
+        .expect(403);
+      process.env.FEATURE_REPORTS = 'false';
+      await download().expect(404);
+    });
+  });
+
   describe('access', () => {
     const send = () => request(server).get(SEPTEMBER);
 

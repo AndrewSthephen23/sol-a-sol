@@ -25,9 +25,12 @@ export interface ReportActualsReader {
   ): Promise<{ merchant: string; type: TransactionType; amount: Money; count: number }[]>;
 }
 
-/** Las categorías de la cuenta, para subir lo de una hija a su madre. Lo cumple `CatalogLookup`. */
+/**
+ * Las categorías de la cuenta, archivadas incluidas: para subir lo de una hija a su madre y, en el
+ * CSV, nombrarlas. Lo cumple `CatalogLookup`.
+ */
 export interface ReportCatalogReader {
-  allCategories(userId: string): Promise<{ id: string; parentId: string | null }[]>;
+  allCategories(userId: string): Promise<{ id: string; name: string; parentId: string | null }[]>;
 }
 
 /** Las partidas de un mes, sin conocer las tablas de `budgeting`. Lo cumple `BudgetingLookup`. */
