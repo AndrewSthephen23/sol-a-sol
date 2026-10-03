@@ -60,6 +60,12 @@ const STATUS_BY_DOMAIN_CODE = new Map<string, number>([
   ['INSTALLMENT_PLAN_NOT_FOUND', HttpStatus.NOT_FOUND],
   // La compra ya se paga en cuotas: se deshace ese plan, no se agrega otro.
   ['INSTALLMENT_PLAN_ALREADY_EXISTS', HttpStatus.CONFLICT],
+  ['GOAL_NOT_FOUND', HttpStatus.NOT_FOUND],
+  // El nombre está bien escrito, pero choca con otra meta que ya existe (quizá archivada).
+  ['GOAL_NAME_TAKEN', HttpStatus.CONFLICT],
+  ['GOAL_CONTRIBUTION_NOT_FOUND', HttpStatus.NOT_FOUND],
+  // La transacción ya aporta a una meta: se deshace ese aporte, no se enlaza otra vez.
+  ['GOAL_TRANSACTION_ALREADY_LINKED', HttpStatus.CONFLICT],
 ]);
 
 /** Una regla de negocio rechazó una petición bien formada: contenido no procesable. */
