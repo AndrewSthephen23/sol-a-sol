@@ -5333,6 +5333,8 @@ export interface paths {
                                 percentage: string;
                                 /** @description Lo esperado aportando parejo, al cierre del mes anterior, en %, sin redondear. 100 con la fecha fin pasada. */
                                 expectedPercentage: string;
+                                /** @description Lo que falta para ir al día: lo esperado menos lo ahorrado. Cero si se va al día o adelantado. */
+                                behind: string;
                                 /** @description Lo que falta entre los meses que quedan (el actual incluido), redondeado hacia arriba al céntimo. Cero si ya se llegó; nulo con la fecha fin pasada. */
                                 suggestedMonthly: string | null;
                                 /**
@@ -5444,6 +5446,8 @@ export interface paths {
                                 percentage: string;
                                 /** @description Lo esperado aportando parejo, al cierre del mes anterior, en %, sin redondear. 100 con la fecha fin pasada. */
                                 expectedPercentage: string;
+                                /** @description Lo que falta para ir al día: lo esperado menos lo ahorrado. Cero si se va al día o adelantado. */
+                                behind: string;
                                 /** @description Lo que falta entre los meses que quedan (el actual incluido), redondeado hacia arriba al céntimo. Cero si ya se llegó; nulo con la fecha fin pasada. */
                                 suggestedMonthly: string | null;
                                 /**
@@ -5583,6 +5587,8 @@ export interface paths {
                                 percentage: string;
                                 /** @description Lo esperado aportando parejo, al cierre del mes anterior, en %, sin redondear. 100 con la fecha fin pasada. */
                                 expectedPercentage: string;
+                                /** @description Lo que falta para ir al día: lo esperado menos lo ahorrado. Cero si se va al día o adelantado. */
+                                behind: string;
                                 /** @description Lo que falta entre los meses que quedan (el actual incluido), redondeado hacia arriba al céntimo. Cero si ya se llegó; nulo con la fecha fin pasada. */
                                 suggestedMonthly: string | null;
                                 /**

@@ -51,12 +51,19 @@ export interface GoalProgress {
    * hasta fin de mes para aportar (2026-10-03). Sin redondear; 100 si la fecha fin ya pasó.
    */
   readonly expectedPercentage: Decimal;
+  /**
+   * Cuánto falta para ir al día: lo esperado (`expectedPercentage` del objetivo) menos lo
+   * ahorrado, sin redondear; cero si se va al día o adelantado.
+   */
+  readonly behind: Money;
   /** Cuánto aportar cada mes para llegar; cero si ya se llegó, `null` si la fecha fin pasó. */
   readonly suggestedMonthly: Money | null;
   readonly status: GoalStatus;
 }
 
 const MONTHS_PER_YEAR = 12;
+/** De porcentaje a factor: 59 (%) × 0.01 = 0.59. */
+const PERCENT_TO_FACTOR = '0.01';
 
 export function computeGoalProgress(request: GoalProgressRequest): GoalProgress {
   assertGoalSettings(request);
@@ -68,6 +75,7 @@ export function computeGoalProgress(request: GoalProgressRequest): GoalProgress 
   const percentage = present(saved.percentageOf(target));
   const expectedPercentage = expectedPercentageAt(request);
   const overdue = today.isAfter(endDate);
+  const gap = target.multiply(expectedPercentage).multiply(PERCENT_TO_FACTOR).subtract(saved);
 
   return {
     saved,
@@ -75,6 +83,7 @@ export function computeGoalProgress(request: GoalProgressRequest): GoalProgress 
     excess,
     percentage,
     expectedPercentage,
+    behind: gap.isPositive() ? gap : Money.zero(target.currency),
     suggestedMonthly: suggestedMonthly(remaining, request, overdue),
     status: statusOf(remaining, overdue, expectedPercentage.minus(percentage)),
   };

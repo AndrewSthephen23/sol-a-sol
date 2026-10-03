@@ -49,6 +49,7 @@ interface GoalBody {
     excess: string;
     percentage: string;
     expectedPercentage: string;
+    behind: string;
     suggestedMonthly: string | null;
     status: string;
   };
@@ -222,6 +223,8 @@ describe('goals', () => {
           percentage: '0',
           // Al 30 de setiembre van 273 de 365 días.
           expectedPercentage: expect.stringMatching(/^74\.794520/u) as string,
+          // 74.794520…% de S/ 1,200.00: S/ 897.534246… → 897.53.
+          behind: '897.53',
           // Octubre, noviembre y diciembre.
           suggestedMonthly: '400.00',
           status: 'AT_RISK',

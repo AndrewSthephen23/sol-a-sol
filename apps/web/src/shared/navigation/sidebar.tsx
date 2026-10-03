@@ -21,8 +21,9 @@ export function Sidebar({ manifests, isEnabled, actions }: Readonly<SidebarProps
 
   return (
     <nav aria-label="Secciones" className="border-b border-stone-200 bg-white">
-      <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-3 text-sm">
-        <ul className="flex gap-4">
+      {/* Las secciones pasan a otra línea si no caben: en un teléfono nunca desbordan la página. */}
+      <div className="mx-auto flex max-w-3xl items-start justify-between gap-4 px-4 py-3 text-sm">
+        <ul className="flex min-w-0 flex-wrap gap-x-4 gap-y-2">
           {items.map((item) => (
             <li key={item.id}>
               <a className="font-medium text-stone-700 hover:text-amber-600" href={item.route}>
@@ -31,7 +32,7 @@ export function Sidebar({ manifests, isEnabled, actions }: Readonly<SidebarProps
             </li>
           ))}
         </ul>
-        {actions}
+        {actions !== undefined && <div className="shrink-0">{actions}</div>}
       </div>
     </nav>
   );

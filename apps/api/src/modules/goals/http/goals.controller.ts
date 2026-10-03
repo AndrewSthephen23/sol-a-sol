@@ -35,6 +35,8 @@ export interface GoalResponse {
     excess: string;
     percentage: string;
     expectedPercentage: string;
+    /** Lo que falta para ir al día; `"0.00"` si se va al día. */
+    behind: string;
     /** `null` con la fecha fin pasada. */
     suggestedMonthly: string | null;
     status: string;
@@ -56,6 +58,7 @@ export function goalResponse({ goal, progress }: GoalView): GoalResponse {
       excess: progress.excess.toFixed(),
       percentage: progress.percentage.toString(),
       expectedPercentage: progress.expectedPercentage.toString(),
+      behind: progress.behind.toFixed(),
       suggestedMonthly: progress.suggestedMonthly?.toFixed() ?? null,
       status: progress.status,
     },

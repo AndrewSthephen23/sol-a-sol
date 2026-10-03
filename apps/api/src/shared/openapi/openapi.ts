@@ -1921,6 +1921,12 @@ const GOAL_SCHEMA = schemaOf(
             'Lo esperado aportando parejo, al cierre del mes anterior, en %, sin redondear. 100 ' +
               'con la fecha fin pasada.',
           ),
+        behind: z
+          .string()
+          .describe(
+            'Lo que falta para ir al día: lo esperado menos lo ahorrado. Cero si se va al día o ' +
+              'adelantado.',
+          ),
         suggestedMonthly: z
           .string()
           .nullable()
