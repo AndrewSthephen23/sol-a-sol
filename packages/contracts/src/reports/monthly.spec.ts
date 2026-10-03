@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { monthlyReportQuerySchema, monthlySummaryExportQuerySchema } from './monthly.js';
+import {
+  annualReportQuerySchema,
+  monthlyReportQuerySchema,
+  monthlySummaryExportQuerySchema,
+} from './monthly.js';
 
 describe('monthlyReportQuerySchema', () => {
   it('reads the year and the month as numbers', () => {
@@ -32,5 +36,15 @@ describe('monthlySummaryExportQuerySchema', () => {
     ['the format in capitals', { year: '2026', month: '9', format: 'CSV' }],
   ])('rejects %s', (_label, query) => {
     expect(monthlySummaryExportQuerySchema.safeParse(query).success).toBe(false);
+  });
+});
+
+describe('annualReportQuerySchema', () => {
+  it('reads the year', () => {
+    expect(annualReportQuerySchema.parse({ year: '2026' })).toEqual({ year: 2026 });
+  });
+
+  it.each([{}, { year: '26' }, { year: 'dos mil' }])('rejects %o', (query) => {
+    expect(annualReportQuerySchema.safeParse(query).success).toBe(false);
   });
 });

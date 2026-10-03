@@ -1,5 +1,7 @@
 import { Controller, Get, Query, Res, UseGuards } from '@nestjs/common';
 import {
+  type AnnualReportQuery,
+  annualReportQuerySchema,
   type MonthlyReportQuery,
   monthlyReportQuerySchema,
   type MonthlySummaryExportQuery,
@@ -9,9 +11,11 @@ import {
 import { RequiresFeature } from '../../../shared/feature-flags/feature-flag.guard.js';
 import { ZodValidationPipe } from '../../../shared/http/zod-validation.pipe.js';
 import { AccessTokenGuard, CurrentUser } from '../../identity/index.js';
+import { GetAnnualSummary } from '../application/annual-summary.js';
 import { GetMonthlyDashboard, type MonthlyDashboard } from '../application/monthly-dashboard.js';
 import { GetMonthlySummary } from '../application/monthly-summary.js';
 import { monthlySummaryCsv } from '../application/monthly-summary-csv.js';
+import { type AnnualSummaryResponse, annualSummaryResponse } from './annual-summary.response.js';
 import { type MonthlySummaryResponse, monthlySummaryResponse } from './monthly-summary.response.js';
 
 /** Lo mínimo que se necesita de la respuesta, para no atar el controller a Express. */
@@ -71,8 +75,7 @@ function toResponse(dashboard: MonthlyDashboard): MonthlyReportResponse {
 }
 
 /**
- * Reportes: solo lectura. El dashboard del mes (H4) y el resumen mensual (H6); el anual llega
- * después. Solo desde una sesión; un token personal recibe 403.
+ * Reportes: solo lectura. El dashboard del mes (H4) y los resúmenes mensual y anual (H6). Solo desde una sesión; un token personal recibe 403.
  */
 @Controller('reports')
 @RequiresFeature('reports')
@@ -81,6 +84,7 @@ export class ReportsController {
   constructor(
     private readonly monthly: GetMonthlyDashboard,
     private readonly monthlySummary: GetMonthlySummary,
+    private readonly annualSummary: GetAnnualSummary,
   ) {}
 
   @Get('monthly')
@@ -118,5 +122,14 @@ export class ReportsController {
     response.setHeader('Cache-Control', 'no-store');
 
     return file.content;
+  }
+
+  /** El año mes a mes: un año fuera de rango o que no empezó responde 422. */
+  @Get('annual')
+  async getAnnual(
+    @CurrentUser() userId: string,
+    @Query(new ZodValidationPipe(annualReportQuerySchema)) query: AnnualReportQuery,
+  ): Promise<AnnualSummaryResponse> {
+    return annualSummaryResponse(await this.annualSummary.execute({ userId, year: query.year }));
   }
 }

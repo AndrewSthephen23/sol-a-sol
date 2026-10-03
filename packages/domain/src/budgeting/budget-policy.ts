@@ -21,8 +21,9 @@ export function budgetKind(type: TransactionType): BudgetKind {
 }
 
 /** Años que tiene sentido presupuestar: lo mismo que exige la base (`budgets_year_range`). */
-const FIRST_YEAR = 2000;
-const LAST_YEAR = 2100;
+/** Los años que se aceptan en un presupuesto o un resumen: razonables, no un error de tipeo. */
+export const FIRST_YEAR = 2000;
+export const LAST_YEAR = 2100;
 const DECEMBER = 12;
 
 export class InvalidBudgetMonthError extends DomainError {

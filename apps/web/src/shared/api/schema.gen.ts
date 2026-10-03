@@ -4371,6 +4371,114 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/annual": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * El año mes a mes: ingresos, gastos, ahorro, inversión, deuda y saldo.
+         * @description Por moneda y sin convertir nunca: una fila por concepto con sus 12 meses (enero a diciembre) y su total. Un mes que todavía no llega viene `null`, no en cero; el año en curso suma hasta hoy. Sin transferencias; lo de una subcategoría suma en su madre.
+         */
+        get: {
+            parameters: {
+                query: {
+                    year: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description El resumen del año. Sin movimientos, `currencies` viene vacío. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            year: number;
+                            /** @description Las monedas con movimientos en el año, primero soles. */
+                            currencies: {
+                                /** @enum {string} */
+                                currency: "PEN" | "USD";
+                                /** @description En este orden: las filas de la decisión 17. */
+                                rows: {
+                                    /**
+                                     * @description `EXPENSE` = gasto fijo + variable; `BALANCE` = ingresos − todo lo demás.
+                                     * @enum {string}
+                                     */
+                                    row: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT" | "BALANCE";
+                                    /** @description Enero a diciembre. Nulo: un mes que todavía no llega. */
+                                    months: (string | null)[];
+                                    /** @description El año hasta hoy. */
+                                    total: string;
+                                }[];
+                                /** @description Ahorro (con inversión) / ingresos del año, en %, sin redondear. Nula: sin ingresos. */
+                                savingsRate: string | null;
+                                /** @description El gasto del año por categoría madre, como la dona del dashboard. */
+                                distribution: {
+                                    /**
+                                     * Format: uuid
+                                     * @description Nula: «Otras».
+                                     */
+                                    categoryId: string | null;
+                                    amount: string;
+                                    share: string | null;
+                                }[];
+                            }[];
+                        };
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: los reportes solo se ven desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Falta el año o no tiene la forma esperada, está fuera de 2000 a 2100 (`SUMMARY_YEAR_INVALID`) o todavía no empieza (`SUMMARY_YEAR_IN_FUTURE`). */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/monthly-summary/export": {
         parameters: {
             query?: never;

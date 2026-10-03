@@ -7,6 +7,7 @@ import { CreditCardsLookup, CreditCardsModule } from '../credit-cards/index.js';
 import { GoalsLookup, GoalsModule } from '../goals/index.js';
 import { IdentityModule } from '../identity/index.js';
 import { TransactionsLookup, TransactionsModule } from '../transactions/index.js';
+import { GetAnnualSummary } from './application/annual-summary.js';
 import { GetMonthlyDashboard } from './application/monthly-dashboard.js';
 import { GetMonthlySummary } from './application/monthly-summary.js';
 import { ReportsController } from './http/reports.controller.js';
@@ -42,6 +43,7 @@ import {
   providers: [
     GetMonthlyDashboard,
     GetMonthlySummary,
+    GetAnnualSummary,
     { provide: REPORT_ACTUALS_READER, useExisting: TransactionsLookup },
     { provide: REPORT_CATALOG_READER, useExisting: CatalogLookup },
     { provide: REPORT_BUDGET_READER, useExisting: BudgetingLookup },

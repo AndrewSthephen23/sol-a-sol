@@ -26,3 +26,8 @@ export const monthlySummaryExportQuerySchema = monthlyReportQuerySchema.extend({
 });
 
 export type MonthlySummaryExportQuery = z.infer<typeof monthlySummaryExportQuerySchema>;
+
+/** El año del resumen anual (`?year=2026`): solo la forma; el rango lo decide el dominio. */
+export const annualReportQuerySchema = monthlyReportQuerySchema.pick({ year: true });
+
+export type AnnualReportQuery = z.infer<typeof annualReportQuerySchema>;
