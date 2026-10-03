@@ -1,5 +1,37 @@
 # @sol-a-sol/contracts
 
+## 0.7.0
+
+### Minor Changes
+
+- 196392f: Cierra el hito **H6 — Metas y resúmenes**: el módulo `goals` queda **encendido**.
+
+  - **Metas de ahorro:** cuánto quieres juntar y para cuándo, con aportes y retiros a mano o enlazados a un ahorro que ya registraste. Cada meta dice cuánto va, cuánto falta, cuánto aportar al mes y si va bien, en riesgo, cumplida o vencida.
+  - **Resumen mensual:** el cierre de un mes, comparado con el anterior, con la tasa de ahorro, en qué y dónde se gastó más, el presupuesto, las tarjetas y las metas. Se descarga en CSV.
+  - **Resumen anual:** el año mes a mes, en barras y en una tabla, con la tasa de ahorro del año.
+  - El dashboard pasa a llamarse «Inicio» en el menú; «Resumen» tiene las vistas mensual y anual.
+
+### Patch Changes
+
+- 473e6b3: Resumen anual: `computeAnnualSummary` en el dominio y `GET /reports/annual?year=` en la API.
+
+  - Por moneda, una fila por concepto (ingresos, gasto fijo, gasto variable, total gasto, ahorro, inversión, deuda y saldo) con sus 12 meses y su total. Un mes que todavía no llega viene vacío, no en cero.
+  - La tasa de ahorro del año (con inversión, `null` sin ingresos) y el gasto del año por categoría, con el mismo reparto que la dona del dashboard (`expenseDistribution`, extraído de `buildMonthlyDashboard`).
+  - Un año fuera de 2000 a 2100, o que todavía no empieza, responde 422.
+
+- 47f09e7: API de metas de ahorro, detrás de `FEATURE_GOALS` (todavía apagado): `GET/POST /goals`, `PATCH /goals/{id}` y `GET/POST/DELETE /goals/{id}/contributions`, con el progreso de cada meta calculado al consultar.
+
+  - Un aporte es **manual** (aporte o retiro, con monto positivo y fecha de hoy o antes) o **enlazado** a una transacción entera de ahorro o inversión, que sigue si se corrige, se borra o se restaura. Una transacción aporta a una sola meta.
+  - La moneda de la meta queda fija al crearla. Una meta archivada no recibe aportes nuevos, pero se corrige y se le deshacen aportes.
+  - Un retiro, o deshacer un aporte, no puede dejar la meta en negativo.
+  - Contratos estrictos en `@sol-a-sol/contracts`, rutas en OpenAPI y cliente de la web regenerado.
+
+- 7573ce9: `GET /reports/monthly-summary/export?year=&month=&format=csv`: el cierre del mes como archivo CSV (`resumen-2026-09.csv`).
+
+  - Un solo archivo con todas las secciones como filas, separado por `;`, con BOM UTF-8, montos con punto decimal y sin separador de miles, y porcentajes con 2 decimales. Las categorías van por su nombre.
+  - Nada de lo que escribió el usuario se ejecuta como fórmula al abrirlo en Excel o Sheets.
+  - Un formato que no sea `csv` responde 422; las secciones de un módulo apagado no vienen.
+
 ## 0.6.0
 
 ### Minor Changes
