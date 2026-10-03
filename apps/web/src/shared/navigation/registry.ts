@@ -3,6 +3,7 @@ import { transactionsManifest } from '@/features/transactions/manifest';
 import { budgetingManifest } from '@/features/budgeting/manifest';
 import { creditCardsManifest } from '@/features/credit-cards/manifest';
 import { goalsManifest } from '@/features/goals/manifest';
+import { reportsManifest } from '@/features/reports/manifest';
 
 import { type FeatureManifest } from './navigation';
 
@@ -18,8 +19,9 @@ import { type FeatureManifest } from './navigation';
  * categorías y los métodos de pago que usan las transacciones, pero la pantalla de gestión
  * (`/catalog`) quedó para después de H3.
  *
- * **`reports` tampoco:** su flag enciende los datos del dashboard, pero el dashboard vive en `/`
- * (manifest `dashboard`, decisión 10 de H4). Un enlace a `/reports` apuntaría a nada.
+ * **`reports`** está dos veces a su manera: su flag enciende los datos del dashboard, que vive en
+ * `/` («Inicio», manifest `dashboard`, decisión 10 de H4), y la pantalla «Resumen» (`/reports`,
+ * decisión 18 de H6), con el cierre del mes.
  */
 export const featureManifests: readonly FeatureManifest[] = [
   dashboardManifest,
@@ -27,4 +29,5 @@ export const featureManifests: readonly FeatureManifest[] = [
   budgetingManifest,
   creditCardsManifest,
   goalsManifest,
+  reportsManifest,
 ];

@@ -80,6 +80,10 @@ Montos como **string decimal**; la parte de la dona (`share`) como string **sin 
 
 ## Pantalla (web)
 
+### «Inicio»: el dashboard
+
+Se llama **«Inicio»** en el menú desde H6 (2026-10-03): «Resumen» es el cierre del mes. Lleva al cierre del mismo mes con «Ver el cierre del mes».
+
 `/?month=2026-09`: el mes vive en la URL, con el mismo selector que la lista de transacciones y el presupuesto. Un bloque por moneda, sin convertir nunca:
 
 - **KPIs:** ingresos, gastos, ahorro e inversión, deuda y saldo. **El saldo negativo va en rojo y con su signo**, no solo con color.
@@ -90,3 +94,16 @@ Montos como **string decimal**; la parte de la dona (`share`) como string **sin 
 **Recharts y la CSP.** La política no permite `'unsafe-inline'` en estilos, y Recharts pone estilos en línea. Por eso los gráficos se dibujan **solo en el navegador**, después de hidratar (`ClientOnly`): desde ahí los estilos van por CSSOM (`element.style`), que la CSP permite, y nunca llegan en el HTML del servidor. Los colores de las porciones y de la leyenda van como atributo `fill` del SVG, no como `style`. La E2E falla si el navegador bloquea algo.
 
 Los montos llegan como string y se muestran con `formatMoney`. Solo para dibujar la altura de una barra o el ángulo de una porción se pasan a número (`chartNumber`), nunca para mostrar ni para calcular. Como `/` cambia con cada movimiento registrado en otra pantalla, el resumen se vuelve a pedir cada vez que se entra.
+
+### «Resumen»: el cierre del mes
+
+`/reports?month=2026-09` (manifest `reports`, «Resumen» en el menú, decisión 18 de H6). El mes en la URL con el mismo selector, que **no pasa del mes de hoy**: un mes futuro no tiene resumen, y si llega por la URL se muestra el de hoy. Todo en texto, por moneda, con lo que ya calculó la API (la web no recalcula):
+
+- **Lo que entró y salió:** cada tipo con su monto y su comparación («S/ 70.00 más que en agosto (+175.00 %)», «(—)» con base cero, «Igual que en agosto»); en el mes en curso, «del 1 al 3 de setiembre». El saldo y la tasa de ahorro («Ahorraste el 16.67 % de lo que ganaste», o «Sin ingresos este mes»).
+- **En qué y dónde gastaste más:** el top 5 de categorías (con su parte del gasto) y de comercios (con cuántas compras), y cada categoría comparada con el mes anterior.
+- **Presupuesto:** el % ejecutado por moneda y las partidas excedidas, o «No armaste un presupuesto para este mes» con un enlace para armarlo.
+- **Tarjetas:** lo consumido en el mes y el estado que cerró en él, con lo que falta pagar y su fecha límite de pago.
+- **Metas:** lo aportado en el mes y cómo quedó cada una.
+- **«Descargar CSV»:** pide el archivo con el cliente (la sesión vive en memoria, así que un `<a href>` no llevaría el token), arma un `Blob` y lo baja con el nombre que da la API.
+
+Las secciones de presupuesto, tarjetas y metas dependen de sus flags, que la página lee **en el servidor**: apagado, la sección no se dibuja, y la API tampoco la manda. La pantalla pide solo el resumen (y las categorías, para nombrarlas). Las pestañas Mensual y Anual llegan con el resumen anual (tarea 10).
