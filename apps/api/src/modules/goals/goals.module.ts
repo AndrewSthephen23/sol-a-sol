@@ -9,6 +9,7 @@ import {
   ListGoalContributions,
 } from './application/goal-contributions.js';
 import { CreateGoal, ListGoals, UpdateGoal } from './application/goals.js';
+import { GoalsLookup } from './application/goals-lookup.js';
 import { GoalContributionsController } from './http/goal-contributions.controller.js';
 import { GoalsController } from './http/goals.controller.js';
 import { PrismaGoalContributionRepository } from './infrastructure/prisma-goal-contribution-repository.js';
@@ -35,10 +36,12 @@ import { GOAL_TRANSACTIONS_READER } from './ports/transactions-reader.js';
     ListGoalContributions,
     AddGoalContribution,
     DeleteGoalContribution,
+    GoalsLookup,
     { provide: GOAL_REPOSITORY, useClass: PrismaGoalRepository },
     { provide: GOAL_CONTRIBUTION_REPOSITORY, useClass: PrismaGoalContributionRepository },
     { provide: GOAL_TRANSACTIONS_READER, useExisting: TransactionsLookup },
   ],
-  exports: [],
+  // Lo que otros módulos pueden leer (el resumen mensual de `reports`).
+  exports: [GoalsLookup],
 })
 export class GoalsModule {}

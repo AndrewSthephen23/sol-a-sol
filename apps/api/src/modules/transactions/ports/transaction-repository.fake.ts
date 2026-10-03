@@ -8,6 +8,7 @@ import {
 import {
   type CategoryAmount,
   type DayAmount,
+  type MerchantAmount,
   type NewTransaction,
   newestFirst,
   orderTags,
@@ -125,6 +126,16 @@ export class FakeTransactionRepository implements TransactionRepository {
       })),
     );
   }
+  totalsByMerchant(userId: string, filter: TransactionFilter): Promise<MerchantAmount[]> {
+    return Promise.resolve(
+      this.matching(userId, filter).flatMap((row) => {
+        const merchant = row.merchant?.trim() ?? '';
+
+        return merchant === '' ? [] : [{ merchant, type: row.type, amount: row.amount, count: 1 }];
+      }),
+    );
+  }
+
   totalsByCategory(userId: string, filter: TransactionFilter): Promise<CategoryAmount[]> {
     return Promise.resolve(
       this.matching(userId, filter).map((row) => ({

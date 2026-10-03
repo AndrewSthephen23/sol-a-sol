@@ -4142,6 +4142,235 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/monthly-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * El cierre de un mes: totales, ahorro, comparación, tops y lo de otros módulos.
+         * @description Por moneda y sin convertir nunca. Un mes cerrado, contra el anterior entero; el mes en curso, hasta hoy y contra el anterior hasta el mismo día. Lo de una subcategoría suma en su madre. Las secciones de presupuesto, tarjetas y metas aparecen solo si su módulo está encendido; tarjetas y metas, a la fecha de corte.
+         */
+        get: {
+            parameters: {
+                query: {
+                    year: string;
+                    /** @description 1 a 12. */
+                    month: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description El resumen del mes. Sin movimientos, `currencies` viene vacío. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            year: number;
+                            month: number;
+                            /** @description El mes entero si ya cerró; del 1 a hoy si está en curso. `to` es la fecha de corte. */
+                            period: {
+                                /** Format: date */
+                                from: string;
+                                /** Format: date */
+                                to: string;
+                                complete: boolean;
+                            };
+                            /** @description El mes anterior entero, o hasta el mismo día si el mes está en curso. */
+                            previousPeriod: {
+                                /** Format: date */
+                                from: string;
+                                /** Format: date */
+                                to: string;
+                            };
+                            /** @description Las monedas con movimientos en el mes o en el anterior, primero soles. */
+                            currencies: {
+                                /** @enum {string} */
+                                currency: "PEN" | "USD";
+                                totals: {
+                                    income: string;
+                                    /** @description Gasto fijo + variable. */
+                                    expense: string;
+                                    /** @description Ahorro + inversión. */
+                                    saving: string;
+                                    debt: string;
+                                    balance: string;
+                                };
+                                /** @description Ahorro (con inversión) / ingresos, en %, sin redondear. Nula: sin ingresos. */
+                                savingsRate: string | null;
+                                byType: {
+                                    /** @enum {string} */
+                                    type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
+                                    amount: string;
+                                    /** @description Lo del periodo con que se compara. */
+                                    previous: string;
+                                    /** @description Ahora − antes. */
+                                    difference: string;
+                                    /** @description La diferencia sobre lo de antes, en %, sin redondear. Nula si antes fue cero. */
+                                    change: string | null;
+                                }[];
+                                /** @description Por categoría madre (sus hijas suman en ella). */
+                                byCategory: {
+                                    /** Format: uuid */
+                                    categoryId: string;
+                                    /** @enum {string} */
+                                    type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
+                                    amount: string;
+                                    /** @description Lo del periodo con que se compara. */
+                                    previous: string;
+                                    /** @description Ahora − antes. */
+                                    difference: string;
+                                    /** @description La diferencia sobre lo de antes, en %, sin redondear. Nula si antes fue cero. */
+                                    change: string | null;
+                                }[];
+                                topCategories: {
+                                    /** Format: uuid */
+                                    categoryId: string;
+                                    amount: string;
+                                    /** @description Parte del gasto del mes, en %. */
+                                    share: string | null;
+                                }[];
+                                /** @description Solo gasto; juntos los que solo difieren en tildes o mayúsculas. */
+                                topMerchants: {
+                                    merchant: string;
+                                    amount: string;
+                                    count: number;
+                                }[];
+                            }[];
+                            /** @description Solo las partidas límite (gasto fijo, variable y deuda). `NONE`: el mes no tiene partidas límite («sin presupuesto»). */
+                            budget: {
+                                /** @enum {string} */
+                                status: "NONE";
+                            } | {
+                                /** @enum {string} */
+                                status: "SET";
+                                currencies: {
+                                    /** @enum {string} */
+                                    currency: "PEN" | "USD";
+                                    planned: string;
+                                    /** @description Todo lo real de los tipos con límite, también lo gastado sin partida. */
+                                    actual: string;
+                                    /** @description Real sobre planeado, en %, sin redondear. */
+                                    executed: string | null;
+                                }[];
+                                /** @description Las partidas excedidas, la más excedida primero. */
+                                exceeded: {
+                                    /** Format: uuid */
+                                    categoryId: string;
+                                    /** @enum {string} */
+                                    type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
+                                    /** @enum {string} */
+                                    currency: "PEN" | "USD";
+                                    planned: string;
+                                    actual: string;
+                                    /** @description Planeado − real: negativo, cuánto se pasó. */
+                                    difference: string;
+                                    executed: string | null;
+                                }[];
+                            };
+                            /** @description Una archivada aparece solo si se movió en el mes. */
+                            cards: {
+                                /** Format: uuid */
+                                id: string;
+                                alias: string;
+                                institution: string | null;
+                                last4: string | null;
+                                /** @description Lo cargado en el mes calendario, por moneda. */
+                                charges: {
+                                    /** @description String decimal con 2 decimales (`"5000.00"`). */
+                                    amount: string;
+                                    /** @enum {string} */
+                                    currency: "PEN" | "USD";
+                                }[];
+                                /** @description El estado que cerró en el mes y vence el siguiente; nulo si no hay. */
+                                statement: {
+                                    /** Format: date */
+                                    closingDate: string;
+                                    /** Format: date */
+                                    dueDate: string;
+                                    balances: {
+                                        /** @enum {string} */
+                                        currency: "PEN" | "USD";
+                                        /** @description La deuda al corte. */
+                                        balance: string;
+                                        /** @description Lo que faltaba pagar a la fecha de corte. */
+                                        remaining: string;
+                                    }[];
+                                } | null;
+                            }[];
+                            /** @description Las metas vivas en el mes, medidas a la fecha de corte. */
+                            goals: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                                /** @enum {string} */
+                                currency: "PEN" | "USD";
+                                /** @description Aportes − retiros del mes. */
+                                contributed: string;
+                                saved: string;
+                                remaining: string;
+                                /** @description Ahorrado / objetivo en %, sin redondear. */
+                                percentage: string;
+                                suggestedMonthly: string | null;
+                                /** @enum {string} */
+                                status: "ON_TRACK" | "AT_RISK" | "ACHIEVED" | "OVERDUE";
+                            }[];
+                        };
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: los reportes solo se ven desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Falta el año o el mes, no tienen la forma esperada, el mes no existe, o todavía no empieza (`SUMMARY_MONTH_IN_FUTURE`). */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/credit-cards": {
         parameters: {
             query?: never;

@@ -151,11 +151,12 @@ Responde **201** con `{ transactions, transfers, alreadyImported, createdCategor
 
 ## API pública para otros módulos
 
-`TransactionsLookup` (exportado por `index.ts`) es lo que leen de este módulo el presupuesto y el dashboard (H4), las tarjetas (H5) y, más adelante, los resúmenes, sin tocar sus tablas ni importar su interior. Igual que `CatalogLookup` en `catalog`:
+`TransactionsLookup` (exportado por `index.ts`) es lo que leen de este módulo el presupuesto y el dashboard (H4), las tarjetas (H5) y el resumen mensual (H6), sin tocar sus tablas ni importar su interior. Igual que `CatalogLookup` en `catalog`:
 
 - `totalsByCategory(userId, desde, hasta)`: totales por categoría (la de cada transacción, sin subir a su madre), tipo y moneda, entre dos fechas incluidas. Lo usan el presupuesto y el dashboard.
 - `totalsByDay(userId, desde, hasta)`: lo mismo por día, tipo y moneda: las barras del dashboard.
 - `paymentMethodTotalsByDay(userId, métodoDePago, hasta)`: todo lo que pasó con un método de pago hasta una fecha incluida, por día, tipo y moneda. Las transacciones con el método llegan con su tipo; las transferencias, como `TRANSFER_IN` (las que llegan, con el monto **recibido**) o `TRANSFER_OUT` (las que salen, con el monto que salió). Es la única lectura que ve transferencias: la usan las tarjetas (H5), que deciden qué sube y qué baja la deuda.
+- `totalsByMerchant(userId, desde, hasta)`: totales por comercio **tal como se escribió** (sin espacios en los bordes), tipo y moneda; sin comercio, fuera. Juntar los que solo difieren en tildes o mayúsculas lo decide quien lee: el resumen mensual (H6), con `searchKey`.
 - `liveTransactions(userId, ids)`: las transacciones **vigentes** de la cuenta con esos ids (fecha, tipo, monto, método de pago y descripción); las borradas y las ajenas no aparecen. Las tarjetas la usan para que un plan de cuotas siga a su compra sin copiarla.
 - Solo movimientos **vigentes** (los borrados no cuentan). `totalsByCategory` y `totalsByDay` **nunca ven transferencias**, que mueven plata entre cuentas propias sin gastarla. Nunca convierte moneda. Exige el `userId`, que va dentro de la consulta.
 

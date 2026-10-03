@@ -60,6 +60,10 @@ Que la transacción enlazada sea de ahorro o inversión y de la moneda de la met
 - **Emite:** nada. `GoalContributionAdded` (plan, sección 5.4) no se creó porque nadie lo escucharía, igual que `CreditCardThresholdExceeded` en H5: llega cuando lo necesite alguien (las notificaciones de H8).
 - **Escucha:** nada. Los aportes enlazados se leen de su transacción al consultar, con `TransactionsLookup.liveTransactions` detrás del puerto `GoalTransactionsReader`: corregirla o borrarla no necesita avisar a nadie.
 
+## API pública para otros módulos
+
+`GoalsLookup` (exportado por `index.ts`): `goalsWithMovements(userId)` da todas las metas de la cuenta, archivadas incluidas, con su objetivo, sus fechas y los aportes y retiros que **cuentan** (los enlazados, con su transacción como está hoy). Quién se muestra y a qué fecha se mide lo decide quien lee: el **resumen mensual** de `reports` (H6), que calcula el progreso a su fecha de corte con `computeGoalProgress`. Exige el `userId`.
+
 ## Endpoints
 
 Todos bajo `/api/v1`, solo desde una sesión (un token personal recibe 403) y con `@RequiresFeature('goals')`: **404** y fuera de OpenAPI con el flag apagado. Una meta ajena responde **404**, igual que una que no existe; un aporte de otra meta, también, aunque sea de la misma cuenta.

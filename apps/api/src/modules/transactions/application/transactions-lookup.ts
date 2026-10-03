@@ -26,6 +26,15 @@ export interface DayTotal {
   count: number;
 }
 
+/** Lo gastado (o ingresado) en un comercio, tal como se escribió, en un tipo y una moneda. */
+export interface MerchantTotal {
+  merchant: string;
+  type: TransactionType;
+  amount: Money;
+  /** Cuántas transacciones suma `amount`. */
+  count: number;
+}
+
 /** Una transacción con el método (por su tipo), o una transferencia que llega a él o sale. */
 export type PaymentMethodMovementKind = TransactionType | 'TRANSFER_IN' | 'TRANSFER_OUT';
 
@@ -73,6 +82,15 @@ export class TransactionsLookup {
   /** Totales por día, tipo y moneda entre dos fechas, las dos incluidas: las barras del dashboard. */
   async totalsByDay(userId: string, from: LocalDate, to: LocalDate): Promise<DayTotal[]> {
     return this.transactions.totalsByDay(userId, { from, to });
+  }
+
+  /**
+   * Totales por comercio (tal como se escribió, sin espacios en los bordes), tipo y moneda entre
+   * dos fechas, las dos incluidas. Las transacciones sin comercio no aparecen. Juntar los que solo
+   * difieren en tildes o mayúsculas lo decide quien lee.
+   */
+  async totalsByMerchant(userId: string, from: LocalDate, to: LocalDate): Promise<MerchantTotal[]> {
+    return this.transactions.totalsByMerchant(userId, { from, to });
   }
 
   /**

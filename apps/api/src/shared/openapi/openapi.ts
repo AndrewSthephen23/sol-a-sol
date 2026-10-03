@@ -1465,7 +1465,170 @@ const MONTHLY_REPORT_SCHEMA = schemaOf(
   }),
 );
 
-function reportsPaths(): Record<string, unknown> {
+const MONEY_RESPONSE = z.object({
+  amount: z.string().describe('String decimal con 2 decimales (`"5000.00"`).'),
+  currency: currencySchema,
+});
+
+const COMPARISON = {
+  amount: z.string(),
+  previous: z.string().describe('Lo del periodo con que se compara.'),
+  difference: z.string().describe('Ahora − antes.'),
+  change: z
+    .string()
+    .nullable()
+    .describe('La diferencia sobre lo de antes, en %, sin redondear. Nula si antes fue cero.'),
+};
+
+/**
+ * El resumen mensual. Cada sección de otro módulo aparece **solo si ese módulo está encendido**:
+ * documentarla con el módulo apagado confirmaría justo lo que su 404 oculta.
+ */
+function monthlySummarySchema(
+  isFeatureEnabled: (module: FeatureModule) => boolean,
+): Record<string, unknown> {
+  const budget = z
+    .discriminatedUnion('status', [
+      z.object({ status: z.literal('NONE') }),
+      z.object({
+        status: z.literal('SET'),
+        currencies: z.array(
+          z.object({
+            currency: currencySchema,
+            planned: z.string(),
+            actual: z
+              .string()
+              .describe('Todo lo real de los tipos con límite, también lo gastado sin partida.'),
+            executed: z.string().nullable().describe('Real sobre planeado, en %, sin redondear.'),
+          }),
+        ),
+        exceeded: z
+          .array(
+            z.object({
+              categoryId: z.uuid(),
+              type: transactionTypeSchema,
+              currency: currencySchema,
+              planned: z.string(),
+              actual: z.string(),
+              difference: z.string().describe('Planeado − real: negativo, cuánto se pasó.'),
+              executed: z.string().nullable(),
+            }),
+          )
+          .describe('Las partidas excedidas, la más excedida primero.'),
+      }),
+    ])
+    .describe(
+      'Solo las partidas límite (gasto fijo, variable y deuda). `NONE`: el mes no tiene ' +
+        'partidas límite («sin presupuesto»).',
+    );
+  const cards = z
+    .array(
+      z.object({
+        id: z.uuid(),
+        alias: z.string(),
+        institution: z.string().nullable(),
+        last4: z.string().nullable(),
+        charges: z.array(MONEY_RESPONSE).describe('Lo cargado en el mes calendario, por moneda.'),
+        statement: z
+          .object({
+            closingDate: z.iso.date(),
+            dueDate: z.iso.date(),
+            balances: z.array(
+              z.object({
+                currency: currencySchema,
+                balance: z.string().describe('La deuda al corte.'),
+                remaining: z.string().describe('Lo que faltaba pagar a la fecha de corte.'),
+              }),
+            ),
+          })
+          .nullable()
+          .describe('El estado que cerró en el mes y vence el siguiente; nulo si no hay.'),
+      }),
+    )
+    .describe('Una archivada aparece solo si se movió en el mes.');
+  const goals = z
+    .array(
+      z.object({
+        id: z.uuid(),
+        name: z.string(),
+        currency: currencySchema,
+        contributed: z.string().describe('Aportes − retiros del mes.'),
+        saved: z.string(),
+        remaining: z.string(),
+        percentage: z.string().describe('Ahorrado / objetivo en %, sin redondear.'),
+        suggestedMonthly: z.string().nullable(),
+        status: z.enum(['ON_TRACK', 'AT_RISK', 'ACHIEVED', 'OVERDUE']),
+      }),
+    )
+    .describe('Las metas vivas en el mes, medidas a la fecha de corte.');
+
+  return schemaOf(
+    z.object({
+      year: z.int(),
+      month: z.int(),
+      period: z
+        .object({ from: z.iso.date(), to: z.iso.date(), complete: z.boolean() })
+        .describe(
+          'El mes entero si ya cerró; del 1 a hoy si está en curso. `to` es la fecha de corte.',
+        ),
+      previousPeriod: z
+        .object({ from: z.iso.date(), to: z.iso.date() })
+        .describe('El mes anterior entero, o hasta el mismo día si el mes está en curso.'),
+      currencies: z
+        .array(
+          z.object({
+            currency: currencySchema,
+            totals: z.object({
+              income: z.string(),
+              expense: z.string().describe('Gasto fijo + variable.'),
+              saving: z.string().describe('Ahorro + inversión.'),
+              debt: z.string(),
+              balance: z.string(),
+            }),
+            savingsRate: z
+              .string()
+              .nullable()
+              .describe(
+                'Ahorro (con inversión) / ingresos, en %, sin redondear. Nula: sin ingresos.',
+              ),
+            byType: z.array(z.object({ type: transactionTypeSchema, ...COMPARISON })),
+            byCategory: z
+              .array(z.object({ categoryId: z.uuid(), type: transactionTypeSchema, ...COMPARISON }))
+              .describe('Por categoría madre (sus hijas suman en ella).'),
+            topCategories: z.array(
+              z.object({
+                categoryId: z.uuid(),
+                amount: z.string(),
+                share: z.string().nullable().describe('Parte del gasto del mes, en %.'),
+              }),
+            ),
+            topMerchants: z
+              .array(z.object({ merchant: z.string(), amount: z.string(), count: z.int() }))
+              .describe('Solo gasto; juntos los que solo difieren en tildes o mayúsculas.'),
+          }),
+        )
+        .describe('Las monedas con movimientos en el mes o en el anterior, primero soles.'),
+      ...(isFeatureEnabled('budgeting') ? { budget } : {}),
+      ...(isFeatureEnabled('credit-cards') ? { cards } : {}),
+      ...(isFeatureEnabled('goals') ? { goals } : {}),
+    }),
+  );
+}
+
+const YEAR_MONTH_PARAMETERS = [
+  { name: 'year', in: 'query', required: true, schema: { type: 'string', pattern: '^\\d{4}$' } },
+  {
+    name: 'month',
+    in: 'query',
+    required: true,
+    schema: { type: 'string', pattern: '^\\d{1,2}$' },
+    description: '1 a 12.',
+  },
+];
+
+function reportsPaths(
+  isFeatureEnabled: (module: FeatureModule) => boolean,
+): Record<string, unknown> {
   return {
     [`/${API_PREFIX}/reports/monthly`]: {
       get: {
@@ -1476,21 +1639,7 @@ function reportsPaths(): Record<string, unknown> {
           'Todo en una llamada, por moneda y sin convertir nunca. Sin transferencias ni ' +
           'transacciones borradas; lo de una subcategoría suma en su madre.',
         security: [{ accessToken: [] }],
-        parameters: [
-          {
-            name: 'year',
-            in: 'query',
-            required: true,
-            schema: { type: 'string', pattern: '^\\d{4}$' },
-          },
-          {
-            name: 'month',
-            in: 'query',
-            required: true,
-            schema: { type: 'string', pattern: '^\\d{1,2}$' },
-            description: '1 a 12.',
-          },
-        ],
+        parameters: YEAR_MONTH_PARAMETERS,
         responses: {
           '200': {
             description: 'El dashboard del mes. Sin movimientos, `currencies` viene vacío.',
@@ -1503,13 +1652,34 @@ function reportsPaths(): Record<string, unknown> {
         },
       },
     },
+    [`/${API_PREFIX}/reports/monthly-summary`]: {
+      get: {
+        tags: ['reports'],
+        summary: 'El cierre de un mes: totales, ahorro, comparación, tops y lo de otros módulos.',
+        description:
+          'Por moneda y sin convertir nunca. Un mes cerrado, contra el anterior entero; el mes ' +
+          'en curso, hasta hoy y contra el anterior hasta el mismo día. Lo de una subcategoría ' +
+          'suma en su madre. Las secciones de presupuesto, tarjetas y metas aparecen solo si su ' +
+          'módulo está encendido; tarjetas y metas, a la fecha de corte.',
+        security: [{ accessToken: [] }],
+        parameters: YEAR_MONTH_PARAMETERS,
+        responses: {
+          '200': {
+            description: 'El resumen del mes. Sin movimientos, `currencies` viene vacío.',
+            content: { 'application/json': { schema: monthlySummarySchema(isFeatureEnabled) } },
+          },
+          '401': problem('Falta el token de acceso o no vale.'),
+          '403': problem('Llegó un token personal: los reportes solo se ven desde una sesión.'),
+          '404': problem('El módulo está apagado.'),
+          '422': problem(
+            'Falta el año o el mes, no tienen la forma esperada, el mes no existe, o todavía no ' +
+              'empieza (`SUMMARY_MONTH_IN_FUTURE`).',
+          ),
+        },
+      },
+    },
   };
 }
-
-const MONEY_RESPONSE = z.object({
-  amount: z.string().describe('String decimal con 2 decimales (`"5000.00"`).'),
-  currency: currencySchema,
-});
 
 const CREDIT_CARD_SCHEMA = schemaOf(
   z.object({
@@ -2150,7 +2320,12 @@ function goalsPaths(): Record<string, unknown> {
 }
 
 /** Rutas que aporta cada módulo de negocio, para omitirlas cuando su flag está apagado. */
-const PATHS_BY_MODULE: Partial<Record<FeatureModule, () => Record<string, unknown>>> = {
+const PATHS_BY_MODULE: Partial<
+  Record<
+    FeatureModule,
+    (isFeatureEnabled: (module: FeatureModule) => boolean) => Record<string, unknown>
+  >
+> = {
   identity: identityPaths,
   catalog: catalogPaths,
   transactions: transactionsPaths,
@@ -2173,7 +2348,7 @@ export function buildOpenApiDocument({
   // existe justo lo que el 404 se esfuerza en no confirmar.
   const modulePaths = Object.entries(PATHS_BY_MODULE)
     .filter(([module]) => isFeatureEnabled(module as FeatureModule))
-    .flatMap(([, paths]) => Object.entries(paths()));
+    .flatMap(([, paths]) => Object.entries(paths(isFeatureEnabled)));
 
   return {
     openapi: '3.0.3',

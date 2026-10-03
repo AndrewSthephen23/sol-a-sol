@@ -65,6 +65,9 @@ export type CategoryAmount = TypedAmount & { categoryId: string };
 /** Lo sumado de un día en un tipo y una moneda. */
 export type DayAmount = TypedAmount & { date: LocalDate };
 
+/** Lo de un comercio, tal como se escribió (sin espacios en los bordes). */
+export type MerchantAmount = TypedAmount & { merchant: string };
+
 export interface TransactionFilter {
   /** Inclusivo. */
   from?: LocalDate;
@@ -144,6 +147,12 @@ export interface TransactionRepository {
 
   /** Lo mismo, además **por día**: las barras del dashboard. */
   totalsByDay(userId: string, filter: TransactionFilter): Promise<DayAmount[]>;
+
+  /**
+   * Lo mismo, además **por comercio** tal como se escribió; sin comercio, fuera. Juntar los que
+   * solo difieren en tildes o mayúsculas lo decide quien lee (el resumen mensual, con `searchKey`).
+   */
+  totalsByMerchant(userId: string, filter: TransactionFilter): Promise<MerchantAmount[]>;
 
   /**
    * Pasa **todas** las transacciones de una categoría a otra, borradas incluidas, en una sola
