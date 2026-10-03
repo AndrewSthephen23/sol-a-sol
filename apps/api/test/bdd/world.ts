@@ -20,7 +20,28 @@ import {
   GetMonthlyDashboard,
   type MonthlyDashboard,
 } from '../../src/modules/reports/application/monthly-dashboard.js';
-import { FakeReportCatalogReader } from '../../src/modules/reports/ports/report-readers.fake.js';
+import { GetAnnualSummary } from '../../src/modules/reports/application/annual-summary.js';
+import {
+  GetMonthlySummary,
+  type MonthlySummaryView,
+} from '../../src/modules/reports/application/monthly-summary.js';
+import {
+  FakeReportCatalogReader,
+  FakeReportFeatureFlags,
+} from '../../src/modules/reports/ports/report-readers.fake.js';
+import { BudgetingLookup } from '../../src/modules/budgeting/application/budgeting-lookup.js';
+import { CreditCardsLookup } from '../../src/modules/credit-cards/application/credit-cards-lookup.js';
+import {
+  AddGoalContribution,
+  DeleteGoalContribution,
+  ListGoalContributions,
+} from '../../src/modules/goals/application/goal-contributions.js';
+import type { GoalView } from '../../src/modules/goals/application/goal-views.js';
+import { CreateGoal, ListGoals, UpdateGoal } from '../../src/modules/goals/application/goals.js';
+import { GoalsLookup } from '../../src/modules/goals/application/goals-lookup.js';
+import { FakeGoalContributionRepository } from '../../src/modules/goals/ports/goal-contribution-repository.fake.js';
+import { FakeGoalRepository } from '../../src/modules/goals/ports/goal-repository.fake.js';
+import type { AnnualSummary } from '@sol-a-sol/domain';
 import {
   type CreditCardStatusView,
   GetCreditCardStatuses,
@@ -96,6 +117,10 @@ export class TransactionsWorld extends World {
   readonly installmentPlans = new FakeInstallmentPlanRepository();
   /** Los métodos de pago vistos por `credit-cards`, con su tipo: el mismo id que en `catalog`. */
   readonly cardCatalog = new FakeCreditCardCatalogReader();
+  readonly goals = new FakeGoalRepository();
+  readonly goalContributions = new FakeGoalContributionRepository();
+  /** Qué módulos ve encendidos el resumen mensual: todos, salvo que el escenario apague uno. */
+  readonly reportFlags = new FakeReportFeatureFlags();
   clock: Clock = FixedClock.at(DEFAULT_NOW);
 
   /** El tipo de cada categoría, para registrar un movimiento del tipo que le corresponde. */
@@ -116,6 +141,11 @@ export class TransactionsWorld extends World {
   /** La tarjeta que el escenario acaba de ver, y el plan de cuotas que acaba de registrar. */
   cardStatus: CreditCardStatusView | null = null;
   installmentPlan: InstallmentPlanView | null = null;
+  /** La meta, el cierre del mes o el año que el escenario acaba de ver. */
+  goal: GoalView | null = null;
+  goalList: GoalView[] = [];
+  monthlySummary: MonthlySummaryView | null = null;
+  annualSummary: AnnualSummary | null = null;
   /** Transacciones de las que el escenario habla después («la del 10/09», «uno de la primera página»). */
   readonly remembered = new Map<string, Transaction>();
   /** Ids de los que el escenario habla después («esa cuenta», «la categoría de Bruno»). */
@@ -146,7 +176,7 @@ export class TransactionsWorld extends World {
     // El mismo catálogo, visto por cada módulo a través de su propio puerto.
     this.catalog.withCategory(userId, id, { ...category, name });
     this.budgetCatalog.withCategory(userId, id, category);
-    this.reportCatalog.with(userId, id, parentId ?? null);
+    this.reportCatalog.with(userId, id, parentId ?? null, name);
 
     return id;
   }
@@ -312,6 +342,69 @@ export class TransactionsWorld extends World {
       this.transactionsLookup,
       this.clock,
     );
+  }
+
+  // --- Metas: leen las transacciones enlazadas por la API pública de `transactions` ---
+
+  get createGoal(): CreateGoal {
+    return new CreateGoal(this.goals, this.transactionsLookup, this.clock);
+  }
+
+  get updateGoal(): UpdateGoal {
+    return new UpdateGoal(this.goals, this.goalContributions, this.transactionsLookup, this.clock);
+  }
+
+  get listGoals(): ListGoals {
+    return new ListGoals(this.goals, this.goalContributions, this.transactionsLookup, this.clock);
+  }
+
+  get addGoalContribution(): AddGoalContribution {
+    return new AddGoalContribution(
+      this.goals,
+      this.goalContributions,
+      this.transactionsLookup,
+      this.clock,
+    );
+  }
+
+  get deleteGoalContribution(): DeleteGoalContribution {
+    return new DeleteGoalContribution(
+      this.goals,
+      this.goalContributions,
+      this.transactionsLookup,
+      this.clock,
+    );
+  }
+
+  get listGoalContributions(): ListGoalContributions {
+    return new ListGoalContributions(
+      this.goals,
+      this.goalContributions,
+      this.transactionsLookup,
+      this.clock,
+    );
+  }
+
+  // --- Resúmenes: cada módulo, por su `…Lookup` público, sobre los mismos fakes ---
+
+  get monthlySummaryUseCase(): GetMonthlySummary {
+    return new GetMonthlySummary(
+      this.transactionsLookup,
+      this.reportCatalog,
+      new BudgetingLookup(this.budgetLines),
+      new CreditCardsLookup(
+        new ListCreditCards(this.creditCards, this.cardCatalog),
+        this.transactionsLookup,
+        this.installmentPlans,
+      ),
+      new GoalsLookup(this.goals, this.goalContributions, this.transactionsLookup, this.clock),
+      this.reportFlags,
+      this.clock,
+    );
+  }
+
+  get annualSummaryUseCase(): GetAnnualSummary {
+    return new GetAnnualSummary(this.transactionsLookup, this.reportCatalog, this.clock);
   }
 
   /** Registra y guarda lo registrado como `last`; si se rechaza, guarda el error. */

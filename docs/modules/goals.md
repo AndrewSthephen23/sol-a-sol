@@ -101,5 +101,5 @@ El progreso viaja en cada meta (`saved`, `remaining`, `excess`, `percentage`, `e
 ## Estado
 
 - Feature flag: `FEATURE_GOALS` (**apagado** hasta cumplir la Definition of Done).
-- Escenarios: [`features/goals/`](../../features/goals/), `@pendiente` hasta la tarea 11.
+- Escenarios: [`features/goals/`](../../features/goals/), **en verde** con `pnpm test:bdd` (22). Corren contra los casos de uso reales con los fakes de los puertos, y los aportes enlazados leen su transacción con el `TransactionsLookup` real. Cada regla se comprobó rompiéndola (dominio, casos de uso y fakes); lo que vive en Prisma lo cubren `apps/api/test/goals/` y `apps/api/test/prisma/goals-tables.spec.ts`.
 - Web: **«Metas» (`/goals`)**, en el menú cuando el flag está encendido (`requireFeature('FEATURE_GOALS')`). Cada meta dice en texto cuánto va (con el porcentaje en 2 decimales), cuánto falta, cómo va («Vas bien», «En riesgo: te faltan S/ … para ir al día», «¡Cumplida!», «Vencida: faltaron S/ …») y cuánto aportar al mes; la barra (`<progress>`) solo lo acompaña. Se crea y se corrige una meta, se aporta a mano o enlazando una transacción de ahorro, y quitar un aporte se deshace con «Deshacer», que lo vuelve a registrar. Las archivadas se ven con «Ver archivadas».
