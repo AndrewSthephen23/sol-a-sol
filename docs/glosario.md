@@ -37,6 +37,8 @@ La interfaz y la documentación van en español; el código, en inglés. Esta ta
 | Tasa de ahorro                                                           | `savingsRate`                                               |
 | Captura / Bandeja                                                        | `Capture` / `inbox`                                         |
 | Regla de categorización                                                  | `CategorizationRule`                                        |
+| Patrón / Prioridad (de una regla)                                        | `pattern` / `priority`                                      |
+| Aviso (de una captura: lo que no se entendió o hay que mirar)            | `warnings`                                                  |
 | Token personal                                                           | `PersonalAccessToken`                                       |
 | Pendiente / Confirmada / Descartada / Duplicada                          | `PENDING` / `CONFIRMED` / `DISCARDED` / `DUPLICATE`         |
 | Nivel de utilización OK / Alta / Crítica                                 | `OK` / `HIGH` / `CRITICAL`                                  |
