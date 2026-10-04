@@ -7,6 +7,7 @@ import {
   IdempotencyKeyTakenError,
   type NewCapture,
 } from '../../src/modules/capture/ports/capture-repository.js';
+import { RulePatternTakenError } from '../../src/modules/capture/ports/categorization-rule-repository.js';
 import { PrismaService } from '../../src/shared/prisma/prisma.service.js';
 
 // Valor obviamente falso: estas pruebas no tocan contraseñas.
@@ -180,6 +181,93 @@ describe('capture repositories', () => {
     await expect(captures.deleteDiscardedBefore(ana, AT)).resolves.toBe(1);
 
     await expect(captures.find(bruno, theirs.id)).resolves.not.toBeNull();
+  });
+
+  async function categoryOf(userId: string, name = 'Víveres') {
+    return prisma.category.create({
+      data: { userId, type: 'VARIABLE_EXPENSE', name, color: '#E53935', icon: 'cart' },
+    });
+  }
+
+  it('lists the uncategorized captures of the inbox, only in its own account', async () => {
+    const waiting = await captures.create(ana, { ...CAPTURE, idempotencyKey: 'a' });
+    const category = await categoryOf(ana);
+    await captures.create(ana, { ...CAPTURE, idempotencyKey: 'b', categoryId: category.id });
+    await captures.create(bruno, { ...CAPTURE, idempotencyKey: 'c' });
+
+    const found = await captures.listUncategorizedInInbox(ana);
+
+    expect(found.map(({ id }) => id)).toEqual([waiting.id]);
+  });
+
+  it('moves the unconfirmed captures of a category, only in its own account', async () => {
+    const [from, into] = [await categoryOf(ana), await categoryOf(ana, 'Mercado')];
+    const theirFrom = await categoryOf(bruno);
+    const mine = await captures.create(ana, {
+      ...CAPTURE,
+      idempotencyKey: 'a',
+      categoryId: from.id,
+    });
+    const theirs = await captures.create(bruno, {
+      ...CAPTURE,
+      idempotencyKey: 'b',
+      categoryId: theirFrom.id,
+    });
+
+    // Otra cuenta pidiendo mover las categorías de Ana no mueve nada.
+    await expect(captures.reassignCategory(bruno, from.id, into.id)).resolves.toBe(0);
+    await expect(captures.find(ana, mine.id)).resolves.toMatchObject({ categoryId: from.id });
+    await expect(captures.reassignCategory(ana, from.id, into.id)).resolves.toBe(1);
+
+    await expect(captures.find(ana, mine.id)).resolves.toMatchObject({ categoryId: into.id });
+    await expect(captures.find(bruno, theirs.id)).resolves.toMatchObject({
+      categoryId: theirFrom.id,
+    });
+  });
+
+  it('finds, changes and deletes a rule only in its own account', async () => {
+    const category = await categoryOf(ana);
+    const rule = await rules.create(ana, {
+      pattern: 'Tambo',
+      patternKey: 'tambo',
+      categoryId: category.id,
+      priority: 0,
+    });
+
+    await expect(rules.find(bruno, rule.id)).resolves.toBeNull();
+    await expect(rules.update(bruno, rule.id, { priority: 9 })).resolves.toBeNull();
+    await expect(rules.delete(bruno, rule.id)).resolves.toBe(false);
+    // El UPDATE y el DELETE mismos filtran por cuenta: no basta con la respuesta.
+    await expect(rules.find(ana, rule.id)).resolves.toMatchObject({ priority: 0 });
+  });
+
+  it('turns a repeated pattern into RulePatternTakenError', async () => {
+    const category = await categoryOf(ana);
+    const fields = { pattern: 'Tambo', patternKey: 'tambo', categoryId: category.id, priority: 0 };
+    await rules.create(ana, fields);
+    const other = await rules.create(ana, { ...fields, pattern: 'Wong', patternKey: 'wong' });
+
+    await expect(rules.create(ana, fields)).rejects.toBeInstanceOf(RulePatternTakenError);
+    await expect(rules.update(ana, other.id, { patternKey: 'tambo' })).rejects.toBeInstanceOf(
+      RulePatternTakenError,
+    );
+  });
+
+  it('moves the rules of a category, only in its own account', async () => {
+    const [from, into] = [await categoryOf(ana), await categoryOf(ana, 'Mercado')];
+    const theirFrom = await categoryOf(bruno);
+    const fields = { pattern: 'Tambo', patternKey: 'tambo', priority: 0 };
+    const mine = await rules.create(ana, { ...fields, categoryId: from.id });
+    const theirs = await rules.create(bruno, { ...fields, categoryId: theirFrom.id });
+
+    await expect(rules.reassignCategory(bruno, from.id, into.id)).resolves.toBe(0);
+    await expect(rules.find(ana, mine.id)).resolves.toMatchObject({ categoryId: from.id });
+    await expect(rules.reassignCategory(ana, from.id, into.id)).resolves.toBe(1);
+
+    await expect(rules.find(ana, mine.id)).resolves.toMatchObject({ categoryId: into.id });
+    await expect(rules.find(bruno, theirs.id)).resolves.toMatchObject({
+      categoryId: theirFrom.id,
+    });
   });
 
   it('lists only the rules of the account', async () => {

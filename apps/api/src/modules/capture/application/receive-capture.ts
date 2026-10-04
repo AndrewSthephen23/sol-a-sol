@@ -5,7 +5,6 @@ import { maskCardNumbers, parseNotification } from '@sol-a-sol/capture-parsers';
 import {
   type CaptureAmount,
   captureBusinessDate,
-  type CategorizationRuleCandidate,
   type Clock,
   DUPLICATE_WINDOW_MS,
   findDuplicate,
@@ -29,6 +28,7 @@ import {
   CATEGORIZATION_RULE_REPOSITORY,
   type CategorizationRuleRepository,
 } from '../ports/categorization-rule-repository.js';
+import { ruleCandidates } from './rule-candidates.js';
 import {
   CAPTURE_TRANSACTIONS_READER,
   type CaptureTransactionsReader,
@@ -171,20 +171,7 @@ export class ReceiveCapture {
     const amount: CaptureAmount | null =
       draft.amount === null ? null : { value: draft.amount.value, currency };
 
-    const categoryById = new Map(categories.map((category) => [category.id, category]));
-    const candidates = rules.flatMap((rule): CategorizationRuleCandidate[] => {
-      const category = categoryById.get(rule.categoryId);
-      if (category === undefined) return [];
-      return [
-        {
-          categoryId: rule.categoryId,
-          categoryType: category.type,
-          categoryArchived: category.archived,
-          patternKey: rule.patternKey,
-          priority: rule.priority,
-        },
-      ];
-    });
+    const candidates = ruleCandidates(rules, categories);
     const categoryId = suggestCategory(candidates, draft.type, draft.merchant, rawText);
 
     const duplicate = await this.isDuplicate(userId, { ...draft, amount });

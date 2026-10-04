@@ -4,6 +4,8 @@ import {
   confirmCapturesRequestSchema,
   CONFIRM_CAPTURES_MAX,
   createCaptureRequestSchema,
+  createCategorizationRuleRequestSchema,
+  updateCategorizationRuleRequestSchema,
   CAPTURES_DEFAULT_LIMIT,
   CAPTURES_MAX_LIMIT,
   updateCaptureRequestSchema,
@@ -2528,6 +2530,126 @@ const CONFIRM_CAPTURES_SCHEMA = schemaOf(
   }),
 );
 
+const CATEGORIZATION_RULE_SCHEMA = schemaOf(
+  z.object({
+    id: z.uuid(),
+    pattern: z
+      .string()
+      .describe(
+        'Como se escribió. Aplica si el comercio (o, sin comercio, el texto de la notificación) ' +
+          'lo contiene, sin tildes ni mayúsculas.',
+      ),
+    categoryId: z.uuid().describe('De cualquier tipo: se sugiere solo a capturas de ese tipo.'),
+    priority: z
+      .int()
+      .describe('Cero o más. Si aplican dos, gana la mayor; luego, el patrón más largo.'),
+  }),
+);
+
+function rulesPaths(): Record<string, unknown> {
+  const rule = { content: { 'application/json': { schema: CATEGORIZATION_RULE_SCHEMA } } };
+  const unauthorized = problem('Falta el token de acceso o no vale.');
+  const forbidden = problem(
+    'Llegó un token personal: las reglas solo se gestionan desde una sesión.',
+  );
+  const ID_PARAMETER = {
+    name: 'id',
+    in: 'path',
+    required: true,
+    schema: { type: 'string', format: 'uuid' },
+  };
+  const taken = problem(
+    'La cuenta ya tiene una regla con ese patrón, sin tildes ni mayúsculas (`RULE_PATTERN_TAKEN`).',
+  );
+  const resuggest =
+    'Después, las capturas de la bandeja **sin categoría** a las que aplique toman la suya; las ' +
+    'que ya tienen una no se tocan.';
+
+  return {
+    [`/${API_PREFIX}/categorization-rules`]: {
+      get: {
+        tags: ['capture'],
+        summary: 'Las reglas de categorización, primero la de mayor prioridad.',
+        security: [{ accessToken: [] }],
+        responses: {
+          '200': {
+            description: 'Las reglas de la cuenta.',
+            content: {
+              'application/json': {
+                schema: { type: 'array', items: CATEGORIZATION_RULE_SCHEMA },
+              },
+            },
+          },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem('El módulo está apagado.'),
+        },
+      },
+      post: {
+        tags: ['capture'],
+        summary: 'Crea una regla de categorización.',
+        description: `La categoría, de la cuenta y activa; la prioridad, 0 por defecto. ${resuggest}`,
+        security: [{ accessToken: [] }],
+        requestBody: jsonBody(createCategorizationRuleRequestSchema),
+        responses: {
+          '201': { description: 'La regla creada.', ...rule },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem(
+            'La categoría no existe o es de otra cuenta (`CATEGORY_NOT_FOUND`); o el módulo ' +
+              'está apagado.',
+          ),
+          '409': taken,
+          '422': problem(
+            'El cuerpo no tiene la forma esperada, o la categoría está archivada ' +
+              '(`CATEGORY_ARCHIVED`).',
+          ),
+        },
+      },
+    },
+    [`/${API_PREFIX}/categorization-rules/{id}`]: {
+      patch: {
+        tags: ['capture'],
+        summary: 'Cambia el patrón, la categoría o la prioridad de una regla.',
+        description: `Solo cambia lo que llega. ${resuggest}`,
+        security: [{ accessToken: [] }],
+        parameters: [ID_PARAMETER],
+        requestBody: jsonBody(updateCategorizationRuleRequestSchema),
+        responses: {
+          '200': { description: 'La regla como quedó.', ...rule },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem(
+            'La regla (`RULE_NOT_FOUND`) o la categoría (`CATEGORY_NOT_FOUND`) no existen o son ' +
+              'de otra cuenta; o el módulo está apagado.',
+          ),
+          '409': taken,
+          '422': problem(
+            'El id no es un UUID, el cuerpo no tiene la forma esperada, o la categoría nueva está ' +
+              'archivada (`CATEGORY_ARCHIVED`).',
+          ),
+        },
+      },
+      delete: {
+        tags: ['capture'],
+        summary: 'Borra una regla.',
+        description: 'Lo que ya sugirió se queda en sus capturas.',
+        security: [{ accessToken: [] }],
+        parameters: [ID_PARAMETER],
+        responses: {
+          '204': { description: 'Borrada.' },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem(
+            'La regla no existe o es de otra cuenta (`RULE_NOT_FOUND`); o el módulo está apagado.',
+          ),
+          '422': problem('El id no es un UUID.'),
+        },
+      },
+    },
+  };
+}
+
 function capturePaths(): Record<string, unknown> {
   const capture = { content: { 'application/json': { schema: CAPTURE_SCHEMA } } };
   const inboxCapture = { content: { 'application/json': { schema: INBOX_CAPTURE_SCHEMA } } };
@@ -2793,7 +2915,7 @@ const PATHS_BY_MODULE: Partial<
   reports: reportsPaths,
   'credit-cards': creditCardsPaths,
   goals: goalsPaths,
-  capture: capturePaths,
+  capture: () => ({ ...capturePaths(), ...rulesPaths() }),
 };
 
 export interface OpenApiOptions {

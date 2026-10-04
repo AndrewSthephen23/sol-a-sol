@@ -72,6 +72,9 @@ const STATUS_BY_DOMAIN_CODE = new Map<string, number>([
   // La captura existe, pero otra petición (u otra pestaña) ya la confirmó o la descartó.
   ['CAPTURE_NOT_PENDING', HttpStatus.CONFLICT],
   ['CAPTURE_NOT_DISCARDED', HttpStatus.CONFLICT],
+  ['RULE_NOT_FOUND', HttpStatus.NOT_FOUND],
+  // El patrón está bien escrito, pero la cuenta ya tiene una regla con él: se edita esa.
+  ['RULE_PATTERN_TAKEN', HttpStatus.CONFLICT],
 ]);
 
 /** Una regla de negocio rechazó una petición bien formada: contenido no procesable. */
