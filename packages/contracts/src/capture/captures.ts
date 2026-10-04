@@ -97,8 +97,29 @@ export const updateCaptureRequestSchema = z
 /** El id de la ruta: un UUID, o la petición no llega a buscar nada. */
 export const captureParamsSchema = z.object({ id: z.uuid() });
 
+/** «Recordar para este comercio» (decisión 13): sin marcar, no se crea ninguna regla. */
+const rememberCategory = z.boolean().default(false);
+
+/** Confirmar una captura. El cuerpo puede no venir: no se recuerda nada. */
+export const confirmCaptureRequestSchema = z
+  .strictObject({ rememberCategory })
+  .default({ rememberCategory: false });
+
+/** A lo más tantas por pedido: «Confirmar las 5 completas» cabe de sobra. */
+export const CONFIRM_CAPTURES_MAX = 50;
+
+/** Confirmar varias a la vez: cada una por su lado (decidido el 2026-10-04). */
+export const confirmCapturesRequestSchema = z.strictObject({
+  captures: z
+    .array(z.strictObject({ id: z.uuid(), rememberCategory }))
+    .min(1)
+    .max(CONFIRM_CAPTURES_MAX),
+});
+
 export type CaptureSource = z.infer<typeof captureSourceSchema>;
 export type ListCapturesQuery = z.infer<typeof listCapturesQuerySchema>;
 export type UpdateCaptureRequest = z.infer<typeof updateCaptureRequestSchema>;
 export type CaptureParams = z.infer<typeof captureParamsSchema>;
+export type ConfirmCaptureRequest = z.infer<typeof confirmCaptureRequestSchema>;
+export type ConfirmCapturesRequest = z.infer<typeof confirmCapturesRequestSchema>;
 export type CreateCaptureRequest = z.infer<typeof createCaptureRequestSchema>;

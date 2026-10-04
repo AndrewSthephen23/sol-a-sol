@@ -66,6 +66,8 @@ export interface CreateTransactionInput {
   /** Por nombre; las que no existen se crean. */
   tags?: readonly string[];
   source: TransactionSource;
+  /** Solo al confirmar una captura: la captura de la que sale. */
+  captureId?: string;
 }
 
 @Injectable()
@@ -104,6 +106,7 @@ export class CreateTransaction {
       merchant: input.merchant ?? null,
       source: input.source,
       tags,
+      ...(input.captureId === undefined ? {} : { captureId: input.captureId }),
     });
     // Después de guardar, nunca antes: quien escuche puede necesitar leerla (ADR-0004).
     const event: TransactionCreated = { userId, transactionId: created.id };

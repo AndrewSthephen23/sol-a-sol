@@ -36,6 +36,7 @@ const CAPTURE_FIELDS = {
   rawPayload: true,
   discardedAt: true,
   discardedFrom: true,
+  transactionId: true,
   createdAt: true,
 } as const;
 
@@ -57,6 +58,7 @@ interface CaptureRow {
   rawPayload: Prisma.JsonValue;
   discardedAt: Date | null;
   discardedFrom: Capture['status'] | null;
+  transactionId: string | null;
   createdAt: Date;
 }
 

@@ -46,6 +46,7 @@ export class FakeCaptureRepository implements CaptureRepository {
       rawPayload,
       discardedAt: null,
       discardedFrom: null,
+      transactionId: null,
       createdAt: new Date('2026-10-03T17:00:00.000Z'),
     };
     this.stored.push({ userId, capture: created, idempotencyKey });

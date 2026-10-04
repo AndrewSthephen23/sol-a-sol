@@ -42,6 +42,15 @@ export interface NewTransaction {
   tags: readonly NormalizedTag[];
   /** Solo al importar: la huella de su fila del CSV, única por cuenta. */
   importKey?: string;
+  /** Solo al confirmar una captura (H7): la captura de la que sale, que da una sola transacción. */
+  captureId?: string;
+}
+
+/** La captura ya tiene su transacción (`transactions.capture_id` es único). */
+export class CaptureAlreadyRecordedError extends Error {
+  constructor() {
+    super('The capture already has its transaction.');
+  }
 }
 
 /** Lo que se puede corregir. El origen (`source`) no está: no cambia al editar. */
@@ -114,7 +123,11 @@ export function newestFirst(a: PagePosition, b: PagePosition): number {
  * transacción sin decir de quién es. Las borradas no aparecen en las consultas normales.
  */
 export interface TransactionRepository {
+  /** Lanza `CaptureAlreadyRecordedError` si su `captureId` ya tiene una transacción. */
   create(transaction: NewTransaction): Promise<Transaction>;
+
+  /** El id de la transacción que salió de esa captura, **también si está borrada**; o `null`. */
+  findIdByCapture(userId: string, captureId: string): Promise<string | null>;
 
   /** `null` si no existe, **es de otra cuenta o está borrada**. */
   find(userId: string, id: string): Promise<Transaction | null>;

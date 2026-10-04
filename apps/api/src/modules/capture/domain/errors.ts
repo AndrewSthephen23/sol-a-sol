@@ -27,6 +27,15 @@ export class CapturePaymentMethodNotFoundError extends DomainError {
   }
 }
 
+/** «Recordar para este comercio» sin comercio: no hay con qué armar la regla (2026-10-04). */
+export class CaptureMerchantMissingError extends DomainError {
+  readonly code = 'CAPTURE_MERCHANT_MISSING';
+
+  constructor() {
+    super('The capture has no merchant to remember its category for.');
+  }
+}
+
 export class InvalidCaptureCursorError extends DomainError {
   readonly code = 'INVALID_CURSOR';
 

@@ -16,6 +16,7 @@ import { ConfirmImport } from './application/import-confirm.js';
 import { PreviewImport } from './application/import-preview.js';
 import { ReassignCategory } from './application/reassign-category.js';
 import { TransactionsLookup } from './application/transactions-lookup.js';
+import { TransactionsRecorder } from './application/transactions-recorder.js';
 import { DeleteTag, ListTags, RenameTag } from './application/tags.js';
 import {
   CreateTransfer,
@@ -52,6 +53,7 @@ import { TRANSFER_REPOSITORY } from './ports/transfer-repository.js';
   controllers: [TransactionsController, TransfersController, TagsController],
   providers: [
     CreateTransaction,
+    TransactionsRecorder,
     GetTransaction,
     ListTransactions,
     UpdateTransaction,
@@ -78,6 +80,6 @@ import { TRANSFER_REPOSITORY } from './ports/transfer-repository.js';
     TransactionsLookup,
   ],
   // Lo que leen otros módulos: el presupuesto, los reportes, las tarjetas y los resúmenes.
-  exports: [TransactionsLookup],
+  exports: [TransactionsLookup, TransactionsRecorder],
 })
 export class TransactionsModule {}

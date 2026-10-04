@@ -23,6 +23,8 @@ export interface Capture {
   discardedAt: Date | null;
   /** De dónde se descartó, para devolverla como estaba. */
   discardedFrom: 'PENDING' | 'DUPLICATE' | null;
+  /** La transacción que salió al confirmarla. */
+  transactionId: string | null;
   createdAt: Date;
 }
 
@@ -46,12 +48,13 @@ export type CaptureChanges = Partial<
     | 'description'
     | 'discardedAt'
     | 'discardedFrom'
+    | 'transactionId'
   >
 >;
 
 export interface NewCapture extends Omit<
   Capture,
-  'id' | 'createdAt' | 'rawPayload' | 'discardedAt' | 'discardedFrom'
+  'id' | 'createdAt' | 'rawPayload' | 'discardedAt' | 'discardedFrom' | 'transactionId'
 > {
   /** El pedido tal cual llegó, con los números de tarjeta ya tapados. */
   rawPayload: Record<string, string>;

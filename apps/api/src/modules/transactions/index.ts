@@ -12,6 +12,11 @@ export {
   TransactionsLookup,
 } from './application/transactions-lookup.js';
 export {
+  type CapturedTransaction,
+  type RecordedTransaction,
+  TransactionsRecorder,
+} from './application/transactions-recorder.js';
+export {
   TRANSACTION_CREATED,
   TRANSACTION_DELETED,
   TRANSACTION_RESTORED,

@@ -6408,10 +6408,10 @@ export interface paths {
                                 /** @enum {string} */
                                 source: "IOS_SHORTCUT" | "ANDROID_AUTOMATION";
                                 /**
-                                 * @description Por revisar, duplicada (se puede confirmar igual) o descartada.
+                                 * @description Por revisar, duplicada (se puede confirmar igual), descartada, o confirmada (solo en la respuesta de confirmar).
                                  * @enum {string}
                                  */
-                                status: "PENDING" | "DUPLICATE" | "DISCARDED";
+                                status: "PENDING" | "DUPLICATE" | "DISCARDED" | "CONFIRMED";
                                 /** @description Si tiene monto. */
                                 parsed: boolean;
                                 /** @enum {string} */
@@ -6445,6 +6445,11 @@ export interface paths {
                                  * @description Se borra del todo 90 días después.
                                  */
                                 discardedAt: string | null;
+                                /**
+                                 * Format: uuid
+                                 * @description La transacción que salió al confirmarla.
+                                 */
+                                transactionId: string | null;
                             }[];
                             nextCursor: string | null;
                         };
@@ -6718,10 +6723,10 @@ export interface paths {
                             /** @enum {string} */
                             source: "IOS_SHORTCUT" | "ANDROID_AUTOMATION";
                             /**
-                             * @description Por revisar, duplicada (se puede confirmar igual) o descartada.
+                             * @description Por revisar, duplicada (se puede confirmar igual), descartada, o confirmada (solo en la respuesta de confirmar).
                              * @enum {string}
                              */
-                            status: "PENDING" | "DUPLICATE" | "DISCARDED";
+                            status: "PENDING" | "DUPLICATE" | "DISCARDED" | "CONFIRMED";
                             /** @description Si tiene monto. */
                             parsed: boolean;
                             /** @enum {string} */
@@ -6755,6 +6760,11 @@ export interface paths {
                              * @description Se borra del todo 90 días después.
                              */
                             discardedAt: string | null;
+                            /**
+                             * Format: uuid
+                             * @description La transacción que salió al confirmarla.
+                             */
+                            transactionId: string | null;
                         };
                     };
                 };
@@ -6846,10 +6856,10 @@ export interface paths {
                             /** @enum {string} */
                             source: "IOS_SHORTCUT" | "ANDROID_AUTOMATION";
                             /**
-                             * @description Por revisar, duplicada (se puede confirmar igual) o descartada.
+                             * @description Por revisar, duplicada (se puede confirmar igual), descartada, o confirmada (solo en la respuesta de confirmar).
                              * @enum {string}
                              */
-                            status: "PENDING" | "DUPLICATE" | "DISCARDED";
+                            status: "PENDING" | "DUPLICATE" | "DISCARDED" | "CONFIRMED";
                             /** @description Si tiene monto. */
                             parsed: boolean;
                             /** @enum {string} */
@@ -6883,6 +6893,11 @@ export interface paths {
                              * @description Se borra del todo 90 días después.
                              */
                             discardedAt: string | null;
+                            /**
+                             * Format: uuid
+                             * @description La transacción que salió al confirmarla.
+                             */
+                            transactionId: string | null;
                         };
                     };
                 };
@@ -6935,6 +6950,247 @@ export interface paths {
         };
         trace?: never;
     };
+    "/api/v1/captures/{id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirma una captura: se crea su transacción.
+         * @description Con monto, moneda, categoría y descripción (sin descripción, el comercio). La transacción sigue las reglas de cualquiera y lleva su captura y su origen. El texto crudo se borra. Una sola transacción por captura, aunque lleguen dos confirmaciones a la vez. Con `rememberCategory`, la regla de su comercio se crea o se actualiza.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @default false */
+                        rememberCategory: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description La captura confirmada, con su transacción. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            source: "IOS_SHORTCUT" | "ANDROID_AUTOMATION";
+                            /**
+                             * @description Por revisar, duplicada (se puede confirmar igual), descartada, o confirmada (solo en la respuesta de confirmar).
+                             * @enum {string}
+                             */
+                            status: "PENDING" | "DUPLICATE" | "DISCARDED" | "CONFIRMED";
+                            /** @description Si tiene monto. */
+                            parsed: boolean;
+                            /** @enum {string} */
+                            type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
+                            /** @description String decimal, mayor que cero. */
+                            amount: string | null;
+                            /**
+                             * @description Nula: se elige antes de confirmar.
+                             * @enum {string|null}
+                             */
+                            currency: "PEN" | "USD" | null;
+                            merchant: string | null;
+                            cardLast4: string | null;
+                            /** Format: date */
+                            date: string;
+                            /** Format: date-time */
+                            occurredAt: string;
+                            /** Format: uuid */
+                            categoryId: string | null;
+                            /** Format: uuid */
+                            paymentMethodId: string | null;
+                            description: string | null;
+                            /** @description Los avisos con que llegó. */
+                            warnings: string[];
+                            /** @description El pedido como llegó del teléfono, con las tarjetas tapadas: completo mientras no se confirme. */
+                            raw: {
+                                [key: string]: string;
+                            } | null;
+                            /**
+                             * Format: date-time
+                             * @description Se borra del todo 90 días después.
+                             */
+                            discardedAt: string | null;
+                            /**
+                             * Format: uuid
+                             * @description La transacción que salió al confirmarla.
+                             */
+                            transactionId: string | null;
+                        };
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: la bandeja solo se revisa desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description La captura (`CAPTURE_NOT_FOUND`), su categoría (`CATEGORY_NOT_FOUND`) o su método (`PAYMENT_METHOD_NOT_FOUND`) no existen o son de otra cuenta; o el módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Ya se confirmó o se descartó, quizá desde otra pestaña (`CAPTURE_NOT_PENDING`). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Falta el monto (`CAPTURE_AMOUNT_MISSING`), la moneda (`CAPTURE_CURRENCY_MISSING`), la categoría (`CAPTURE_CATEGORY_MISSING`) o la descripción (`CAPTURE_DESCRIPTION_MISSING`); se pidió recordar sin comercio (`CAPTURE_MERCHANT_MISSING`); o se rompe una regla de la transacción (fecha futura, categoría de otro tipo o archivada, método archivado). */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/captures/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirma varias capturas, cada una por su lado.
+         * @description Hasta 50. Una que no se puede confirmar no frena a las demás: la respuesta dice cuáles se confirmaron y, de las otras, por qué no.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        captures: {
+                            /** Format: uuid */
+                            id: string;
+                            /** @default false */
+                            rememberCategory: boolean;
+                        }[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Las confirmadas y las que no. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @description Las que se confirmaron, con su transacción. */
+                            confirmed: {
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                transactionId: string;
+                            }[];
+                            /** @description Las que no, con el `code` de su error (`CAPTURE_NOT_FOUND`, `CAPTURE_NOT_PENDING`, `CAPTURE_AMOUNT_MISSING`, `CATEGORY_ARCHIVED`…). */
+                            failed: {
+                                /** Format: uuid */
+                                id: string;
+                                code: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: la bandeja solo se revisa desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El cuerpo no tiene la forma esperada (ninguna, o demasiadas). */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/captures/{id}/discard": {
         parameters: {
             query?: never;
@@ -6971,10 +7227,10 @@ export interface paths {
                             /** @enum {string} */
                             source: "IOS_SHORTCUT" | "ANDROID_AUTOMATION";
                             /**
-                             * @description Por revisar, duplicada (se puede confirmar igual) o descartada.
+                             * @description Por revisar, duplicada (se puede confirmar igual), descartada, o confirmada (solo en la respuesta de confirmar).
                              * @enum {string}
                              */
-                            status: "PENDING" | "DUPLICATE" | "DISCARDED";
+                            status: "PENDING" | "DUPLICATE" | "DISCARDED" | "CONFIRMED";
                             /** @description Si tiene monto. */
                             parsed: boolean;
                             /** @enum {string} */
@@ -7008,6 +7264,11 @@ export interface paths {
                              * @description Se borra del todo 90 días después.
                              */
                             discardedAt: string | null;
+                            /**
+                             * Format: uuid
+                             * @description La transacción que salió al confirmarla.
+                             */
+                            transactionId: string | null;
                         };
                     };
                 };
@@ -7100,10 +7361,10 @@ export interface paths {
                             /** @enum {string} */
                             source: "IOS_SHORTCUT" | "ANDROID_AUTOMATION";
                             /**
-                             * @description Por revisar, duplicada (se puede confirmar igual) o descartada.
+                             * @description Por revisar, duplicada (se puede confirmar igual), descartada, o confirmada (solo en la respuesta de confirmar).
                              * @enum {string}
                              */
-                            status: "PENDING" | "DUPLICATE" | "DISCARDED";
+                            status: "PENDING" | "DUPLICATE" | "DISCARDED" | "CONFIRMED";
                             /** @description Si tiene monto. */
                             parsed: boolean;
                             /** @enum {string} */
@@ -7137,6 +7398,11 @@ export interface paths {
                              * @description Se borra del todo 90 días después.
                              */
                             discardedAt: string | null;
+                            /**
+                             * Format: uuid
+                             * @description La transacción que salió al confirmarla.
+                             */
+                            transactionId: string | null;
                         };
                     };
                 };
