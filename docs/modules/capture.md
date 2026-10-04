@@ -140,6 +140,17 @@ Solo desde una **sesión**: un token personal recibe 403 en todas sus rutas (el 
 - **Reglas** (decisión 12; decidido el 2026-10-04): solo desde una sesión. La categoría, de la cuenta (404 si no) y **activa** (422), de cualquier tipo: se sugiere solo a capturas de su tipo. Un patrón que la cuenta ya tiene, sin tildes ni mayúsculas, responde **409** `RULE_PATTERN_TAKEN`: se edita esa. Al **crear o cambiar** una regla, las capturas de la bandeja **sin categoría** a las que aplique toman la suya (pesan todas las reglas, como al recibir); las que ya tienen una, sugerida o elegida, no se tocan. Borrar una regla no quita lo que ya sugirió. Una regla cuya categoría se archiva después se queda, pero no sugiere mientras esté archivada.
 - **Borrado a los 90 días** (decisiones 11 y 14): una **tarea diaria dentro de la API** (`@nestjs/schedule`, a las 4:30 de Lima) borra del todo las descartadas hace más de 90 días, con su texto crudo, cuenta por cuenta. Se cumple aunque nadie abra la bandeja. Con el módulo apagado no hace nada; si falla, lo intenta al día siguiente.
 
+## En la web
+
+**«Bandeja»** (`/capture`), con su flag leído en el servidor (`requireFeature`). Decidido con el autor el **2026-10-04**:
+
+- **Por revisar**, primero la más reciente, y **Descartadas** en su pestaña (con «Restaurar»). Cada captura en una tarjeta: el monto («Sin monto» o «25.90 (sin moneda)»), el comercio, el día, los últimos 4, la categoría, el método, la marca de **posible duplicado**, sus **avisos en palabras** (los códigos se traducen en la web) y, plegado, **lo que llegó del teléfono** completo (decisión 14).
+- **Confirmar** con un toque si está completa; si no, dice qué falta («Falta la categoría.»). Con comercio se ofrece **«Recordar la categoría para «Tambo»»** (decisión 13).
+- **Corregir en la misma tarjeta**, sin cambiar de pantalla: monto, moneda (si el método no la fija), categoría (el tipo sale de ella, como al registrar un movimiento), método, fecha, comercio y descripción. Los errores de la API van junto a su campo.
+- **Descartar** con «Deshacer» (decisión 11). **«Confirmar las N completas»** confirma todas las que están listas, cada una por su lado, y dice cuántas no se pudieron.
+- La lista se pide de nuevo al volver a ella (`staleTime: 0`): llegan capturas mientras se mira.
+- El menú desplegable en el teléfono, el contador de pendientes y el aviso en «Inicio» (decisión 17) llegan en el siguiente PR.
+
 ## Estado
 
 - Feature flag: `FEATURE_CAPTURE` (apagado hasta cumplir la Definition of Done)

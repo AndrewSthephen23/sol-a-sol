@@ -21,6 +21,15 @@ const MESSAGES: Readonly<Record<string, string>> = {
   INVALID_CREDENTIALS: 'El correo o la contraseña no son correctos.',
   INVALID_TOTP_CODE: 'El código no es válido, ya caducó o ya se usó.',
   VALIDATION_FAILED: 'Revisa los datos e inténtalo de nuevo.',
+  // La bandeja de capturas (H7).
+  CAPTURE_NOT_PENDING: 'Ya se confirmó o se descartó, quizá desde otra pestaña.',
+  CAPTURE_NOT_DISCARDED: 'Ya no está descartada.',
+  CAPTURE_NOT_FOUND: 'Esta captura ya no existe.',
+  CAPTURE_AMOUNT_MISSING: 'Falta el monto.',
+  CAPTURE_CURRENCY_MISSING: 'Falta la moneda.',
+  CAPTURE_CATEGORY_MISSING: 'Falta la categoría.',
+  CAPTURE_DESCRIPTION_MISSING: 'Falta la descripción.',
+  CAPTURE_MERCHANT_MISSING: 'Sin comercio no hay nada que recordar.',
 };
 
 export const GENERIC_ERROR = 'Algo salió mal. Inténtalo de nuevo en un momento.';

@@ -8,6 +8,7 @@ import { errorMessage, NETWORK_ERROR } from '@/shared/api/problem';
 import type { Currency } from '@/shared/format/money';
 
 import { Field, INPUT } from './field';
+import type { Option, OptionGroup } from './form-options';
 import { type Checked, type FieldErrors, formErrorFor } from './movement-form-model';
 import type { Outcome } from './mutations';
 
@@ -234,5 +235,81 @@ export function FormFooter({
         {pending ? 'Guardando…' : 'Guardar'}
       </button>
     </>
+  );
+}
+
+/** La categoría, agrupada por tipo (`categoryGroups`): el tipo del movimiento sale de ella. */
+export function CategoryField({
+  value,
+  groups,
+  error,
+  onChange,
+}: Readonly<{
+  value: string;
+  groups: readonly OptionGroup[];
+  error: string | undefined;
+  onChange: (categoryId: string) => void;
+}>) {
+  return (
+    <Field label="Categoría" error={error}>
+      {(control) => (
+        <select
+          {...control}
+          name="categoryId"
+          value={value}
+          onChange={(event) => {
+            onChange(event.target.value);
+          }}
+          className={INPUT}
+        >
+          <option value="">Elige una categoría</option>
+          {groups.map((group) => (
+            <optgroup key={group.label} label={group.label}>
+              {group.options.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+      )}
+    </Field>
+  );
+}
+
+/** El método de pago, opcional (`paymentMethodOptions`). */
+export function PaymentMethodField({
+  value,
+  options,
+  error,
+  onChange,
+}: Readonly<{
+  value: string | null;
+  options: readonly Option[];
+  error: string | undefined;
+  onChange: (paymentMethodId: string | null) => void;
+}>) {
+  return (
+    <Field label="Método de pago" error={error}>
+      {(control) => (
+        <select
+          {...control}
+          name="paymentMethodId"
+          value={value ?? ''}
+          onChange={(event) => {
+            onChange(event.target.value || null);
+          }}
+          className={INPUT}
+        >
+          <option value="">Sin método de pago</option>
+          {options.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      )}
+    </Field>
   );
 }

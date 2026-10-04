@@ -4,7813 +4,7982 @@
  */
 
 export interface paths {
-    "/api/v1/openapi.json": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Devuelve este mismo documento.
-         * @description Solo describe lo que está encendido: las rutas de un módulo con su feature flag apagado no aparecen, porque documentarlas confirmaría justo lo que su 404 oculta.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Documento OpenAPI 3.0. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": Record<string, never>;
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+  '/api/v1/openapi.json': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/health": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    /**
+     * Devuelve este mismo documento.
+     * @description Solo describe lo que está encendido: las rutas de un módulo con su feature flag apagado no aparecen, porque documentarlas confirmaría justo lo que su 404 oculta.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Documento OpenAPI 3.0. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': Record<string, never>;
+          };
         };
-        /**
-         * Comprueba que el proceso responde.
-         * @description Fuera del prefijo de la API: lo consultan Docker y el balanceador.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description El proceso está vivo. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+      };
     };
-    "/health/ready": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Comprueba que la API puede atender peticiones. */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Listo: la base de datos responde. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Alguna dependencia no responde. */
-                503: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/health': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/auth/register": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    /**
+     * Comprueba que el proceso responde.
+     * @description Fuera del prefijo de la API: lo consultan Docker y el balanceador.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description El proceso está vivo. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
         };
-        get?: never;
-        put?: never;
-        /**
-         * Crea una cuenta.
-         * @description Quién puede registrarse lo decide `REGISTRATION_MODE`. Cuando no está permitido responde 404, igual que una ruta que no existe.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        /** Format: email */
-                        email: string;
-                        password: string;
-                        inviteCode?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Cuenta creada. Nunca incluye el hash ni el secreto TOTP. */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /** Format: email */
-                            email: string;
-                            /** Format: date-time */
-                            createdAt: string;
-                        };
-                    };
-                };
-                /** @description El registro no está permitido, o el módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Ya existe una cuenta con ese correo. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El cuerpo no tiene la forma esperada, o la contraseña es débil. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+      };
     };
-    "/api/v1/auth/login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Inicia sesión y devuelve un token de acceso.
-         * @description Un correo desconocido y una contraseña equivocada responden lo mismo, y tardan lo mismo, para no revelar qué correos tienen cuenta.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        /** Format: email */
-                        email: string;
-                        password: string;
-                        totpCode?: string;
-                        recoveryCode?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Token de acceso, válido 15 minutos. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            accessToken: string;
-                            /** @enum {string} */
-                            tokenType: "Bearer";
-                            /** @description Segundos de vida del token. */
-                            expiresIn: number;
-                        };
-                    };
-                };
-                /** @description El correo o la contraseña no corresponden (`INVALID_CREDENTIALS`), la cuenta pide el segundo factor y no llegó (`TOTP_REQUIRED`), o el código no vale (`INVALID_TOTP_CODE`). */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El cuerpo no tiene la forma esperada. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Demasiados intentos fallidos (`TOO_MANY_LOGIN_ATTEMPTS`) o demasiadas peticiones. */
-                429: {
-                    headers: {
-                        /** @description Segundos que faltan para poder volver a intentarlo. */
-                        "Retry-After"?: number;
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/health/ready': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/auth/refresh": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    /** Comprueba que la API puede atender peticiones. */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Listo: la base de datos responde. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
         };
-        get?: never;
-        put?: never;
-        /**
-         * Renueva la sesión a partir de la cookie de refresco.
-         * @description El refresco viaja solo en la cookie, no en el cuerpo. Cada uso emite uno nuevo e invalida el anterior; si llega uno ya canjeado se cierran todas las sesiones de la cuenta, porque es la señal de que alguien lo copió.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Sesión renovada. La cookie se reemplaza por una nueva. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            accessToken: string;
-                            /** @enum {string} */
-                            tokenType: "Bearer";
-                            /** @description Segundos de vida del token. */
-                            expiresIn: number;
-                        };
-                    };
-                };
-                /** @description No hay cookie, o el refresco no vale: caducó, se revocó o ya se usó. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
+        /** @description Alguna dependencia no responde. */
+        503: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
         };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+      };
     };
-    "/api/v1/auth/2fa/setup": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Empieza a activar el segundo factor.
-         * @description Devuelve **una sola vez** el `otpauth://` que escanean Google Authenticator, Aegis, 1Password o Bitwarden. El segundo factor no queda activo hasta confirmarlo con un código.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Secreto y URI. No se pueden volver a consultar. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @description URI otpauth:// para escanear. */
-                            uri: string;
-                            /** @description El mismo secreto en base32, para escribirlo a mano. */
-                            secret: string;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: la cuenta solo se toca desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El segundo factor ya está activo; hay que desactivarlo primero. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/auth/register': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/auth/2fa/verify": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    get?: never;
+    put?: never;
+    /**
+     * Crea una cuenta.
+     * @description Quién puede registrarse lo decide `REGISTRATION_MODE`. Cuando no está permitido responde 404, igual que una ruta que no existe.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            /** Format: email */
+            email: string;
+            password: string;
+            inviteCode?: string;
+          };
         };
-        get?: never;
-        put?: never;
-        /**
-         * Confirma el segundo factor y devuelve los códigos de recuperación.
-         * @description Los códigos se muestran **una sola vez**: después solo se guarda su hash. Son la salida cuando se pierde el teléfono. Cierra las sesiones de los demás navegadores (se abrieron sin segundo factor) y conserva la de la cookie; los tokens personales siguen valiendo y se listan para ofrecer revocarlos.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
+      };
+      responses: {
+        /** @description Cuenta creada. Nunca incluye el hash ni el secreto TOTP. */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /** Format: email */
+              email: string;
+              /** Format: date-time */
+              createdAt: string;
             };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        code: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Segundo factor activo, con sus códigos de recuperación. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @description Sesiones de otros navegadores que se cerraron. */
-                            otherSessionsClosed: number;
-                            /** @description Tokens personales que siguen valiendo: no se revocan, pero conviene revisarlos. */
-                            personalAccessTokens: {
-                                /** Format: uuid */
-                                id: string;
-                                name: string;
-                                scopes: string[];
-                                /** Format: date-time */
-                                createdAt: string;
-                                /** Format: date-time */
-                                expiresAt: string;
-                                /**
-                                 * Format: date-time
-                                 * @description Nulo si nunca se usó.
-                                 */
-                                lastUsedAt: string | null;
-                            }[];
-                            /** @description Diez códigos. Es la única vez que se pueden leer. */
-                            recoveryCodes: string[];
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso, o el código no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: la cuenta solo se toca desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description No hay ninguna activación en marcha, o ya estaba activo. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El código no son seis dígitos. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
+          };
         };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+        /** @description El registro no está permitido, o el módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Ya existe una cuenta con ese correo. */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El cuerpo no tiene la forma esperada, o la contraseña es débil. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
     };
-    "/api/v1/auth/2fa/recovery-codes": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Rehace los códigos de recuperación.
-         * @description Invalida los anteriores y devuelve diez nuevos, **una sola vez**. Exige un código de la aplicación de autenticación.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        code: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Códigos nuevos. Los anteriores dejan de valer. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @description Diez códigos. Es la única vez que se pueden leer. */
-                            recoveryCodes: string[];
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso, o el código no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: la cuenta solo se toca desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La cuenta no tiene segundo factor activo. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El código no son seis dígitos. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/auth/login': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/auth/2fa/disable": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    get?: never;
+    put?: never;
+    /**
+     * Inicia sesión y devuelve un token de acceso.
+     * @description Un correo desconocido y una contraseña equivocada responden lo mismo, y tardan lo mismo, para no revelar qué correos tienen cuenta.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            /** Format: email */
+            email: string;
+            password: string;
+            totpCode?: string;
+            recoveryCode?: string;
+          };
         };
-        get?: never;
-        put?: never;
-        /**
-         * Desactiva el segundo factor, y olvida el secreto y los códigos.
-         * @description Exige un código válido: quitar el segundo factor es una rebaja de seguridad.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
+      };
+      responses: {
+        /** @description Token de acceso, válido 15 minutos. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              accessToken: string;
+              /** @enum {string} */
+              tokenType: 'Bearer';
+              /** @description Segundos de vida del token. */
+              expiresIn: number;
             };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        code: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Segundo factor desactivado. */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Falta el token de acceso, o el código no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: la cuenta solo se toca desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La cuenta no tiene segundo factor activo. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El código no son seis dígitos. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
+          };
         };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+        /** @description El correo o la contraseña no corresponden (`INVALID_CREDENTIALS`), la cuenta pide el segundo factor y no llegó (`TOTP_REQUIRED`), o el código no vale (`INVALID_TOTP_CODE`). */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El cuerpo no tiene la forma esperada. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Demasiados intentos fallidos (`TOO_MANY_LOGIN_ATTEMPTS`) o demasiadas peticiones. */
+        429: {
+          headers: {
+            /** @description Segundos que faltan para poder volver a intentarlo. */
+            'Retry-After'?: number;
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
     };
-    "/api/v1/auth/password": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Cambia la contraseña.
-         * @description Pide la actual. Cierra las sesiones de los demás navegadores y conserva la de la cookie. Los tokens personales **no se revocan**, para no romper en silencio la captura desde el celular: la respuesta los lista para ofrecer revocarlos.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        currentPassword: string;
-                        newPassword: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Contraseña cambiada. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @description Sesiones de otros navegadores que se cerraron. */
-                            otherSessionsClosed: number;
-                            /** @description Tokens personales que siguen valiendo: no se revocan, pero conviene revisarlos. */
-                            personalAccessTokens: {
-                                /** Format: uuid */
-                                id: string;
-                                name: string;
-                                scopes: string[];
-                                /** Format: date-time */
-                                createdAt: string;
-                                /** Format: date-time */
-                                expiresAt: string;
-                                /**
-                                 * Format: date-time
-                                 * @description Nulo si nunca se usó.
-                                 */
-                                lastUsedAt: string | null;
-                            }[];
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La contraseña actual no corresponde, o llegó un token personal: la cuenta solo se toca desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El cuerpo no tiene la forma esperada, o la nueva contraseña es débil. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/auth/refresh': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/tokens": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    get?: never;
+    put?: never;
+    /**
+     * Renueva la sesión a partir de la cookie de refresco.
+     * @description El refresco viaja solo en la cookie, no en el cuerpo. Cada uso emite uno nuevo e invalida el anterior; si llega uno ya canjeado se cierran todas las sesiones de la cuenta, porque es la señal de que alguien lo copió.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Sesión renovada. La cookie se reemplaza por una nueva. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              accessToken: string;
+              /** @enum {string} */
+              tokenType: 'Bearer';
+              /** @description Segundos de vida del token. */
+              expiresIn: number;
+            };
+          };
         };
-        /**
-         * Lista los tokens personales vigentes, sin su valor.
-         * @description Incluye los caducados, para que se vea por qué un dispositivo dejó de funcionar; los revocados no aparecen.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Tokens de la cuenta, del más nuevo al más viejo. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            name: string;
-                            scopes: string[];
-                            /** Format: date-time */
-                            createdAt: string;
-                            /** Format: date-time */
-                            expiresAt: string;
-                            /**
-                             * Format: date-time
-                             * @description Nulo si nunca se usó.
-                             */
-                            lastUsedAt: string | null;
-                        }[];
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: los tokens solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
+        /** @description No hay cookie, o el refresco no vale: caducó, se revocó o ya se usó. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
         };
-        put?: never;
-        /**
-         * Crea un token personal para un dispositivo.
-         * @description El token se muestra **una sola vez**; en la base solo queda su hash. Caduca entre 1 y 365 días después, 90 si no se indica. Hoy el único scope es `captures:write`.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        name: string;
-                        scopes: string[];
-                        expiresInDays?: number;
-                    };
-                };
-            };
-            responses: {
-                /** @description Token creado, con su valor en claro. */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            name: string;
-                            scopes: string[];
-                            /** Format: date-time */
-                            createdAt: string;
-                            /** Format: date-time */
-                            expiresAt: string;
-                            /**
-                             * Format: date-time
-                             * @description Nulo si nunca se usó.
-                             */
-                            lastUsedAt: string | null;
-                            /** @description El token en claro (`sas_pat_…`). Es la única vez que se puede leer. */
-                            token: string;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: los tokens solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El cuerpo no tiene la forma esperada, un scope no existe o la duración no vale. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
+        /** @description El módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
         };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+      };
     };
-    "/api/v1/tokens/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/auth/2fa/setup': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Empieza a activar el segundo factor.
+     * @description Devuelve **una sola vez** el `otpauth://` que escanean Google Authenticator, Aegis, 1Password o Bitwarden. El segundo factor no queda activo hasta confirmarlo con un código.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Secreto y URI. No se pueden volver a consultar. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** @description URI otpauth:// para escanear. */
+              uri: string;
+              /** @description El mismo secreto en base32, para escribirlo a mano. */
+              secret: string;
+            };
+          };
         };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Revoca un token personal.
-         * @description Deja de valer en el acto. El dispositivo que lo usaba recibirá 401.
-         */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: la cuenta solo se toca desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El segundo factor ya está activo; hay que desactivarlo primero. */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/auth/2fa/verify': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Confirma el segundo factor y devuelve los códigos de recuperación.
+     * @description Los códigos se muestran **una sola vez**: después solo se guarda su hash. Son la salida cuando se pierde el teléfono. Cierra las sesiones de los demás navegadores (se abrieron sin segundo factor) y conserva la de la cookie; los tokens personales siguen valiendo y se listan para ofrecer revocarlos.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            code: string;
+          };
+        };
+      };
+      responses: {
+        /** @description Segundo factor activo, con sus códigos de recuperación. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** @description Sesiones de otros navegadores que se cerraron. */
+              otherSessionsClosed: number;
+              /** @description Tokens personales que siguen valiendo: no se revocan, pero conviene revisarlos. */
+              personalAccessTokens: {
+                /** Format: uuid */
+                id: string;
+                name: string;
+                scopes: string[];
+                /** Format: date-time */
+                createdAt: string;
+                /** Format: date-time */
+                expiresAt: string;
+                /**
+                 * Format: date-time
+                 * @description Nulo si nunca se usó.
+                 */
+                lastUsedAt: string | null;
+              }[];
+              /** @description Diez códigos. Es la única vez que se pueden leer. */
+              recoveryCodes: string[];
+            };
+          };
+        };
+        /** @description Falta el token de acceso, o el código no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: la cuenta solo se toca desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description No hay ninguna activación en marcha, o ya estaba activo. */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El código no son seis dígitos. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/auth/2fa/recovery-codes': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Rehace los códigos de recuperación.
+     * @description Invalida los anteriores y devuelve diez nuevos, **una sola vez**. Exige un código de la aplicación de autenticación.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            code: string;
+          };
+        };
+      };
+      responses: {
+        /** @description Códigos nuevos. Los anteriores dejan de valer. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** @description Diez códigos. Es la única vez que se pueden leer. */
+              recoveryCodes: string[];
+            };
+          };
+        };
+        /** @description Falta el token de acceso, o el código no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: la cuenta solo se toca desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La cuenta no tiene segundo factor activo. */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El código no son seis dígitos. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/auth/2fa/disable': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Desactiva el segundo factor, y olvida el secreto y los códigos.
+     * @description Exige un código válido: quitar el segundo factor es una rebaja de seguridad.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            code: string;
+          };
+        };
+      };
+      responses: {
+        /** @description Segundo factor desactivado. */
+        204: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
+        };
+        /** @description Falta el token de acceso, o el código no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: la cuenta solo se toca desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La cuenta no tiene segundo factor activo. */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El código no son seis dígitos. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/auth/password': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Cambia la contraseña.
+     * @description Pide la actual. Cierra las sesiones de los demás navegadores y conserva la de la cookie. Los tokens personales **no se revocan**, para no romper en silencio la captura desde el celular: la respuesta los lista para ofrecer revocarlos.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            currentPassword: string;
+            newPassword: string;
+          };
+        };
+      };
+      responses: {
+        /** @description Contraseña cambiada. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** @description Sesiones de otros navegadores que se cerraron. */
+              otherSessionsClosed: number;
+              /** @description Tokens personales que siguen valiendo: no se revocan, pero conviene revisarlos. */
+              personalAccessTokens: {
+                /** Format: uuid */
+                id: string;
+                name: string;
+                scopes: string[];
+                /** Format: date-time */
+                createdAt: string;
+                /** Format: date-time */
+                expiresAt: string;
+                /**
+                 * Format: date-time
+                 * @description Nulo si nunca se usó.
+                 */
+                lastUsedAt: string | null;
+              }[];
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La contraseña actual no corresponde, o llegó un token personal: la cuenta solo se toca desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El cuerpo no tiene la forma esperada, o la nueva contraseña es débil. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Lista los tokens personales vigentes, sin su valor.
+     * @description Incluye los caducados, para que se vea por qué un dispositivo dejó de funcionar; los revocados no aparecen.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Tokens de la cuenta, del más nuevo al más viejo. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              name: string;
+              scopes: string[];
+              /** Format: date-time */
+              createdAt: string;
+              /** Format: date-time */
+              expiresAt: string;
+              /**
+               * Format: date-time
+               * @description Nulo si nunca se usó.
+               */
+              lastUsedAt: string | null;
+            }[];
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: los tokens solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    put?: never;
+    /**
+     * Crea un token personal para un dispositivo.
+     * @description El token se muestra **una sola vez**; en la base solo queda su hash. Caduca entre 1 y 365 días después, 90 si no se indica. Hoy el único scope es `captures:write`.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            name: string;
+            scopes: string[];
+            expiresInDays?: number;
+          };
+        };
+      };
+      responses: {
+        /** @description Token creado, con su valor en claro. */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              name: string;
+              scopes: string[];
+              /** Format: date-time */
+              createdAt: string;
+              /** Format: date-time */
+              expiresAt: string;
+              /**
+               * Format: date-time
+               * @description Nulo si nunca se usó.
+               */
+              lastUsedAt: string | null;
+              /** @description El token en claro (`sas_pat_…`). Es la única vez que se puede leer. */
+              token: string;
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: los tokens solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El cuerpo no tiene la forma esperada, un scope no existe o la duración no vale. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Revoca un token personal.
+     * @description Deja de valer en el acto. El dispositivo que lo usaba recibirá 401.
+     */
+    delete: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Token revocado. */
+        204: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: los tokens solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description No existe, ya estaba revocado o es de otra cuenta. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/auth/logout': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Cierra la sesión actual y borra la cookie.
+     * @description Responde 204 valga la cookie o no: quien cierra sesión quiere irse, y un error delataría si un token que alguien probó existe. No toca las demás sesiones.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Sesión cerrada, o no había ninguna que cerrar. */
+        204: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
+        };
+        /** @description El módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/categories': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Lista las categorías de la cuenta, con sus subcategorías anidadas.
+     * @description Ordenadas por nombre. Sin las archivadas, salvo con `includeArchived=true`; `type` filtra por tipo de transacción.
+     */
+    get: {
+      parameters: {
+        query?: {
+          type?: 'INCOME' | 'FIXED_EXPENSE' | 'VARIABLE_EXPENSE' | 'SAVING' | 'INVESTMENT' | 'DEBT';
+          includeArchived?: 'true' | 'false';
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Categorías de primer nivel, cada una con sus subcategorías. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /** @enum {string} */
+              type:
+                'INCOME' | 'FIXED_EXPENSE' | 'VARIABLE_EXPENSE' | 'SAVING' | 'INVESTMENT' | 'DEBT';
+              name: string;
+              /**
+               * Format: uuid
+               * @description Nulo en una categoría de primer nivel.
+               */
+              parentId: string | null;
+              /** @description #RRGGBB */
+              color: string;
+              /** @description Nombre del ícono en la web, en kebab-case. */
+              icon: string;
+              /**
+               * Format: date-time
+               * @description Nulo si está activa.
+               */
+              archivedAt: string | null;
+              /** Format: date-time */
+              createdAt: string;
+              /** Format: date-time */
+              updatedAt: string;
+              /** @description Sus subcategorías. */
+              children: {
+                /** Format: uuid */
+                id: string;
+                /** @enum {string} */
+                type:
+                  | 'INCOME'
+                  | 'FIXED_EXPENSE'
+                  | 'VARIABLE_EXPENSE'
+                  | 'SAVING'
+                  | 'INVESTMENT'
+                  | 'DEBT';
+                name: string;
+                /**
+                 * Format: uuid
+                 * @description Nulo en una categoría de primer nivel.
+                 */
+                parentId: string | null;
+                /** @description #RRGGBB */
+                color: string;
+                /** @description Nombre del ícono en la web, en kebab-case. */
+                icon: string;
+                /**
+                 * Format: date-time
+                 * @description Nulo si está activa.
+                 */
+                archivedAt: string | null;
+                /** Format: date-time */
+                createdAt: string;
+                /** Format: date-time */
+                updatedAt: string;
+              }[];
+            }[];
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: el catálogo solo se gestiona desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description `type` o `includeArchived` no tienen un valor válido. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    put?: never;
+    /**
+     * Crea una categoría o, con `parentId`, una subcategoría.
+     * @description Un solo nivel: una subcategoría no puede ser madre. Una categoría de primer nivel necesita `type`; una subcategoría hereda el de su madre, y también su color e ícono si no se mandan. El nombre no se repite entre hermanas del mismo tipo, sin distinguir mayúsculas ni acentos (la ñ sí cuenta).
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            name: string;
+            /** @enum {string} */
+            type?:
+              'INCOME' | 'FIXED_EXPENSE' | 'VARIABLE_EXPENSE' | 'SAVING' | 'INVESTMENT' | 'DEBT';
+            /** Format: uuid */
+            parentId?: string;
+            color?: string;
+            icon?: string;
+          };
+        };
+      };
+      responses: {
+        /** @description Categoría creada. */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /** @enum {string} */
+              type:
+                'INCOME' | 'FIXED_EXPENSE' | 'VARIABLE_EXPENSE' | 'SAVING' | 'INVESTMENT' | 'DEBT';
+              name: string;
+              /**
+               * Format: uuid
+               * @description Nulo en una categoría de primer nivel.
+               */
+              parentId: string | null;
+              /** @description #RRGGBB */
+              color: string;
+              /** @description Nombre del ícono en la web, en kebab-case. */
+              icon: string;
+              /**
+               * Format: date-time
+               * @description Nulo si está activa.
+               */
+              archivedAt: string | null;
+              /** Format: date-time */
+              createdAt: string;
+              /** Format: date-time */
+              updatedAt: string;
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: el catálogo solo se gestiona desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La madre no existe o es de otra cuenta. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Una hermana ya tiene ese nombre (quizá archivada: se restaura). */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El cuerpo no tiene la forma esperada, falta el tipo, el tipo no es el de la madre, la madre es una subcategoría o está archivada, o el color no es #RRGGBB. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/categories/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Renombra, cambia color o ícono, muda, archiva o restaura una categoría.
+     * @description El tipo no se cambia. `parentId` muda una **subcategoría** a otra madre de primer nivel, del mismo tipo y activa, con todas sus transacciones; una categoría de primer nivel no se muda. `archived: true` archiva la categoría y sus hijas; `false` la restaura junto con las hijas que se archivaron con ella. Una subcategoría no se restaura mientras su madre siga archivada. No hay `DELETE`.
+     */
+    patch: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            name?: string;
+            color?: string;
+            icon?: string;
+            archived?: boolean;
+            /** Format: uuid */
+            parentId?: string;
+          };
+        };
+      };
+      responses: {
+        /** @description Categoría como quedó. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /** @enum {string} */
+              type:
+                'INCOME' | 'FIXED_EXPENSE' | 'VARIABLE_EXPENSE' | 'SAVING' | 'INVESTMENT' | 'DEBT';
+              name: string;
+              /**
+               * Format: uuid
+               * @description Nulo en una categoría de primer nivel.
+               */
+              parentId: string | null;
+              /** @description #RRGGBB */
+              color: string;
+              /** @description Nombre del ícono en la web, en kebab-case. */
+              icon: string;
+              /**
+               * Format: date-time
+               * @description Nulo si está activa.
+               */
+              archivedAt: string | null;
+              /** Format: date-time */
+              createdAt: string;
+              /** Format: date-time */
+              updatedAt: string;
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: el catálogo solo se gestiona desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La categoría o la madre nueva no existen o son de otra cuenta. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Una hermana (en la madre nueva, si se muda) ya tiene ese nombre. */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El cuerpo está vacío, intenta cambiar el tipo, el color no es #RRGGBB, la madre de la subcategoría sigue archivada, o no se puede mudar: es de primer nivel, la madre nueva es una subcategoría, es de otro tipo o está archivada. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    trace?: never;
+  };
+  '/api/v1/categories/{id}/merge': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Fusiona una categoría en otra.
+     * @description Sus transacciones pasan a la destino, sus hijas se mudan con ella (las del mismo nombre que una hija de la destino se fusionan también) y la categoría se archiva. **No se deshace**: el listado de movimientos filtrado por esta categoría dice antes cuántos se moverán (`count` de sus totales). Deben ser del mismo tipo; la destino, activa. Volver a fusionar una ya archivada mueve lo que haya quedado.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            /** Format: uuid */
+            intoCategoryId: string;
+          };
+        };
+      };
+      responses: {
+        /** @description La categoría destino. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /** @enum {string} */
+              type:
+                'INCOME' | 'FIXED_EXPENSE' | 'VARIABLE_EXPENSE' | 'SAVING' | 'INVESTMENT' | 'DEBT';
+              name: string;
+              /**
+               * Format: uuid
+               * @description Nulo en una categoría de primer nivel.
+               */
+              parentId: string | null;
+              /** @description #RRGGBB */
+              color: string;
+              /** @description Nombre del ícono en la web, en kebab-case. */
+              icon: string;
+              /**
+               * Format: date-time
+               * @description Nulo si está activa.
+               */
+              archivedAt: string | null;
+              /** Format: date-time */
+              createdAt: string;
+              /** Format: date-time */
+              updatedAt: string;
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: el catálogo solo se gestiona desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Alguna de las dos no existe o es de otra cuenta. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Mudar una hija chocaría con otra del mismo nombre. */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Es la misma categoría, son de tipos distintos, la destino está archivada o es una hija de la origen, o una categoría con hijas iría a una subcategoría. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/categories/{id}/convert-to-tag': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Convierte una subcategoría en etiqueta.
+     * @description La subcategoría se fusiona en su madre y se archiva, y sus movimientos quedan con la etiqueta de su nombre ("Comida > Desayuno" → "Comida" con `Desayuno`). Solo una subcategoría, con la madre activa y un nombre sin `|`. No se deshace. Un movimiento que ya tiene el máximo de etiquetas pasa a la madre sin la nueva.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description La madre, que recibe sus movimientos. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /** @enum {string} */
+              type:
+                'INCOME' | 'FIXED_EXPENSE' | 'VARIABLE_EXPENSE' | 'SAVING' | 'INVESTMENT' | 'DEBT';
+              name: string;
+              /**
+               * Format: uuid
+               * @description Nulo en una categoría de primer nivel.
+               */
+              parentId: string | null;
+              /** @description #RRGGBB */
+              color: string;
+              /** @description Nombre del ícono en la web, en kebab-case. */
+              icon: string;
+              /**
+               * Format: date-time
+               * @description Nulo si está activa.
+               */
+              archivedAt: string | null;
+              /** Format: date-time */
+              createdAt: string;
+              /** Format: date-time */
+              updatedAt: string;
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: el catálogo solo se gestiona desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description No existe o es de otra cuenta. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Es de primer nivel (`ONLY_SUBCATEGORIES_CONVERT`), su madre está archivada, o su nombre no puede ser etiqueta (`TAG_NAME_INVALID`). */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/payment-methods': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Lista los métodos de pago de la cuenta, ordenados por alias.
+     * @description Sin los archivados, salvo con `includeArchived=true`.
+     */
+    get: {
+      parameters: {
+        query?: {
+          includeArchived?: 'true' | 'false';
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Métodos de pago de la cuenta. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /** @enum {string} */
+              kind: 'ACCOUNT' | 'WALLET' | 'CREDIT_CARD' | 'CASH';
+              alias: string;
+              /** @description Banco o entidad. Nulo en el efectivo. */
+              institution: string | null;
+              /** @description Últimos 4 dígitos. Nunca se guarda ni se devuelve nada más de una tarjeta. */
+              last4: string | null;
+              /**
+               * @description Nula = acepta soles y dólares (bimoneda).
+               * @enum {string|null}
+               */
+              currency: 'PEN' | 'USD' | null;
+              /**
+               * Format: date-time
+               * @description Nulo si está activo.
+               */
+              archivedAt: string | null;
+              /** Format: date-time */
+              createdAt: string;
+              /** Format: date-time */
+              updatedAt: string;
+            }[];
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: el catálogo solo se gestiona desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description `includeArchived` no es `true` ni `false`. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    put?: never;
+    /**
+     * Registra un método de pago: cuenta, billetera, tarjeta o efectivo.
+     * @description Una tarjeta de crédito lleva sus últimos 4 dígitos; una cuenta puede llevarlos; una billetera y el efectivo, no. Una cuenta o billetera lleva moneda; una tarjeta bimoneda y el efectivo pueden no llevarla. El efectivo no tiene banco. Un número más largo que 4 dígitos se rechaza, nunca se recorta.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            /** @enum {string} */
+            kind: 'ACCOUNT' | 'WALLET' | 'CREDIT_CARD' | 'CASH';
+            alias: string;
+            institution?: string | null;
+            last4?: string | null;
+            /** @enum {string|null} */
+            currency?: 'PEN' | 'USD' | null;
+          };
+        };
+      };
+      responses: {
+        /** @description Método de pago creado. */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /** @enum {string} */
+              kind: 'ACCOUNT' | 'WALLET' | 'CREDIT_CARD' | 'CASH';
+              alias: string;
+              /** @description Banco o entidad. Nulo en el efectivo. */
+              institution: string | null;
+              /** @description Últimos 4 dígitos. Nunca se guarda ni se devuelve nada más de una tarjeta. */
+              last4: string | null;
+              /**
+               * @description Nula = acepta soles y dólares (bimoneda).
+               * @enum {string|null}
+               */
+              currency: 'PEN' | 'USD' | null;
+              /**
+               * Format: date-time
+               * @description Nulo si está activo.
+               */
+              archivedAt: string | null;
+              /** Format: date-time */
+              createdAt: string;
+              /** Format: date-time */
+              updatedAt: string;
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: el catálogo solo se gestiona desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Ya existe un método con ese alias (quizá archivado: se restaura). */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El cuerpo no tiene la forma esperada, trae un campo desconocido o rompe una regla de su tipo. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/payment-methods/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Corrige, archiva o restaura un método de pago.
+     * @description Se puede cambiar todo menos el tipo. `archived: true` lo archiva (deja de ofrecerse al registrar, pero sigue en lo ya registrado) y `false` lo restaura. No hay `DELETE`. Una tarjeta de crédito lleva sus últimos 4 dígitos; una cuenta puede llevarlos; una billetera y el efectivo, no. Una cuenta o billetera lleva moneda; una tarjeta bimoneda y el efectivo pueden no llevarla. El efectivo no tiene banco. Un número más largo que 4 dígitos se rechaza, nunca se recorta.
+     */
+    patch: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            alias?: string;
+            institution?: string | null;
+            last4?: string | null;
+            /** @enum {string|null} */
+            currency?: 'PEN' | 'USD' | null;
+            archived?: boolean;
+          };
+        };
+      };
+      responses: {
+        /** @description Método de pago como quedó. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /** @enum {string} */
+              kind: 'ACCOUNT' | 'WALLET' | 'CREDIT_CARD' | 'CASH';
+              alias: string;
+              /** @description Banco o entidad. Nulo en el efectivo. */
+              institution: string | null;
+              /** @description Últimos 4 dígitos. Nunca se guarda ni se devuelve nada más de una tarjeta. */
+              last4: string | null;
+              /**
+               * @description Nula = acepta soles y dólares (bimoneda).
+               * @enum {string|null}
+               */
+              currency: 'PEN' | 'USD' | null;
+              /**
+               * Format: date-time
+               * @description Nulo si está activo.
+               */
+              archivedAt: string | null;
+              /** Format: date-time */
+              createdAt: string;
+              /** Format: date-time */
+              updatedAt: string;
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: el catálogo solo se gestiona desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description No existe o es de otra cuenta. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Ya existe otro método con ese alias. */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El cuerpo está vacío, intenta cambiar el tipo o deja el método rompiendo una regla de su tipo. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    trace?: never;
+  };
+  '/api/v1/transactions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Lista las transacciones y transferencias, con filtros, búsqueda y totales.
+     * @description Transacciones y transferencias mezcladas, cada fila marcada con `kind`, de la fecha más reciente a la más antigua y, en el mismo día, de la última registrada a la primera. Sin fechas trae todo. Las borradas no aparecen; las de categorías o métodos archivados, sí. Filtrar por `type` o `categoryId` deja fuera las transferencias; por `paymentMethodId` o `currency` trae las que salen o llegan. Los totales son solo de las transacciones. Paginación por cursor: lo que se registre o se borre entre dos páginas no hace repetir ni saltar filas.
+     */
+    get: {
+      parameters: {
+        query?: {
+          /** @description Un mes, `YYYY-MM`. No va junto con `from` o `to`. */
+          month?: string;
+          /** @description Desde este día, inclusive. */
+          from?: string;
+          /** @description Hasta este día, inclusive. */
+          to?: string;
+          type?: 'INCOME' | 'FIXED_EXPENSE' | 'VARIABLE_EXPENSE' | 'SAVING' | 'INVESTMENT' | 'DEBT';
+          /** @description Trae también sus subcategorías. Una categoría ajena no trae nada. */
+          categoryId?: string;
+          paymentMethodId?: string;
+          currency?: 'PEN' | 'USD';
+          /** @description Solo las transacciones con esta etiqueta, sin distinguir mayúsculas ni tildes. Deja fuera las transferencias; los totales siguen al filtro. */
+          tag?: string;
+          /** @description Solo transacciones o solo transferencias. Sin él, las dos. */
+          kind?: 'transaction' | 'transfer';
+          /** @description Texto a buscar en la descripción o el comercio, sin distinguir mayúsculas ni tildes. */
+          q?: string;
+          /** @description El `nextCursor` de la página anterior, tal cual. Su contenido no es contrato. */
+          cursor?: string;
+          /** @description Filas por página. Más de 100 se recorta a 100. */
+          limit?: number;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Una página y los totales de lo filtrado. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** @description La página, de la fecha más reciente a la más antigua: transacciones y transferencias mezcladas, cada una marcada con `kind`. */
+              items: (
+                | {
+                    /** Format: uuid */
                     id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Token revocado. */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: los tokens solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description No existe, ya estaba revocado o es de otra cuenta. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/logout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Cierra la sesión actual y borra la cookie.
-         * @description Responde 204 valga la cookie o no: quien cierra sesión quiere irse, y un error delataría si un token que alguien probó existe. No toca las demás sesiones.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Sesión cerrada, o no había ninguna que cerrar. */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description El módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/categories": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Lista las categorías de la cuenta, con sus subcategorías anidadas.
-         * @description Ordenadas por nombre. Sin las archivadas, salvo con `includeArchived=true`; `type` filtra por tipo de transacción.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    type?: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                    includeArchived?: "true" | "false";
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Categorías de primer nivel, cada una con sus subcategorías. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /** @enum {string} */
-                            type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                            name: string;
-                            /**
-                             * Format: uuid
-                             * @description Nulo en una categoría de primer nivel.
-                             */
-                            parentId: string | null;
-                            /** @description #RRGGBB */
-                            color: string;
-                            /** @description Nombre del ícono en la web, en kebab-case. */
-                            icon: string;
-                            /**
-                             * Format: date-time
-                             * @description Nulo si está activa.
-                             */
-                            archivedAt: string | null;
-                            /** Format: date-time */
-                            createdAt: string;
-                            /** Format: date-time */
-                            updatedAt: string;
-                            /** @description Sus subcategorías. */
-                            children: {
-                                /** Format: uuid */
-                                id: string;
-                                /** @enum {string} */
-                                type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                                name: string;
-                                /**
-                                 * Format: uuid
-                                 * @description Nulo en una categoría de primer nivel.
-                                 */
-                                parentId: string | null;
-                                /** @description #RRGGBB */
-                                color: string;
-                                /** @description Nombre del ícono en la web, en kebab-case. */
-                                icon: string;
-                                /**
-                                 * Format: date-time
-                                 * @description Nulo si está activa.
-                                 */
-                                archivedAt: string | null;
-                                /** Format: date-time */
-                                createdAt: string;
-                                /** Format: date-time */
-                                updatedAt: string;
-                            }[];
-                        }[];
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: el catálogo solo se gestiona desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description `type` o `includeArchived` no tienen un valor válido. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        /**
-         * Crea una categoría o, con `parentId`, una subcategoría.
-         * @description Un solo nivel: una subcategoría no puede ser madre. Una categoría de primer nivel necesita `type`; una subcategoría hereda el de su madre, y también su color e ícono si no se mandan. El nombre no se repite entre hermanas del mismo tipo, sin distinguir mayúsculas ni acentos (la ñ sí cuenta).
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        name: string;
-                        /** @enum {string} */
-                        type?: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                        /** Format: uuid */
-                        parentId?: string;
-                        color?: string;
-                        icon?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Categoría creada. */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /** @enum {string} */
-                            type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                            name: string;
-                            /**
-                             * Format: uuid
-                             * @description Nulo en una categoría de primer nivel.
-                             */
-                            parentId: string | null;
-                            /** @description #RRGGBB */
-                            color: string;
-                            /** @description Nombre del ícono en la web, en kebab-case. */
-                            icon: string;
-                            /**
-                             * Format: date-time
-                             * @description Nulo si está activa.
-                             */
-                            archivedAt: string | null;
-                            /** Format: date-time */
-                            createdAt: string;
-                            /** Format: date-time */
-                            updatedAt: string;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: el catálogo solo se gestiona desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La madre no existe o es de otra cuenta. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Una hermana ya tiene ese nombre (quizá archivada: se restaura). */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El cuerpo no tiene la forma esperada, falta el tipo, el tipo no es el de la madre, la madre es una subcategoría o está archivada, o el color no es #RRGGBB. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/categories/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Renombra, cambia color o ícono, muda, archiva o restaura una categoría.
-         * @description El tipo no se cambia. `parentId` muda una **subcategoría** a otra madre de primer nivel, del mismo tipo y activa, con todas sus transacciones; una categoría de primer nivel no se muda. `archived: true` archiva la categoría y sus hijas; `false` la restaura junto con las hijas que se archivaron con ella. Una subcategoría no se restaura mientras su madre siga archivada. No hay `DELETE`.
-         */
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
+                    /**
+                     * Format: date
+                     * @description Día en que pasó, sin hora.
+                     */
+                    date: string;
+                    /** @enum {string} */
+                    type:
+                      | 'INCOME'
+                      | 'FIXED_EXPENSE'
+                      | 'VARIABLE_EXPENSE'
+                      | 'SAVING'
+                      | 'INVESTMENT'
+                      | 'DEBT';
+                    /** Format: uuid */
+                    categoryId: string;
+                    /** @description String decimal con 2 decimales (`"25.90"`). Siempre positivo: el signo lo da `type`. */
+                    amount: string;
+                    /** @enum {string} */
+                    currency: 'PEN' | 'USD';
+                    description: string;
+                    /**
+                     * Format: uuid
+                     * @description Nulo si no se dijo con qué se pagó.
+                     */
+                    paymentMethodId: string | null;
+                    merchant: string | null;
+                    /**
+                     * @description De dónde llegó. No cambia al editar.
+                     * @enum {string}
+                     */
+                    source: 'MANUAL' | 'IOS_SHORTCUT' | 'ANDROID_AUTOMATION' | 'IMPORT';
+                    /**
+                     * Format: uuid
+                     * @description Captura del celular de la que salió (H7).
+                     */
+                    captureId: string | null;
+                    /** @description Nombres de sus etiquetas, en orden alfabético. */
+                    tags: string[];
+                    /** Format: date-time */
+                    createdAt: string;
+                    /** Format: date-time */
+                    updatedAt: string;
+                    /** @enum {string} */
+                    kind: 'transaction';
+                  }
+                | {
+                    /** Format: uuid */
                     id: string;
-                };
-                cookie?: never;
+                    /**
+                     * Format: date
+                     * @description Día en que pasó, sin hora.
+                     */
+                    date: string;
+                    /**
+                     * Format: uuid
+                     * @description Cuenta de la que salió la plata.
+                     */
+                    fromPaymentMethodId: string;
+                    /**
+                     * Format: uuid
+                     * @description Cuenta a la que llegó.
+                     */
+                    toPaymentMethodId: string;
+                    /** @description String decimal. Lo que salió, en la moneda de la cuenta de origen. */
+                    amount: string;
+                    /** @enum {string} */
+                    currency: 'PEN' | 'USD';
+                    /** @description String decimal. Lo que llegó. Igual a `amount` si la moneda no cambia. */
+                    receivedAmount: string;
+                    /** @enum {string} */
+                    receivedCurrency: 'PEN' | 'USD';
+                    description: string;
+                    /** @enum {string} */
+                    source: 'MANUAL' | 'IOS_SHORTCUT' | 'ANDROID_AUTOMATION' | 'IMPORT';
+                    /** Format: date-time */
+                    createdAt: string;
+                    /** Format: date-time */
+                    updatedAt: string;
+                    /** @enum {string} */
+                    kind: 'transfer';
+                  }
+              )[];
+              /** @description Se manda tal cual en `?cursor=` para la página siguiente. Nulo si no hay más. */
+              nextCursor: string | null;
+              /** @description De **todo** lo filtrado, no solo de esta página. Una entrada por moneda con movimientos, primero soles; nunca se convierte. */
+              totals: {
+                /** @enum {string} */
+                currency: 'PEN' | 'USD';
+                /** @description String decimal. Ingresos. */
+                income: string;
+                /** @description String decimal. Gasto fijo + variable. */
+                expense: string;
+                /** @description String decimal. Ahorro + inversión. */
+                saving: string;
+                /** @description String decimal. Pagos de deuda. */
+                debt: string;
+                /** @description String decimal. Ingresos menos todo lo demás. Puede ser negativo. */
+                balance: string;
+                /** @description Cuántas transacciones suman. Sirve de vista previa al fusionar categorías. */
+                count: number;
+              }[];
             };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        name?: string;
-                        color?: string;
-                        icon?: string;
-                        archived?: boolean;
-                        /** Format: uuid */
-                        parentId?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Categoría como quedó. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /** @enum {string} */
-                            type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                            name: string;
-                            /**
-                             * Format: uuid
-                             * @description Nulo en una categoría de primer nivel.
-                             */
-                            parentId: string | null;
-                            /** @description #RRGGBB */
-                            color: string;
-                            /** @description Nombre del ícono en la web, en kebab-case. */
-                            icon: string;
-                            /**
-                             * Format: date-time
-                             * @description Nulo si está activa.
-                             */
-                            archivedAt: string | null;
-                            /** Format: date-time */
-                            createdAt: string;
-                            /** Format: date-time */
-                            updatedAt: string;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: el catálogo solo se gestiona desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La categoría o la madre nueva no existen o son de otra cuenta. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Una hermana (en la madre nueva, si se muda) ya tiene ese nombre. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El cuerpo está vacío, intenta cambiar el tipo, el color no es #RRGGBB, la madre de la subcategoría sigue archivada, o no se puede mudar: es de primer nivel, la madre nueva es una subcategoría, es de otro tipo o está archivada. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
+          };
         };
-        trace?: never;
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Un filtro no tiene un valor válido, se mandaron `month` y `from`/`to` a la vez, `from` es posterior a `to`, o el cursor no es uno que haya dado la API (`INVALID_CURSOR`), o se pidió `kind=transfer` junto con `type`, `categoryId` o `tag`. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
     };
-    "/api/v1/categories/{id}/merge": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    put?: never;
+    /**
+     * Registra una transacción.
+     * @description Queda con `source: MANUAL`. El monto viaja como string decimal, siempre positivo y con hasta 2 decimales: un tercer decimal se rechaza, no se redondea. La fecha es de hoy o anterior, en la hora de Lima. La categoría es del mismo tipo que la transacción y no está archivada; puede ser una categoría de primer nivel o una subcategoría. El método de pago es opcional; si se indica, no puede estar archivado. Sin `currency` se usa la del método de pago; si este acepta las dos monedas, o no hay método, se exige. Nunca se convierte. `tags` son nombres de etiquetas: las que no existen se crean, y "Almuerzo" y "almuerzó" son la misma. Hasta 10 distintas, sin `|`.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            /** Format: date */
+            date: string;
+            /** @enum {string} */
+            type:
+              'INCOME' | 'FIXED_EXPENSE' | 'VARIABLE_EXPENSE' | 'SAVING' | 'INVESTMENT' | 'DEBT';
+            /** Format: uuid */
+            categoryId: string;
+            amount: string;
+            /** @enum {string} */
+            currency?: 'PEN' | 'USD';
+            description: string;
+            /** Format: uuid */
+            paymentMethodId?: string | null;
+            merchant?: string | null;
+            tags?: string[];
+          };
         };
-        get?: never;
-        put?: never;
-        /**
-         * Fusiona una categoría en otra.
-         * @description Sus transacciones pasan a la destino, sus hijas se mudan con ella (las del mismo nombre que una hija de la destino se fusionan también) y la categoría se archiva. **No se deshace**: el listado de movimientos filtrado por esta categoría dice antes cuántos se moverán (`count` de sus totales). Deben ser del mismo tipo; la destino, activa. Volver a fusionar una ya archivada mueve lo que haya quedado.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
+      };
+      responses: {
+        /** @description Transacción registrada. */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /**
+               * Format: date
+               * @description Día en que pasó, sin hora.
+               */
+              date: string;
+              /** @enum {string} */
+              type:
+                'INCOME' | 'FIXED_EXPENSE' | 'VARIABLE_EXPENSE' | 'SAVING' | 'INVESTMENT' | 'DEBT';
+              /** Format: uuid */
+              categoryId: string;
+              /** @description String decimal con 2 decimales (`"25.90"`). Siempre positivo: el signo lo da `type`. */
+              amount: string;
+              /** @enum {string} */
+              currency: 'PEN' | 'USD';
+              description: string;
+              /**
+               * Format: uuid
+               * @description Nulo si no se dijo con qué se pagó.
+               */
+              paymentMethodId: string | null;
+              merchant: string | null;
+              /**
+               * @description De dónde llegó. No cambia al editar.
+               * @enum {string}
+               */
+              source: 'MANUAL' | 'IOS_SHORTCUT' | 'ANDROID_AUTOMATION' | 'IMPORT';
+              /**
+               * Format: uuid
+               * @description Captura del celular de la que salió (H7).
+               */
+              captureId: string | null;
+              /** @description Nombres de sus etiquetas, en orden alfabético. */
+              tags: string[];
+              /** Format: date-time */
+              createdAt: string;
+              /** Format: date-time */
+              updatedAt: string;
             };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        /** Format: uuid */
-                        intoCategoryId: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description La categoría destino. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /** @enum {string} */
-                            type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                            name: string;
-                            /**
-                             * Format: uuid
-                             * @description Nulo en una categoría de primer nivel.
-                             */
-                            parentId: string | null;
-                            /** @description #RRGGBB */
-                            color: string;
-                            /** @description Nombre del ícono en la web, en kebab-case. */
-                            icon: string;
-                            /**
-                             * Format: date-time
-                             * @description Nulo si está activa.
-                             */
-                            archivedAt: string | null;
-                            /** Format: date-time */
-                            createdAt: string;
-                            /** Format: date-time */
-                            updatedAt: string;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: el catálogo solo se gestiona desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Alguna de las dos no existe o es de otra cuenta. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Mudar una hija chocaría con otra del mismo nombre. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Es la misma categoría, son de tipos distintos, la destino está archivada o es una hija de la origen, o una categoría con hijas iría a una subcategoría. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
+          };
         };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La categoría o el método de pago no existen o son de otra cuenta. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El cuerpo no tiene la forma esperada, o rompe una regla: monto no positivo o con más de 2 decimales, fecha futura, categoría de otro tipo o archivada, método archivado, o falta la moneda. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
     };
-    "/api/v1/categories/{id}/convert-to-tag": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Convierte una subcategoría en etiqueta.
-         * @description La subcategoría se fusiona en su madre y se archiva, y sus movimientos quedan con la etiqueta de su nombre ("Comida > Desayuno" → "Comida" con `Desayuno`). Solo una subcategoría, con la madre activa y un nombre sin `|`. No se deshace. Un movimiento que ya tiene el máximo de etiquetas pasa a la madre sin la nueva.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description La madre, que recibe sus movimientos. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /** @enum {string} */
-                            type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                            name: string;
-                            /**
-                             * Format: uuid
-                             * @description Nulo en una categoría de primer nivel.
-                             */
-                            parentId: string | null;
-                            /** @description #RRGGBB */
-                            color: string;
-                            /** @description Nombre del ícono en la web, en kebab-case. */
-                            icon: string;
-                            /**
-                             * Format: date-time
-                             * @description Nulo si está activa.
-                             */
-                            archivedAt: string | null;
-                            /** Format: date-time */
-                            createdAt: string;
-                            /** Format: date-time */
-                            updatedAt: string;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: el catálogo solo se gestiona desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description No existe o es de otra cuenta. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Es de primer nivel (`ONLY_SUBCATEGORIES_CONVERT`), su madre está archivada, o su nombre no puede ser etiqueta (`TAG_NAME_INVALID`). */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/transactions/import': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/payment-methods": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    get?: never;
+    put?: never;
+    /**
+     * Importa un CSV, todo o nada.
+     * @description El mismo archivo de la vista previa y una decisión por cada categoría o método de pago que falta o está archivado: `create`, `use` (con su id) o `restore`. Primero se valida todo sin escribir: si una fila tiene problemas, falta una decisión o una no sirve, responde 422 y no cambia nada. Después aplica el catálogo y guarda todas las filas en una sola transacción, con `source: IMPORT` y la huella de su fila; las ya importadas se omiten.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            csv: string;
+            /** @default [] */
+            categories: (
+              | {
+                  /** @enum {string} */
+                  type:
+                    | 'INCOME'
+                    | 'FIXED_EXPENSE'
+                    | 'VARIABLE_EXPENSE'
+                    | 'SAVING'
+                    | 'INVESTMENT'
+                    | 'DEBT';
+                  category: string;
+                  subcategory: string | null;
+                  /** @enum {string} */
+                  action: 'create';
+                }
+              | {
+                  /** @enum {string} */
+                  type:
+                    | 'INCOME'
+                    | 'FIXED_EXPENSE'
+                    | 'VARIABLE_EXPENSE'
+                    | 'SAVING'
+                    | 'INVESTMENT'
+                    | 'DEBT';
+                  category: string;
+                  subcategory: string | null;
+                  /** @enum {string} */
+                  action: 'use';
+                  /** Format: uuid */
+                  categoryId: string;
+                }
+              | {
+                  /** @enum {string} */
+                  type:
+                    | 'INCOME'
+                    | 'FIXED_EXPENSE'
+                    | 'VARIABLE_EXPENSE'
+                    | 'SAVING'
+                    | 'INVESTMENT'
+                    | 'DEBT';
+                  category: string;
+                  subcategory: string | null;
+                  /** @enum {string} */
+                  action: 'restore';
+                }
+            )[];
+            /** @default [] */
+            paymentMethods: (
+              | {
+                  alias: string;
+                  /** @enum {string} */
+                  action: 'create';
+                  /** @enum {string} */
+                  kind: 'ACCOUNT' | 'WALLET' | 'CREDIT_CARD' | 'CASH';
+                  institution?: string | null;
+                  last4?: string | null;
+                  /** @enum {string|null} */
+                  currency?: 'PEN' | 'USD' | null;
+                }
+              | {
+                  alias: string;
+                  /** @enum {string} */
+                  action: 'use';
+                  /** Format: uuid */
+                  paymentMethodId: string;
+                }
+              | {
+                  alias: string;
+                  /** @enum {string} */
+                  action: 'restore';
+                }
+            )[];
+          };
         };
-        /**
-         * Lista los métodos de pago de la cuenta, ordenados por alias.
-         * @description Sin los archivados, salvo con `includeArchived=true`.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    includeArchived?: "true" | "false";
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
+      };
+      responses: {
+        /** @description Lo que se importó. */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** @description Transacciones importadas. */
+              transactions: number;
+              /** @description Transferencias importadas. */
+              transfers: number;
+              /** @description Líneas ya importadas antes: se omitieron. */
+              alreadyImported: number[];
+              createdCategories: number;
+              createdPaymentMethods: number;
+              /** @description Categorías y métodos que se restauraron. */
+              restored: number;
             };
-            requestBody?: never;
-            responses: {
-                /** @description Métodos de pago de la cuenta. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /** @enum {string} */
-                            kind: "ACCOUNT" | "WALLET" | "CREDIT_CARD" | "CASH";
-                            alias: string;
-                            /** @description Banco o entidad. Nulo en el efectivo. */
-                            institution: string | null;
-                            /** @description Últimos 4 dígitos. Nunca se guarda ni se devuelve nada más de una tarjeta. */
-                            last4: string | null;
-                            /**
-                             * @description Nula = acepta soles y dólares (bimoneda).
-                             * @enum {string|null}
-                             */
-                            currency: "PEN" | "USD" | null;
-                            /**
-                             * Format: date-time
-                             * @description Nulo si está activo.
-                             */
-                            archivedAt: string | null;
-                            /** Format: date-time */
-                            createdAt: string;
-                            /** Format: date-time */
-                            updatedAt: string;
-                        }[];
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: el catálogo solo se gestiona desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description `includeArchived` no es `true` ni `false`. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
+          };
         };
-        put?: never;
-        /**
-         * Registra un método de pago: cuenta, billetera, tarjeta o efectivo.
-         * @description Una tarjeta de crédito lleva sus últimos 4 dígitos; una cuenta puede llevarlos; una billetera y el efectivo, no. Una cuenta o billetera lleva moneda; una tarjeta bimoneda y el efectivo pueden no llevarla. El efectivo no tiene banco. Un número más largo que 4 dígitos se rechaza, nunca se recorta.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        /** @enum {string} */
-                        kind: "ACCOUNT" | "WALLET" | "CREDIT_CARD" | "CASH";
-                        alias: string;
-                        institution?: string | null;
-                        last4?: string | null;
-                        /** @enum {string|null} */
-                        currency?: "PEN" | "USD" | null;
-                    };
-                };
-            };
-            responses: {
-                /** @description Método de pago creado. */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /** @enum {string} */
-                            kind: "ACCOUNT" | "WALLET" | "CREDIT_CARD" | "CASH";
-                            alias: string;
-                            /** @description Banco o entidad. Nulo en el efectivo. */
-                            institution: string | null;
-                            /** @description Últimos 4 dígitos. Nunca se guarda ni se devuelve nada más de una tarjeta. */
-                            last4: string | null;
-                            /**
-                             * @description Nula = acepta soles y dólares (bimoneda).
-                             * @enum {string|null}
-                             */
-                            currency: "PEN" | "USD" | null;
-                            /**
-                             * Format: date-time
-                             * @description Nulo si está activo.
-                             */
-                            archivedAt: string | null;
-                            /** Format: date-time */
-                            createdAt: string;
-                            /** Format: date-time */
-                            updatedAt: string;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: el catálogo solo se gestiona desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Ya existe un método con ese alias (quizá archivado: se restaura). */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El cuerpo no tiene la forma esperada, trae un campo desconocido o rompe una regla de su tipo. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
         };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+        /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Otra importación del mismo archivo se cruzó: no se guardó nada (`IMPORT_CONFLICT`). */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El archivo pesa más de 1 MB o tiene demasiadas filas. */
+        413: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El CSV está mal formado o le faltan columnas, alguna fila tiene problemas (`IMPORT_HAS_PROBLEMS`), falta una decisión (`IMPORT_UNRESOLVED`), una decisión no sirve (`IMPORT_DECISION_INVALID`) o un método nuevo rompe las reglas de su tipo. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
     };
-    "/api/v1/payment-methods/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Corrige, archiva o restaura un método de pago.
-         * @description Se puede cambiar todo menos el tipo. `archived: true` lo archiva (deja de ofrecerse al registrar, pero sigue en lo ya registrado) y `false` lo restaura. No hay `DELETE`. Una tarjeta de crédito lleva sus últimos 4 dígitos; una cuenta puede llevarlos; una billetera y el efectivo, no. Una cuenta o billetera lleva moneda; una tarjeta bimoneda y el efectivo pueden no llevarla. El efectivo no tiene banco. Un número más largo que 4 dígitos se rechaza, nunca se recorta.
-         */
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        alias?: string;
-                        institution?: string | null;
-                        last4?: string | null;
-                        /** @enum {string|null} */
-                        currency?: "PEN" | "USD" | null;
-                        archived?: boolean;
-                    };
-                };
-            };
-            responses: {
-                /** @description Método de pago como quedó. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /** @enum {string} */
-                            kind: "ACCOUNT" | "WALLET" | "CREDIT_CARD" | "CASH";
-                            alias: string;
-                            /** @description Banco o entidad. Nulo en el efectivo. */
-                            institution: string | null;
-                            /** @description Últimos 4 dígitos. Nunca se guarda ni se devuelve nada más de una tarjeta. */
-                            last4: string | null;
-                            /**
-                             * @description Nula = acepta soles y dólares (bimoneda).
-                             * @enum {string|null}
-                             */
-                            currency: "PEN" | "USD" | null;
-                            /**
-                             * Format: date-time
-                             * @description Nulo si está activo.
-                             */
-                            archivedAt: string | null;
-                            /** Format: date-time */
-                            createdAt: string;
-                            /** Format: date-time */
-                            updatedAt: string;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: el catálogo solo se gestiona desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description No existe o es de otra cuenta. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Ya existe otro método con ese alias. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El cuerpo está vacío, intenta cambiar el tipo o deja el método rompiendo una regla de su tipo. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        trace?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/transactions/import/preview': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/transactions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Lista las transacciones y transferencias, con filtros, búsqueda y totales.
-         * @description Transacciones y transferencias mezcladas, cada fila marcada con `kind`, de la fecha más reciente a la más antigua y, en el mismo día, de la última registrada a la primera. Sin fechas trae todo. Las borradas no aparecen; las de categorías o métodos archivados, sí. Filtrar por `type` o `categoryId` deja fuera las transferencias; por `paymentMethodId` o `currency` trae las que salen o llegan. Los totales son solo de las transacciones. Paginación por cursor: lo que se registre o se borre entre dos páginas no hace repetir ni saltar filas.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    /** @description Un mes, `YYYY-MM`. No va junto con `from` o `to`. */
-                    month?: string;
-                    /** @description Desde este día, inclusive. */
-                    from?: string;
-                    /** @description Hasta este día, inclusive. */
-                    to?: string;
-                    type?: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                    /** @description Trae también sus subcategorías. Una categoría ajena no trae nada. */
-                    categoryId?: string;
-                    paymentMethodId?: string;
-                    currency?: "PEN" | "USD";
-                    /** @description Solo las transacciones con esta etiqueta, sin distinguir mayúsculas ni tildes. Deja fuera las transferencias; los totales siguen al filtro. */
-                    tag?: string;
-                    /** @description Solo transacciones o solo transferencias. Sin él, las dos. */
-                    kind?: "transaction" | "transfer";
-                    /** @description Texto a buscar en la descripción o el comercio, sin distinguir mayúsculas ni tildes. */
-                    q?: string;
-                    /** @description El `nextCursor` de la página anterior, tal cual. Su contenido no es contrato. */
-                    cursor?: string;
-                    /** @description Filas por página. Más de 100 se recorta a 100. */
-                    limit?: number;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Una página y los totales de lo filtrado. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @description La página, de la fecha más reciente a la más antigua: transacciones y transferencias mezcladas, cada una marcada con `kind`. */
-                            items: ({
-                                /** Format: uuid */
-                                id: string;
-                                /**
-                                 * Format: date
-                                 * @description Día en que pasó, sin hora.
-                                 */
-                                date: string;
-                                /** @enum {string} */
-                                type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                                /** Format: uuid */
-                                categoryId: string;
-                                /** @description String decimal con 2 decimales (`"25.90"`). Siempre positivo: el signo lo da `type`. */
-                                amount: string;
-                                /** @enum {string} */
-                                currency: "PEN" | "USD";
-                                description: string;
-                                /**
-                                 * Format: uuid
-                                 * @description Nulo si no se dijo con qué se pagó.
-                                 */
-                                paymentMethodId: string | null;
-                                merchant: string | null;
-                                /**
-                                 * @description De dónde llegó. No cambia al editar.
-                                 * @enum {string}
-                                 */
-                                source: "MANUAL" | "IOS_SHORTCUT" | "ANDROID_AUTOMATION" | "IMPORT";
-                                /**
-                                 * Format: uuid
-                                 * @description Captura del celular de la que salió (H7).
-                                 */
-                                captureId: string | null;
-                                /** @description Nombres de sus etiquetas, en orden alfabético. */
-                                tags: string[];
-                                /** Format: date-time */
-                                createdAt: string;
-                                /** Format: date-time */
-                                updatedAt: string;
-                                /** @enum {string} */
-                                kind: "transaction";
-                            } | {
-                                /** Format: uuid */
-                                id: string;
-                                /**
-                                 * Format: date
-                                 * @description Día en que pasó, sin hora.
-                                 */
-                                date: string;
-                                /**
-                                 * Format: uuid
-                                 * @description Cuenta de la que salió la plata.
-                                 */
-                                fromPaymentMethodId: string;
-                                /**
-                                 * Format: uuid
-                                 * @description Cuenta a la que llegó.
-                                 */
-                                toPaymentMethodId: string;
-                                /** @description String decimal. Lo que salió, en la moneda de la cuenta de origen. */
-                                amount: string;
-                                /** @enum {string} */
-                                currency: "PEN" | "USD";
-                                /** @description String decimal. Lo que llegó. Igual a `amount` si la moneda no cambia. */
-                                receivedAmount: string;
-                                /** @enum {string} */
-                                receivedCurrency: "PEN" | "USD";
-                                description: string;
-                                /** @enum {string} */
-                                source: "MANUAL" | "IOS_SHORTCUT" | "ANDROID_AUTOMATION" | "IMPORT";
-                                /** Format: date-time */
-                                createdAt: string;
-                                /** Format: date-time */
-                                updatedAt: string;
-                                /** @enum {string} */
-                                kind: "transfer";
-                            })[];
-                            /** @description Se manda tal cual en `?cursor=` para la página siguiente. Nulo si no hay más. */
-                            nextCursor: string | null;
-                            /** @description De **todo** lo filtrado, no solo de esta página. Una entrada por moneda con movimientos, primero soles; nunca se convierte. */
-                            totals: {
-                                /** @enum {string} */
-                                currency: "PEN" | "USD";
-                                /** @description String decimal. Ingresos. */
-                                income: string;
-                                /** @description String decimal. Gasto fijo + variable. */
-                                expense: string;
-                                /** @description String decimal. Ahorro + inversión. */
-                                saving: string;
-                                /** @description String decimal. Pagos de deuda. */
-                                debt: string;
-                                /** @description String decimal. Ingresos menos todo lo demás. Puede ser negativo. */
-                                balance: string;
-                                /** @description Cuántas transacciones suman. Sirve de vista previa al fusionar categorías. */
-                                count: number;
-                            }[];
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Un filtro no tiene un valor válido, se mandaron `month` y `from`/`to` a la vez, `from` es posterior a `to`, o el cursor no es uno que haya dado la API (`INVALID_CURSOR`), o se pidió `kind=transfer` junto con `type`, `categoryId` o `tag`. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        /**
-         * Registra una transacción.
-         * @description Queda con `source: MANUAL`. El monto viaja como string decimal, siempre positivo y con hasta 2 decimales: un tercer decimal se rechaza, no se redondea. La fecha es de hoy o anterior, en la hora de Lima. La categoría es del mismo tipo que la transacción y no está archivada; puede ser una categoría de primer nivel o una subcategoría. El método de pago es opcional; si se indica, no puede estar archivado. Sin `currency` se usa la del método de pago; si este acepta las dos monedas, o no hay método, se exige. Nunca se convierte. `tags` son nombres de etiquetas: las que no existen se crean, y "Almuerzo" y "almuerzó" son la misma. Hasta 10 distintas, sin `|`.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        /** Format: date */
-                        date: string;
-                        /** @enum {string} */
-                        type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                        /** Format: uuid */
-                        categoryId: string;
-                        amount: string;
-                        /** @enum {string} */
-                        currency?: "PEN" | "USD";
-                        description: string;
-                        /** Format: uuid */
-                        paymentMethodId?: string | null;
-                        merchant?: string | null;
-                        tags?: string[];
-                    };
-                };
-            };
-            responses: {
-                /** @description Transacción registrada. */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /**
-                             * Format: date
-                             * @description Día en que pasó, sin hora.
-                             */
-                            date: string;
-                            /** @enum {string} */
-                            type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                            /** Format: uuid */
-                            categoryId: string;
-                            /** @description String decimal con 2 decimales (`"25.90"`). Siempre positivo: el signo lo da `type`. */
-                            amount: string;
-                            /** @enum {string} */
-                            currency: "PEN" | "USD";
-                            description: string;
-                            /**
-                             * Format: uuid
-                             * @description Nulo si no se dijo con qué se pagó.
-                             */
-                            paymentMethodId: string | null;
-                            merchant: string | null;
-                            /**
-                             * @description De dónde llegó. No cambia al editar.
-                             * @enum {string}
-                             */
-                            source: "MANUAL" | "IOS_SHORTCUT" | "ANDROID_AUTOMATION" | "IMPORT";
-                            /**
-                             * Format: uuid
-                             * @description Captura del celular de la que salió (H7).
-                             */
-                            captureId: string | null;
-                            /** @description Nombres de sus etiquetas, en orden alfabético. */
-                            tags: string[];
-                            /** Format: date-time */
-                            createdAt: string;
-                            /** Format: date-time */
-                            updatedAt: string;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La categoría o el método de pago no existen o son de otra cuenta. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El cuerpo no tiene la forma esperada, o rompe una regla: monto no positivo o con más de 2 decimales, fecha futura, categoría de otro tipo o archivada, método archivado, o falta la moneda. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/transactions/import": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Importa un CSV, todo o nada.
-         * @description El mismo archivo de la vista previa y una decisión por cada categoría o método de pago que falta o está archivado: `create`, `use` (con su id) o `restore`. Primero se valida todo sin escribir: si una fila tiene problemas, falta una decisión o una no sirve, responde 422 y no cambia nada. Después aplica el catálogo y guarda todas las filas en una sola transacción, con `source: IMPORT` y la huella de su fila; las ya importadas se omiten.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        csv: string;
-                        /** @default [] */
-                        categories: ({
-                            /** @enum {string} */
-                            type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                            category: string;
-                            subcategory: string | null;
-                            /** @enum {string} */
-                            action: "create";
-                        } | {
-                            /** @enum {string} */
-                            type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                            category: string;
-                            subcategory: string | null;
-                            /** @enum {string} */
-                            action: "use";
-                            /** Format: uuid */
-                            categoryId: string;
-                        } | {
-                            /** @enum {string} */
-                            type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                            category: string;
-                            subcategory: string | null;
-                            /** @enum {string} */
-                            action: "restore";
-                        })[];
-                        /** @default [] */
-                        paymentMethods: ({
-                            alias: string;
-                            /** @enum {string} */
-                            action: "create";
-                            /** @enum {string} */
-                            kind: "ACCOUNT" | "WALLET" | "CREDIT_CARD" | "CASH";
-                            institution?: string | null;
-                            last4?: string | null;
-                            /** @enum {string|null} */
-                            currency?: "PEN" | "USD" | null;
-                        } | {
-                            alias: string;
-                            /** @enum {string} */
-                            action: "use";
-                            /** Format: uuid */
-                            paymentMethodId: string;
-                        } | {
-                            alias: string;
-                            /** @enum {string} */
-                            action: "restore";
-                        })[];
-                    };
-                };
-            };
-            responses: {
-                /** @description Lo que se importó. */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @description Transacciones importadas. */
-                            transactions: number;
-                            /** @description Transferencias importadas. */
-                            transfers: number;
-                            /** @description Líneas ya importadas antes: se omitieron. */
-                            alreadyImported: number[];
-                            createdCategories: number;
-                            createdPaymentMethods: number;
-                            /** @description Categorías y métodos que se restauraron. */
-                            restored: number;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Otra importación del mismo archivo se cruzó: no se guardó nada (`IMPORT_CONFLICT`). */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El archivo pesa más de 1 MB o tiene demasiadas filas. */
-                413: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El CSV está mal formado o le faltan columnas, alguna fila tiene problemas (`IMPORT_HAS_PROBLEMS`), falta una decisión (`IMPORT_UNRESOLVED`), una decisión no sirve (`IMPORT_DECISION_INVALID`) o un método nuevo rompe las reglas de su tipo. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/transactions/import/preview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Dice qué pasaría al importar un CSV, sin guardar nada.
-         * @description El archivo viaja como texto (`csv`), en el formato oficial (`docs/modules/transactions-import-format.md`). Responde cuántas filas entrarían, cada problema con su línea y columna, las ya importadas antes (por la huella de su fila), las categorías y métodos de pago que no existen o están archivados, las columnas ignoradas y las etiquetas nuevas. Hasta 1 MB y 5000 filas.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        csv: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Lo que pasaría al importar. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @description Filas de datos leídas, sin la cabecera ni las vacías. */
-                            rows: number;
-                            /** @description Transacciones que entrarían, una vez resuelto lo pendiente. */
-                            transactions: number;
-                            /** @description Transferencias que entrarían, una vez resuelto lo pendiente. */
-                            transfers: number;
-                            /** @description Líneas ya importadas antes: se omiten. */
-                            alreadyImported: number[];
-                            /** @description Cada problema, por línea y columna. Una fila con problemas no entra. */
-                            problems: {
-                                line: number;
-                                /** @description Columna del formato (`fecha`, `monto`…). */
-                                field: string;
-                                code: string;
-                                message: string;
-                            }[];
-                            /** @description Columnas que no son del formato. */
-                            ignoredColumns: string[];
-                            /** @description Categorías por resolver: crearlas o usar una existente al confirmar. */
-                            categories: {
-                                /** @enum {string} */
-                                type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                                category: string;
-                                subcategory: string | null;
-                                /**
-                                 * @description No existe en la cuenta, o existe pero está archivada.
-                                 * @enum {string}
-                                 */
-                                status: "missing" | "archived";
-                                /** @description Líneas del archivo (la cabecera es la 1). */
-                                lines: number[];
-                            }[];
-                            /** @description Métodos (o cuentas de destino) por resolver: usar uno existente o crearlo. */
-                            paymentMethods: {
-                                alias: string;
-                                /**
-                                 * @description No existe en la cuenta, o existe pero está archivada.
-                                 * @enum {string}
-                                 */
-                                status: "missing" | "archived";
-                                /** @description Líneas del archivo (la cabecera es la 1). */
-                                lines: number[];
-                            }[];
-                            /** @description Etiquetas que se crearían. */
-                            newTags: string[];
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El archivo pesa más de 1 MB (`IMPORT_FILE_TOO_LARGE`) o tiene demasiadas filas (`IMPORT_TOO_MANY_ROWS`). */
-                413: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El cuerpo no tiene la forma esperada, el CSV está mal formado (`MALFORMED_CSV`) o le faltan columnas obligatorias (`IMPORT_COLUMNS_MISSING`). */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/transactions/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Devuelve una transacción. */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description La transacción. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /**
-                             * Format: date
-                             * @description Día en que pasó, sin hora.
-                             */
-                            date: string;
-                            /** @enum {string} */
-                            type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                            /** Format: uuid */
-                            categoryId: string;
-                            /** @description String decimal con 2 decimales (`"25.90"`). Siempre positivo: el signo lo da `type`. */
-                            amount: string;
-                            /** @enum {string} */
-                            currency: "PEN" | "USD";
-                            description: string;
-                            /**
-                             * Format: uuid
-                             * @description Nulo si no se dijo con qué se pagó.
-                             */
-                            paymentMethodId: string | null;
-                            merchant: string | null;
-                            /**
-                             * @description De dónde llegó. No cambia al editar.
-                             * @enum {string}
-                             */
-                            source: "MANUAL" | "IOS_SHORTCUT" | "ANDROID_AUTOMATION" | "IMPORT";
-                            /**
-                             * Format: uuid
-                             * @description Captura del celular de la que salió (H7).
-                             */
-                            captureId: string | null;
-                            /** @description Nombres de sus etiquetas, en orden alfabético. */
-                            tags: string[];
-                            /** Format: date-time */
-                            createdAt: string;
-                            /** Format: date-time */
-                            updatedAt: string;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description No existe, es de otra cuenta o está borrada. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        /**
-         * Borra una transacción (borrado lógico).
-         * @description Deja de aparecer, pero la fila queda para la auditoría y se puede restaurar sin plazo.
-         */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Borrada. */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description No existe, es de otra cuenta o ya estaba borrada. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        /**
-         * Corrige una transacción, también de meses pasados.
-         * @description Se manda solo lo que cambia. El origen (`source`) no se corrige. El tipo se cambia junto con una categoría de ese tipo. Sin `currency` la moneda no cambia, aunque cambie el método de pago. Una categoría o un método archivados que la transacción ya tenía siguen valiendo; elegirlos ahora, no. Una fecha nueva no puede ser futura. `tags` **reemplaza** las etiquetas: se manda la lista completa, y `[]` las quita todas.
-         */
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        /** Format: date */
-                        date?: string;
-                        /** @enum {string} */
-                        type?: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                        /** Format: uuid */
-                        categoryId?: string;
-                        amount?: string;
-                        /** @enum {string} */
-                        currency?: "PEN" | "USD";
-                        description?: string;
-                        /** Format: uuid */
-                        paymentMethodId?: string | null;
-                        merchant?: string | null;
-                        tags?: string[];
-                    };
-                };
-            };
-            responses: {
-                /** @description La transacción como quedó. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /**
-                             * Format: date
-                             * @description Día en que pasó, sin hora.
-                             */
-                            date: string;
-                            /** @enum {string} */
-                            type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                            /** Format: uuid */
-                            categoryId: string;
-                            /** @description String decimal con 2 decimales (`"25.90"`). Siempre positivo: el signo lo da `type`. */
-                            amount: string;
-                            /** @enum {string} */
-                            currency: "PEN" | "USD";
-                            description: string;
-                            /**
-                             * Format: uuid
-                             * @description Nulo si no se dijo con qué se pagó.
-                             */
-                            paymentMethodId: string | null;
-                            merchant: string | null;
-                            /**
-                             * @description De dónde llegó. No cambia al editar.
-                             * @enum {string}
-                             */
-                            source: "MANUAL" | "IOS_SHORTCUT" | "ANDROID_AUTOMATION" | "IMPORT";
-                            /**
-                             * Format: uuid
-                             * @description Captura del celular de la que salió (H7).
-                             */
-                            captureId: string | null;
-                            /** @description Nombres de sus etiquetas, en orden alfabético. */
-                            tags: string[];
-                            /** Format: date-time */
-                            createdAt: string;
-                            /** Format: date-time */
-                            updatedAt: string;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La transacción no existe, es de otra cuenta o está borrada; o la categoría o el método elegidos no existen o son de otra cuenta. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El cuerpo está vacío, trae `source` u otro campo desconocido, o la transacción quedaría rompiendo una regla. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        trace?: never;
-    };
-    "/api/v1/transactions/{id}/restore": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Deshace el borrado de una transacción.
-         * @description Sin plazo: el aviso de «Deshacer» de unos segundos es cosa de la interfaz. Con una transacción que no está borrada, la devuelve tal cual y no hace nada más.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description La transacción, otra vez vigente. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /**
-                             * Format: date
-                             * @description Día en que pasó, sin hora.
-                             */
-                            date: string;
-                            /** @enum {string} */
-                            type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                            /** Format: uuid */
-                            categoryId: string;
-                            /** @description String decimal con 2 decimales (`"25.90"`). Siempre positivo: el signo lo da `type`. */
-                            amount: string;
-                            /** @enum {string} */
-                            currency: "PEN" | "USD";
-                            description: string;
-                            /**
-                             * Format: uuid
-                             * @description Nulo si no se dijo con qué se pagó.
-                             */
-                            paymentMethodId: string | null;
-                            merchant: string | null;
-                            /**
-                             * @description De dónde llegó. No cambia al editar.
-                             * @enum {string}
-                             */
-                            source: "MANUAL" | "IOS_SHORTCUT" | "ANDROID_AUTOMATION" | "IMPORT";
-                            /**
-                             * Format: uuid
-                             * @description Captura del celular de la que salió (H7).
-                             */
-                            captureId: string | null;
-                            /** @description Nombres de sus etiquetas, en orden alfabético. */
-                            tags: string[];
-                            /** Format: date-time */
-                            createdAt: string;
-                            /** Format: date-time */
-                            updatedAt: string;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description No existe o es de otra cuenta. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/transfers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Registra una transferencia entre dos cuentas propias.
-         * @description Plata que cambia de lugar sin ser ingreso ni gasto: no entra en los totales. Las dos cuentas son propias, distintas y activas. Cada cuenta pone su moneda; en la misma moneda llega lo mismo que salió. Si la moneda cambia, `receivedAmount` es obligatorio y se copia del voucher: nunca se convierte. Queda con `source: MANUAL`.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        /** Format: date */
-                        date: string;
-                        /** Format: uuid */
-                        fromPaymentMethodId: string;
-                        /** Format: uuid */
-                        toPaymentMethodId: string;
-                        amount: string;
-                        /** @enum {string} */
-                        currency?: "PEN" | "USD";
-                        receivedAmount?: string;
-                        /** @enum {string} */
-                        receivedCurrency?: "PEN" | "USD";
-                        description: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Transferencia registrada. */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /**
-                             * Format: date
-                             * @description Día en que pasó, sin hora.
-                             */
-                            date: string;
-                            /**
-                             * Format: uuid
-                             * @description Cuenta de la que salió la plata.
-                             */
-                            fromPaymentMethodId: string;
-                            /**
-                             * Format: uuid
-                             * @description Cuenta a la que llegó.
-                             */
-                            toPaymentMethodId: string;
-                            /** @description String decimal. Lo que salió, en la moneda de la cuenta de origen. */
-                            amount: string;
-                            /** @enum {string} */
-                            currency: "PEN" | "USD";
-                            /** @description String decimal. Lo que llegó. Igual a `amount` si la moneda no cambia. */
-                            receivedAmount: string;
-                            /** @enum {string} */
-                            receivedCurrency: "PEN" | "USD";
-                            description: string;
-                            /** @enum {string} */
-                            source: "MANUAL" | "IOS_SHORTCUT" | "ANDROID_AUTOMATION" | "IMPORT";
-                            /** Format: date-time */
-                            createdAt: string;
-                            /** Format: date-time */
-                            updatedAt: string;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Una de las cuentas no existe o es de otra cuenta. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El cuerpo no tiene la forma esperada, o rompe una regla: la misma cuenta de los dos lados, una cuenta archivada, una moneda que la cuenta no maneja, falta el monto recibido de un cambio de moneda, montos no positivos o fecha futura. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/transfers/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Devuelve una transferencia. */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description La transferencia. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /**
-                             * Format: date
-                             * @description Día en que pasó, sin hora.
-                             */
-                            date: string;
-                            /**
-                             * Format: uuid
-                             * @description Cuenta de la que salió la plata.
-                             */
-                            fromPaymentMethodId: string;
-                            /**
-                             * Format: uuid
-                             * @description Cuenta a la que llegó.
-                             */
-                            toPaymentMethodId: string;
-                            /** @description String decimal. Lo que salió, en la moneda de la cuenta de origen. */
-                            amount: string;
-                            /** @enum {string} */
-                            currency: "PEN" | "USD";
-                            /** @description String decimal. Lo que llegó. Igual a `amount` si la moneda no cambia. */
-                            receivedAmount: string;
-                            /** @enum {string} */
-                            receivedCurrency: "PEN" | "USD";
-                            description: string;
-                            /** @enum {string} */
-                            source: "MANUAL" | "IOS_SHORTCUT" | "ANDROID_AUTOMATION" | "IMPORT";
-                            /** Format: date-time */
-                            createdAt: string;
-                            /** Format: date-time */
-                            updatedAt: string;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description No existe, es de otra cuenta o está borrada. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        /**
-         * Borra una transferencia (borrado lógico).
-         * @description Deja de aparecer, pero la fila queda y se puede restaurar sin plazo.
-         */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Borrada. */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description No existe, es de otra cuenta o ya estaba borrada. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        /**
-         * Corrige una transferencia, también de meses pasados.
-         * @description Se manda solo lo que cambia; el origen (`source`) no se corrige. Las reglas se aplican a la transferencia como quedaría. Una cuenta archivada que ya tenía sigue valiendo; elegirla ahora, no. En un cambio de moneda, corregir el monto enviado exige mandar también el recibido.
-         */
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        /** Format: date */
-                        date?: string;
-                        /** Format: uuid */
-                        fromPaymentMethodId?: string;
-                        /** Format: uuid */
-                        toPaymentMethodId?: string;
-                        amount?: string;
-                        /** @enum {string} */
-                        currency?: "PEN" | "USD";
-                        receivedAmount?: string;
-                        /** @enum {string} */
-                        receivedCurrency?: "PEN" | "USD";
-                        description?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description La transferencia como quedó. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /**
-                             * Format: date
-                             * @description Día en que pasó, sin hora.
-                             */
-                            date: string;
-                            /**
-                             * Format: uuid
-                             * @description Cuenta de la que salió la plata.
-                             */
-                            fromPaymentMethodId: string;
-                            /**
-                             * Format: uuid
-                             * @description Cuenta a la que llegó.
-                             */
-                            toPaymentMethodId: string;
-                            /** @description String decimal. Lo que salió, en la moneda de la cuenta de origen. */
-                            amount: string;
-                            /** @enum {string} */
-                            currency: "PEN" | "USD";
-                            /** @description String decimal. Lo que llegó. Igual a `amount` si la moneda no cambia. */
-                            receivedAmount: string;
-                            /** @enum {string} */
-                            receivedCurrency: "PEN" | "USD";
-                            description: string;
-                            /** @enum {string} */
-                            source: "MANUAL" | "IOS_SHORTCUT" | "ANDROID_AUTOMATION" | "IMPORT";
-                            /** Format: date-time */
-                            createdAt: string;
-                            /** Format: date-time */
-                            updatedAt: string;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La transferencia no existe, es de otra cuenta o está borrada; o una cuenta elegida no existe o es de otra cuenta. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El cuerpo está vacío, trae un campo desconocido, o la transferencia quedaría rompiendo una regla. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        trace?: never;
-    };
-    "/api/v1/transfers/{id}/restore": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Deshace el borrado de una transferencia.
-         * @description Sin plazo. Con una transferencia que no está borrada, la devuelve tal cual y no hace nada más.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description La transferencia, otra vez vigente. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /**
-                             * Format: date
-                             * @description Día en que pasó, sin hora.
-                             */
-                            date: string;
-                            /**
-                             * Format: uuid
-                             * @description Cuenta de la que salió la plata.
-                             */
-                            fromPaymentMethodId: string;
-                            /**
-                             * Format: uuid
-                             * @description Cuenta a la que llegó.
-                             */
-                            toPaymentMethodId: string;
-                            /** @description String decimal. Lo que salió, en la moneda de la cuenta de origen. */
-                            amount: string;
-                            /** @enum {string} */
-                            currency: "PEN" | "USD";
-                            /** @description String decimal. Lo que llegó. Igual a `amount` si la moneda no cambia. */
-                            receivedAmount: string;
-                            /** @enum {string} */
-                            receivedCurrency: "PEN" | "USD";
-                            description: string;
-                            /** @enum {string} */
-                            source: "MANUAL" | "IOS_SHORTCUT" | "ANDROID_AUTOMATION" | "IMPORT";
-                            /** Format: date-time */
-                            createdAt: string;
-                            /** Format: date-time */
-                            updatedAt: string;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description No existe o es de otra cuenta. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tags": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Lista las etiquetas de la cuenta, por nombre.
-         * @description Las etiquetas se crean al usarlas en una transacción (`tags`). Cada una dice cuántas transacciones vigentes la llevan.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Etiquetas de la cuenta. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            name: string;
-                            /** @description Transacciones vigentes que la llevan. */
-                            transactionCount: number;
-                        }[];
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tags/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Borra una etiqueta.
-         * @description La quita de todas las transacciones, que quedan intactas. Sin archivar.
-         */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Borrada. */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description No existe o es de otra cuenta. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        /**
-         * Renombra una etiqueta o la fusiona con otra.
-         * @description Si el nombre nuevo es el de **otra** etiqueta de la cuenta (sin distinguir mayúsculas ni tildes), las fusiona: sus transacciones quedan con la otra, que toma la escritura mandada, y esta desaparece. Devuelve la etiqueta que queda.
-         */
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        name: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description La etiqueta como quedó (la de destino, si se fusionaron). */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            name: string;
-                            /** @description Transacciones vigentes que la llevan. */
-                            transactionCount: number;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description No existe o es de otra cuenta. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Otra petición creó al mismo tiempo una etiqueta con ese nombre: volver a intentarlo las fusiona. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El nombre está vacío, es muy largo o lleva `|`. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        trace?: never;
-    };
-    "/api/v1/budgets/{year}/{month}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Devuelve el presupuesto de un mes.
-         * @description Un mes sin presupuesto responde **200 con `lines: []`**: no haberlo armado no es un error.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    year: string;
-                    /** @description 1 a 12. */
-                    month: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Las partidas del mes. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            year: number;
-                            month: number;
-                            /** @description Una por categoría y moneda, en el orden en que se guardaron. `[]` sin presupuesto. */
-                            lines: {
-                                /**
-                                 * Format: uuid
-                                 * @description Una categoría **madre**: suma lo real de sus hijas.
-                                 */
-                                categoryId: string;
-                                /**
-                                 * @description El de su categoría.
-                                 * @enum {string}
-                                 */
-                                type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                                /** @description String decimal con 2 decimales (`"800.00"`), cero o más. */
-                                plannedAmount: string;
-                                /** @enum {string} */
-                                currency: "PEN" | "USD";
-                            }[];
-                            /** @description Planeado contra real por tipo y moneda, sin convertir nunca. Lo real de una subcategoría suma en su madre; sin transferencias ni borradas. */
-                            summary: {
-                                /** @enum {string} */
-                                type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                                /** @enum {string} */
-                                currency: "PEN" | "USD";
-                                lines: {
-                                    /** @description String decimal. */
-                                    planned: string;
-                                    /** @description String decimal. Lo real del mes. */
-                                    actual: string;
-                                    /** @description String decimal, «lo bueno es positivo». Límite: planeado − real (lo disponible). Meta: real − planeado (cuánto se superó). */
-                                    difference: string;
-                                    /** @description Real sobre planeado en %, **sin redondear**. Nulo con lo planeado en cero. */
-                                    executed: string | null;
-                                    /**
-                                     * @description Límite (gasto, deuda): WITHIN o EXCEEDED. Meta (ingreso, ahorro, inversión): PENDING o MET.
-                                     * @enum {string}
-                                     */
-                                    status: "WITHIN" | "EXCEEDED" | "PENDING" | "MET";
-                                    /** Format: uuid */
-                                    categoryId: string;
-                                }[];
-                                /** @description Lo real de categorías sin partida, de mayor a menor: «Sin presupuesto». */
-                                unbudgeted: {
-                                    /** Format: uuid */
-                                    categoryId: string;
-                                    amount: string;
-                                }[];
-                                /** @description Las partidas contra **todo** lo real del tipo. */
-                                total: {
-                                    /** @description String decimal. */
-                                    planned: string;
-                                    /** @description String decimal. Lo real del mes. */
-                                    actual: string;
-                                    /** @description String decimal, «lo bueno es positivo». Límite: planeado − real (lo disponible). Meta: real − planeado (cuánto se superó). */
-                                    difference: string;
-                                    /** @description Real sobre planeado en %, **sin redondear**. Nulo con lo planeado en cero. */
-                                    executed: string | null;
-                                    /**
-                                     * @description Límite (gasto, deuda): WITHIN o EXCEEDED. Meta (ingreso, ahorro, inversión): PENDING o MET.
-                                     * @enum {string}
-                                     */
-                                    status: "WITHIN" | "EXCEEDED" | "PENDING" | "MET";
-                                };
-                            }[];
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: el presupuesto solo se gestiona desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El año o el mes no son válidos (`BUDGET_MONTH_INVALID`). */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        /**
-         * Guarda el presupuesto de un mes entero.
-         * @description La lista **reemplaza** a la anterior (`[]` lo vacía) y entra toda o nada. Cualquier mes, pasado o futuro. Cada partida va en una categoría **madre** y activa de la cuenta, una por categoría y moneda, con un monto de cero o más. Una partida que el mes ya tenía se puede volver a mandar aunque su categoría se haya archivado después.
-         */
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    year: string;
-                    /** @description 1 a 12. */
-                    month: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        lines: {
-                            /** Format: uuid */
-                            categoryId: string;
-                            plannedAmount: string;
-                            /** @enum {string} */
-                            currency: "PEN" | "USD";
-                        }[];
-                    };
-                };
-            };
-            responses: {
-                /** @description El presupuesto como quedó. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            year: number;
-                            month: number;
-                            /** @description Una por categoría y moneda, en el orden en que se guardaron. `[]` sin presupuesto. */
-                            lines: {
-                                /**
-                                 * Format: uuid
-                                 * @description Una categoría **madre**: suma lo real de sus hijas.
-                                 */
-                                categoryId: string;
-                                /**
-                                 * @description El de su categoría.
-                                 * @enum {string}
-                                 */
-                                type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                                /** @description String decimal con 2 decimales (`"800.00"`), cero o más. */
-                                plannedAmount: string;
-                                /** @enum {string} */
-                                currency: "PEN" | "USD";
-                            }[];
-                            /** @description Planeado contra real por tipo y moneda, sin convertir nunca. Lo real de una subcategoría suma en su madre; sin transferencias ni borradas. */
-                            summary: {
-                                /** @enum {string} */
-                                type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                                /** @enum {string} */
-                                currency: "PEN" | "USD";
-                                lines: {
-                                    /** @description String decimal. */
-                                    planned: string;
-                                    /** @description String decimal. Lo real del mes. */
-                                    actual: string;
-                                    /** @description String decimal, «lo bueno es positivo». Límite: planeado − real (lo disponible). Meta: real − planeado (cuánto se superó). */
-                                    difference: string;
-                                    /** @description Real sobre planeado en %, **sin redondear**. Nulo con lo planeado en cero. */
-                                    executed: string | null;
-                                    /**
-                                     * @description Límite (gasto, deuda): WITHIN o EXCEEDED. Meta (ingreso, ahorro, inversión): PENDING o MET.
-                                     * @enum {string}
-                                     */
-                                    status: "WITHIN" | "EXCEEDED" | "PENDING" | "MET";
-                                    /** Format: uuid */
-                                    categoryId: string;
-                                }[];
-                                /** @description Lo real de categorías sin partida, de mayor a menor: «Sin presupuesto». */
-                                unbudgeted: {
-                                    /** Format: uuid */
-                                    categoryId: string;
-                                    amount: string;
-                                }[];
-                                /** @description Las partidas contra **todo** lo real del tipo. */
-                                total: {
-                                    /** @description String decimal. */
-                                    planned: string;
-                                    /** @description String decimal. Lo real del mes. */
-                                    actual: string;
-                                    /** @description String decimal, «lo bueno es positivo». Límite: planeado − real (lo disponible). Meta: real − planeado (cuánto se superó). */
-                                    difference: string;
-                                    /** @description Real sobre planeado en %, **sin redondear**. Nulo con lo planeado en cero. */
-                                    executed: string | null;
-                                    /**
-                                     * @description Límite (gasto, deuda): WITHIN o EXCEEDED. Meta (ingreso, ahorro, inversión): PENDING o MET.
-                                     * @enum {string}
-                                     */
-                                    status: "WITHIN" | "EXCEEDED" | "PENDING" | "MET";
-                                };
-                            }[];
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: el presupuesto solo se gestiona desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Una categoría no existe o es de otra cuenta; o el módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El cuerpo no tiene la forma esperada, o una partida rompe una regla: monto negativo o con más de 2 decimales, subcategoría, categoría archivada, repetida, o mes inválido. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/budgets/{year}/{month}/copy-from-previous": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Copia al mes las partidas del mes anterior que le faltan.
-         * @description Copia del mes anterior o, si está vacío, del **último mes con presupuesto**. **Solo completa lo que falta**: nunca pisa una partida (misma categoría y moneda). Las categorías archivadas no se copian y van en `skipped`. Sin ningún mes anterior con presupuesto responde **200** con `copiedFrom: null`: no es un error.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    year: string;
-                    /** @description 1 a 12. */
-                    month: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description El mes como quedó, con de dónde se copió y lo que quedó fuera. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            year: number;
-                            month: number;
-                            /** @description Una por categoría y moneda, en el orden en que se guardaron. `[]` sin presupuesto. */
-                            lines: {
-                                /**
-                                 * Format: uuid
-                                 * @description Una categoría **madre**: suma lo real de sus hijas.
-                                 */
-                                categoryId: string;
-                                /**
-                                 * @description El de su categoría.
-                                 * @enum {string}
-                                 */
-                                type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                                /** @description String decimal con 2 decimales (`"800.00"`), cero o más. */
-                                plannedAmount: string;
-                                /** @enum {string} */
-                                currency: "PEN" | "USD";
-                            }[];
-                            /** @description Planeado contra real por tipo y moneda, sin convertir nunca. Lo real de una subcategoría suma en su madre; sin transferencias ni borradas. */
-                            summary: {
-                                /** @enum {string} */
-                                type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                                /** @enum {string} */
-                                currency: "PEN" | "USD";
-                                lines: {
-                                    /** @description String decimal. */
-                                    planned: string;
-                                    /** @description String decimal. Lo real del mes. */
-                                    actual: string;
-                                    /** @description String decimal, «lo bueno es positivo». Límite: planeado − real (lo disponible). Meta: real − planeado (cuánto se superó). */
-                                    difference: string;
-                                    /** @description Real sobre planeado en %, **sin redondear**. Nulo con lo planeado en cero. */
-                                    executed: string | null;
-                                    /**
-                                     * @description Límite (gasto, deuda): WITHIN o EXCEEDED. Meta (ingreso, ahorro, inversión): PENDING o MET.
-                                     * @enum {string}
-                                     */
-                                    status: "WITHIN" | "EXCEEDED" | "PENDING" | "MET";
-                                    /** Format: uuid */
-                                    categoryId: string;
-                                }[];
-                                /** @description Lo real de categorías sin partida, de mayor a menor: «Sin presupuesto». */
-                                unbudgeted: {
-                                    /** Format: uuid */
-                                    categoryId: string;
-                                    amount: string;
-                                }[];
-                                /** @description Las partidas contra **todo** lo real del tipo. */
-                                total: {
-                                    /** @description String decimal. */
-                                    planned: string;
-                                    /** @description String decimal. Lo real del mes. */
-                                    actual: string;
-                                    /** @description String decimal, «lo bueno es positivo». Límite: planeado − real (lo disponible). Meta: real − planeado (cuánto se superó). */
-                                    difference: string;
-                                    /** @description Real sobre planeado en %, **sin redondear**. Nulo con lo planeado en cero. */
-                                    executed: string | null;
-                                    /**
-                                     * @description Límite (gasto, deuda): WITHIN o EXCEEDED. Meta (ingreso, ahorro, inversión): PENDING o MET.
-                                     * @enum {string}
-                                     */
-                                    status: "WITHIN" | "EXCEEDED" | "PENDING" | "MET";
-                                };
-                            }[];
-                        } & {
-                            /** @description De qué mes se copió; nulo si no había ninguno anterior con presupuesto. */
-                            copiedFrom: {
-                                year: number;
-                                month: number;
-                            } | null;
-                            /** @description Partidas del origen que no se copiaron: su categoría está archivada. */
-                            skipped: {
-                                /** Format: uuid */
-                                categoryId: string;
-                                /** @enum {string} */
-                                currency: "PEN" | "USD";
-                            }[];
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: el presupuesto solo se gestiona desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El año o el mes no son válidos (`BUDGET_MONTH_INVALID`). */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/reports/monthly": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * El dashboard de un mes: KPIs, gasto diario, dona por categoría y tablas por tipo.
-         * @description Todo en una llamada, por moneda y sin convertir nunca. Sin transferencias ni transacciones borradas; lo de una subcategoría suma en su madre.
-         */
-        get: {
-            parameters: {
-                query: {
-                    year: string;
-                    /** @description 1 a 12. */
-                    month: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description El dashboard del mes. Sin movimientos, `currencies` viene vacío. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            year: number;
-                            month: number;
-                            /** @description Una entrada por moneda con movimientos, primero soles; nunca se convierte. */
-                            currencies: {
-                                /** @enum {string} */
-                                currency: "PEN" | "USD";
-                                /** @description Strings decimales. */
-                                kpis: {
-                                    income: string;
-                                    /** @description Gasto fijo + variable. */
-                                    expense: string;
-                                    /** @description Ahorro + inversión. */
-                                    saving: string;
-                                    debt: string;
-                                    /** @description Ingresos menos todo lo demás. Puede ser negativo. */
-                                    balance: string;
-                                };
-                                /** @description Gasto fijo + variable de cada día, **con los días sin gasto en cero**. El mes en curso llega hasta hoy (Lima); uno que no empezó no tiene días. */
-                                daily: {
-                                    /** Format: date */
-                                    date: string;
-                                    amount: string;
-                                }[];
-                                /** @description El gasto por categoría **madre** (con sus hijas), de mayor a menor: las 6 primeras y el resto en «Otras». */
-                                distribution: {
-                                    /**
-                                     * Format: uuid
-                                     * @description Nulo es «Otras».
-                                     */
-                                    categoryId: string | null;
-                                    amount: string;
-                                    /** @description % del gasto del mes, sin redondear. */
-                                    share: string | null;
-                                }[];
-                                /** @description Cada tipo con sus categorías madre, de mayor a menor. */
-                                byType: {
-                                    /** @enum {string} */
-                                    type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                                    total: string;
-                                    categories: {
-                                        /** Format: uuid */
-                                        categoryId: string;
-                                        amount: string;
-                                    }[];
-                                }[];
-                            }[];
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: los reportes solo se ven desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Falta el año o el mes, no tienen la forma esperada, o el mes no existe. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/reports/monthly-summary": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * El cierre de un mes: totales, ahorro, comparación, tops y lo de otros módulos.
-         * @description Por moneda y sin convertir nunca. Un mes cerrado, contra el anterior entero; el mes en curso, hasta hoy y contra el anterior hasta el mismo día. Lo de una subcategoría suma en su madre. Las secciones de presupuesto, tarjetas y metas aparecen solo si su módulo está encendido; tarjetas y metas, a la fecha de corte.
-         */
-        get: {
-            parameters: {
-                query: {
-                    year: string;
-                    /** @description 1 a 12. */
-                    month: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description El resumen del mes. Sin movimientos, `currencies` viene vacío. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            year: number;
-                            month: number;
-                            /** @description El mes entero si ya cerró; del 1 a hoy si está en curso. `to` es la fecha de corte. */
-                            period: {
-                                /** Format: date */
-                                from: string;
-                                /** Format: date */
-                                to: string;
-                                complete: boolean;
-                            };
-                            /** @description El mes anterior entero, o hasta el mismo día si el mes está en curso. */
-                            previousPeriod: {
-                                /** Format: date */
-                                from: string;
-                                /** Format: date */
-                                to: string;
-                            };
-                            /** @description Las monedas con movimientos en el mes o en el anterior, primero soles. */
-                            currencies: {
-                                /** @enum {string} */
-                                currency: "PEN" | "USD";
-                                totals: {
-                                    income: string;
-                                    /** @description Gasto fijo + variable. */
-                                    expense: string;
-                                    /** @description Ahorro + inversión. */
-                                    saving: string;
-                                    debt: string;
-                                    balance: string;
-                                };
-                                /** @description Ahorro (con inversión) / ingresos, en %, sin redondear. Nula: sin ingresos. */
-                                savingsRate: string | null;
-                                byType: {
-                                    /** @enum {string} */
-                                    type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                                    amount: string;
-                                    /** @description Lo del periodo con que se compara. */
-                                    previous: string;
-                                    /** @description Ahora − antes. */
-                                    difference: string;
-                                    /** @description La diferencia sobre lo de antes, en %, sin redondear. Nula si antes fue cero. */
-                                    change: string | null;
-                                }[];
-                                /** @description Por categoría madre (sus hijas suman en ella). */
-                                byCategory: {
-                                    /** Format: uuid */
-                                    categoryId: string;
-                                    /** @enum {string} */
-                                    type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                                    amount: string;
-                                    /** @description Lo del periodo con que se compara. */
-                                    previous: string;
-                                    /** @description Ahora − antes. */
-                                    difference: string;
-                                    /** @description La diferencia sobre lo de antes, en %, sin redondear. Nula si antes fue cero. */
-                                    change: string | null;
-                                }[];
-                                topCategories: {
-                                    /** Format: uuid */
-                                    categoryId: string;
-                                    amount: string;
-                                    /** @description Parte del gasto del mes, en %. */
-                                    share: string | null;
-                                }[];
-                                /** @description Solo gasto; juntos los que solo difieren en tildes o mayúsculas. */
-                                topMerchants: {
-                                    merchant: string;
-                                    amount: string;
-                                    count: number;
-                                }[];
-                            }[];
-                            /** @description Solo las partidas límite (gasto fijo, variable y deuda). `NONE`: el mes no tiene partidas límite («sin presupuesto»). */
-                            budget?: {
-                                /** @enum {string} */
-                                status: "NONE";
-                            } | {
-                                /** @enum {string} */
-                                status: "SET";
-                                currencies: {
-                                    /** @enum {string} */
-                                    currency: "PEN" | "USD";
-                                    planned: string;
-                                    /** @description Todo lo real de los tipos con límite, también lo gastado sin partida. */
-                                    actual: string;
-                                    /** @description Real sobre planeado, en %, sin redondear. */
-                                    executed: string | null;
-                                }[];
-                                /** @description Las partidas excedidas, la más excedida primero. */
-                                exceeded: {
-                                    /** Format: uuid */
-                                    categoryId: string;
-                                    /** @enum {string} */
-                                    type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                                    /** @enum {string} */
-                                    currency: "PEN" | "USD";
-                                    planned: string;
-                                    actual: string;
-                                    /** @description Planeado − real: negativo, cuánto se pasó. */
-                                    difference: string;
-                                    executed: string | null;
-                                }[];
-                            };
-                            /** @description Una archivada aparece solo si se movió en el mes. */
-                            cards?: {
-                                /** Format: uuid */
-                                id: string;
-                                alias: string;
-                                institution: string | null;
-                                last4: string | null;
-                                /** @description Lo cargado en el mes calendario, por moneda. */
-                                charges: {
-                                    /** @description String decimal con 2 decimales (`"5000.00"`). */
-                                    amount: string;
-                                    /** @enum {string} */
-                                    currency: "PEN" | "USD";
-                                }[];
-                                /** @description El estado que cerró en el mes y vence el siguiente; nulo si no hay. */
-                                statement: {
-                                    /** Format: date */
-                                    closingDate: string;
-                                    /** Format: date */
-                                    dueDate: string;
-                                    balances: {
-                                        /** @enum {string} */
-                                        currency: "PEN" | "USD";
-                                        /** @description La deuda al corte. */
-                                        balance: string;
-                                        /** @description Lo que faltaba pagar a la fecha de corte. */
-                                        remaining: string;
-                                    }[];
-                                } | null;
-                            }[];
-                            /** @description Las metas vivas en el mes, medidas a la fecha de corte. */
-                            goals?: {
-                                /** Format: uuid */
-                                id: string;
-                                name: string;
-                                /** @enum {string} */
-                                currency: "PEN" | "USD";
-                                /** @description Aportes − retiros del mes. */
-                                contributed: string;
-                                saved: string;
-                                remaining: string;
-                                /** @description Ahorrado / objetivo en %, sin redondear. */
-                                percentage: string;
-                                suggestedMonthly: string | null;
-                                /** @enum {string} */
-                                status: "ON_TRACK" | "AT_RISK" | "ACHIEVED" | "OVERDUE";
-                            }[];
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: los reportes solo se ven desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Falta el año o el mes, no tienen la forma esperada, el mes no existe, o todavía no empieza (`SUMMARY_MONTH_IN_FUTURE`). */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/reports/annual": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * El año mes a mes: ingresos, gastos, ahorro, inversión, deuda y saldo.
-         * @description Por moneda y sin convertir nunca: una fila por concepto con sus 12 meses (enero a diciembre) y su total. Un mes que todavía no llega viene `null`, no en cero; el año en curso suma hasta hoy. Sin transferencias; lo de una subcategoría suma en su madre.
-         */
-        get: {
-            parameters: {
-                query: {
-                    year: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description El resumen del año. Sin movimientos, `currencies` viene vacío. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            year: number;
-                            /** @description Las monedas con movimientos en el año, primero soles. */
-                            currencies: {
-                                /** @enum {string} */
-                                currency: "PEN" | "USD";
-                                /** @description En este orden: las filas de la decisión 17. */
-                                rows: {
-                                    /**
-                                     * @description `EXPENSE` = gasto fijo + variable; `BALANCE` = ingresos − todo lo demás.
-                                     * @enum {string}
-                                     */
-                                    row: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT" | "BALANCE";
-                                    /** @description Enero a diciembre. Nulo: un mes que todavía no llega. */
-                                    months: (string | null)[];
-                                    /** @description El año hasta hoy. */
-                                    total: string;
-                                }[];
-                                /** @description Ahorro (con inversión) / ingresos del año, en %, sin redondear. Nula: sin ingresos. */
-                                savingsRate: string | null;
-                                /** @description El gasto del año por categoría madre, como la dona del dashboard. */
-                                distribution: {
-                                    /**
-                                     * Format: uuid
-                                     * @description Nula: «Otras».
-                                     */
-                                    categoryId: string | null;
-                                    amount: string;
-                                    share: string | null;
-                                }[];
-                            }[];
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: los reportes solo se ven desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Falta el año o no tiene la forma esperada, está fuera de 2000 a 2100 (`SUMMARY_YEAR_INVALID`) o todavía no empieza (`SUMMARY_YEAR_IN_FUTURE`). */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/reports/monthly-summary/export": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Descarga el cierre de un mes como CSV.
-         * @description Un solo archivo con todas las secciones como filas (Sección, Concepto, Moneda, Monto, Comparado con, Diferencia, Porcentaje), separado por `;`, con BOM UTF-8, montos con punto decimal y sin separador de miles, y porcentajes con 2 decimales. Lo que escribió el usuario nunca se ejecuta como fórmula. Las secciones de un módulo apagado no vienen.
-         */
-        get: {
-            parameters: {
-                query: {
-                    year: string;
-                    /** @description 1 a 12. */
-                    month: string;
-                    /** @description Solo `csv` por ahora. */
-                    format: "csv";
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description El archivo (`attachment; filename="resumen-AAAA-MM.csv"`). */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/csv": string;
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: los reportes solo se ven desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Falta el año, el mes o el formato, no tienen la forma esperada (un formato que no es `csv`), el mes no existe, o todavía no empieza (`SUMMARY_MONTH_IN_FUTURE`). */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/credit-cards": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Lista las tarjetas configuradas.
-         * @description En el orden en que se configuraron, **archivadas incluidas**: su configuración se conserva. Un método `CREDIT_CARD` sin configurar no aparece aquí.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Las tarjetas de la cuenta. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /** @description Lo que identifica la tarjeta, leído del método de pago: nunca más que esto. */
-                            paymentMethod: {
-                                /** Format: uuid */
-                                id: string;
-                                alias: string;
-                                institution: string | null;
-                                last4: string | null;
-                                /**
-                                 * @description Nula = bimoneda.
-                                 * @enum {string|null}
-                                 */
-                                currency: "PEN" | "USD" | null;
-                                /** @description Archivada, la tarjeta se sigue viendo y corrigiendo, pero no avisa. */
-                                archived: boolean;
-                            };
-                            /** @description Una sola línea, en una moneda. Cero se permite (una adicional): sin porcentaje de uso. */
-                            creditLimit: {
-                                /** @description String decimal con 2 decimales (`"5000.00"`). */
-                                amount: string;
-                                /** @enum {string} */
-                                currency: "PEN" | "USD";
-                            };
-                            /** @description Día de corte; si el mes no lo tiene, el último día del mes. */
-                            statementDay: number;
-                            paymentDueRule: {
-                                /** @enum {string} */
-                                kind: "DAYS_AFTER_STATEMENT";
-                                days: number;
-                            } | {
-                                /** @enum {string} */
-                                kind: "DAY_OF_MONTH";
-                                day: number;
-                            };
-                            /** @description Lo que ya se debía antes de registrar en la app. Nulo: la deuda arranca en cero. */
-                            openingBalance: {
-                                /** Format: date */
-                                date: string;
-                                /** @description Uno por moneda, primero soles. */
-                                amounts: {
-                                    /** @description String decimal con 2 decimales (`"5000.00"`). */
-                                    amount: string;
-                                    /** @enum {string} */
-                                    currency: "PEN" | "USD";
-                                }[];
-                            } | null;
-                        }[];
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las tarjetas solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        /**
-         * Configura un método de pago como tarjeta de crédito.
-         * @description Un método `CREDIT_CARD` propio y activo, **una vez**. Sin saldo inicial, la deuda arranca en cero.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        /** Format: uuid */
-                        paymentMethodId: string;
-                        creditLimit: {
-                            amount: string;
-                            /** @enum {string} */
-                            currency: "PEN" | "USD";
-                        };
-                        statementDay: number;
-                        paymentDueRule: {
-                            /** @enum {string} */
-                            kind: "DAYS_AFTER_STATEMENT";
-                            days: number;
-                        } | {
-                            /** @enum {string} */
-                            kind: "DAY_OF_MONTH";
-                            day: number;
-                        };
-                        openingBalance?: {
-                            /** Format: date */
-                            date: string;
-                            amounts: {
-                                amount: string;
-                                /** @enum {string} */
-                                currency: "PEN" | "USD";
-                            }[];
-                        } | null;
-                    };
-                };
-            };
-            responses: {
-                /** @description La tarjeta configurada. */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /** @description Lo que identifica la tarjeta, leído del método de pago: nunca más que esto. */
-                            paymentMethod: {
-                                /** Format: uuid */
-                                id: string;
-                                alias: string;
-                                institution: string | null;
-                                last4: string | null;
-                                /**
-                                 * @description Nula = bimoneda.
-                                 * @enum {string|null}
-                                 */
-                                currency: "PEN" | "USD" | null;
-                                /** @description Archivada, la tarjeta se sigue viendo y corrigiendo, pero no avisa. */
-                                archived: boolean;
-                            };
-                            /** @description Una sola línea, en una moneda. Cero se permite (una adicional): sin porcentaje de uso. */
-                            creditLimit: {
-                                /** @description String decimal con 2 decimales (`"5000.00"`). */
-                                amount: string;
-                                /** @enum {string} */
-                                currency: "PEN" | "USD";
-                            };
-                            /** @description Día de corte; si el mes no lo tiene, el último día del mes. */
-                            statementDay: number;
-                            paymentDueRule: {
-                                /** @enum {string} */
-                                kind: "DAYS_AFTER_STATEMENT";
-                                days: number;
-                            } | {
-                                /** @enum {string} */
-                                kind: "DAY_OF_MONTH";
-                                day: number;
-                            };
-                            /** @description Lo que ya se debía antes de registrar en la app. Nulo: la deuda arranca en cero. */
-                            openingBalance: {
-                                /** Format: date */
-                                date: string;
-                                /** @description Uno por moneda, primero soles. */
-                                amounts: {
-                                    /** @description String decimal con 2 decimales (`"5000.00"`). */
-                                    amount: string;
-                                    /** @enum {string} */
-                                    currency: "PEN" | "USD";
-                                }[];
-                            } | null;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las tarjetas solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El método de pago no existe o es de otra cuenta (`PAYMENT_METHOD_NOT_FOUND`); o el módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El método ya está configurado (`CREDIT_CARD_ALREADY_CONFIGURED`). */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El cuerpo no tiene la forma esperada; el método no es una tarjeta (`PAYMENT_METHOD_NOT_CREDIT_CARD`) o está archivado (`PAYMENT_METHOD_ARCHIVED`); o se rompe una regla. La línea y el saldo inicial en una moneda que la tarjeta acepte, cero o más (`CREDIT_LIMIT_NEGATIVE`, `OPENING_BALANCE_NEGATIVE`, `CREDIT_CARD_CURRENCY_NOT_ACCEPTED`); corte de 1 a 31 (`STATEMENT_DAY_INVALID`); regla de pago de 1 a 60 días o un día de 1 a 31 (`PAYMENT_DUE_RULE_INVALID`); saldo inicial con al menos un monto, sin repetir moneda y con fecha de hoy o antes (`OPENING_BALANCE_EMPTY`, `OPENING_BALANCE_CURRENCY_REPEATED`, `OPENING_BALANCE_DATE_IN_FUTURE`). */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/credit-cards/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Dónde está cada tarjeta hoy.
-         * @description Las tarjetas configuradas, archivadas incluidas, cada una con su estado: ciclo, deuda, utilización, último estado cerrado y alertas.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Las tarjetas de la cuenta con su estado. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": ({
-                            /** Format: uuid */
-                            id: string;
-                            /** @description Lo que identifica la tarjeta, leído del método de pago: nunca más que esto. */
-                            paymentMethod: {
-                                /** Format: uuid */
-                                id: string;
-                                alias: string;
-                                institution: string | null;
-                                last4: string | null;
-                                /**
-                                 * @description Nula = bimoneda.
-                                 * @enum {string|null}
-                                 */
-                                currency: "PEN" | "USD" | null;
-                                /** @description Archivada, la tarjeta se sigue viendo y corrigiendo, pero no avisa. */
-                                archived: boolean;
-                            };
-                            /** @description Una sola línea, en una moneda. Cero se permite (una adicional): sin porcentaje de uso. */
-                            creditLimit: {
-                                /** @description String decimal con 2 decimales (`"5000.00"`). */
-                                amount: string;
-                                /** @enum {string} */
-                                currency: "PEN" | "USD";
-                            };
-                            /** @description Día de corte; si el mes no lo tiene, el último día del mes. */
-                            statementDay: number;
-                            paymentDueRule: {
-                                /** @enum {string} */
-                                kind: "DAYS_AFTER_STATEMENT";
-                                days: number;
-                            } | {
-                                /** @enum {string} */
-                                kind: "DAY_OF_MONTH";
-                                day: number;
-                            };
-                            /** @description Lo que ya se debía antes de registrar en la app. Nulo: la deuda arranca en cero. */
-                            openingBalance: {
-                                /** Format: date */
-                                date: string;
-                                /** @description Uno por moneda, primero soles. */
-                                amounts: {
-                                    /** @description String decimal con 2 decimales (`"5000.00"`). */
-                                    amount: string;
-                                    /** @enum {string} */
-                                    currency: "PEN" | "USD";
-                                }[];
-                            } | null;
-                        } & {
-                            /** @description Calculado al consultar. Una compra, deuda, ahorro, inversión o una transferencia que sale de la tarjeta suben la deuda; un ingreso (devolución) o una transferencia que llega (pago, con lo que llegó) la bajan. */
-                            status: {
-                                /** @description El ciclo en curso (Lima); `end` es el próximo corte. */
-                                cycle: {
-                                    /** Format: date */
-                                    start: string;
-                                    /** Format: date */
-                                    end: string;
-                                };
-                                /** @description Primero soles. Siempre la moneda de la línea; la otra si tiene movimientos o saldo inicial. Nunca se convierte. */
-                                currencies: {
-                                    /** @enum {string} */
-                                    currency: "PEN" | "USD";
-                                    /** @description Lo que se debe hoy, de cualquier ciclo. Negativo: saldo a favor. */
-                                    debt: string;
-                                    /** @description Lo cargado en el ciclo en curso. De una compra en cuotas, solo la cuota que se factura en este ciclo. */
-                                    cycleCharges: string;
-                                    /** @description Cuotas que todavía no se facturan; ya son parte de `debt`. */
-                                    pendingInstallments: string;
-                                }[];
-                                /** @description El último estado cerrado. Nulo si el saldo inicial es posterior a su corte. */
-                                statement: {
-                                    /** Format: date */
-                                    start: string;
-                                    /**
-                                     * Format: date
-                                     * @description El día de corte.
-                                     */
-                                    end: string;
-                                    /** Format: date */
-                                    dueDate: string;
-                                    /** @description 0 el mismo día; negativo si ya venció. */
-                                    daysLeft: number;
-                                    /** @description Nada por pagar en ninguna moneda. */
-                                    paid: boolean;
-                                    balances: {
-                                        /** @enum {string} */
-                                        currency: "PEN" | "USD";
-                                        /** @description La deuda total el día del corte. */
-                                        balance: string;
-                                        /** @description Pagos y devoluciones después del corte. */
-                                        credited: string;
-                                        /** @description Lo que falta pagar; nunca negativo. */
-                                        remaining: string;
-                                    }[];
-                                } | null;
-                                utilization: {
-                                    /** @description Deuda en la moneda de la línea sobre la línea, en %, sin redondear. */
-                                    percentage: string | null;
-                                    /**
-                                     * @description HIGH > 30 %, CRITICAL ≥ 70 %. Nulo con línea cero.
-                                     * @enum {string|null}
-                                     */
-                                    level: "OK" | "HIGH" | "CRITICAL" | null;
-                                };
-                                /** @description Vence en 3 días o menos, o venció, y todavía se debe algo de ese estado. */
-                                paymentAlert: {
-                                    /** @enum {string} */
-                                    status: "DUE_SOON" | "OVERDUE";
-                                    daysLeft: number;
-                                } | null;
-                            };
-                        })[];
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las tarjetas solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/credit-cards/{id}/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Dónde está una tarjeta hoy. */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description La tarjeta con su estado. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /** @description Lo que identifica la tarjeta, leído del método de pago: nunca más que esto. */
-                            paymentMethod: {
-                                /** Format: uuid */
-                                id: string;
-                                alias: string;
-                                institution: string | null;
-                                last4: string | null;
-                                /**
-                                 * @description Nula = bimoneda.
-                                 * @enum {string|null}
-                                 */
-                                currency: "PEN" | "USD" | null;
-                                /** @description Archivada, la tarjeta se sigue viendo y corrigiendo, pero no avisa. */
-                                archived: boolean;
-                            };
-                            /** @description Una sola línea, en una moneda. Cero se permite (una adicional): sin porcentaje de uso. */
-                            creditLimit: {
-                                /** @description String decimal con 2 decimales (`"5000.00"`). */
-                                amount: string;
-                                /** @enum {string} */
-                                currency: "PEN" | "USD";
-                            };
-                            /** @description Día de corte; si el mes no lo tiene, el último día del mes. */
-                            statementDay: number;
-                            paymentDueRule: {
-                                /** @enum {string} */
-                                kind: "DAYS_AFTER_STATEMENT";
-                                days: number;
-                            } | {
-                                /** @enum {string} */
-                                kind: "DAY_OF_MONTH";
-                                day: number;
-                            };
-                            /** @description Lo que ya se debía antes de registrar en la app. Nulo: la deuda arranca en cero. */
-                            openingBalance: {
-                                /** Format: date */
-                                date: string;
-                                /** @description Uno por moneda, primero soles. */
-                                amounts: {
-                                    /** @description String decimal con 2 decimales (`"5000.00"`). */
-                                    amount: string;
-                                    /** @enum {string} */
-                                    currency: "PEN" | "USD";
-                                }[];
-                            } | null;
-                        } & {
-                            /** @description Calculado al consultar. Una compra, deuda, ahorro, inversión o una transferencia que sale de la tarjeta suben la deuda; un ingreso (devolución) o una transferencia que llega (pago, con lo que llegó) la bajan. */
-                            status: {
-                                /** @description El ciclo en curso (Lima); `end` es el próximo corte. */
-                                cycle: {
-                                    /** Format: date */
-                                    start: string;
-                                    /** Format: date */
-                                    end: string;
-                                };
-                                /** @description Primero soles. Siempre la moneda de la línea; la otra si tiene movimientos o saldo inicial. Nunca se convierte. */
-                                currencies: {
-                                    /** @enum {string} */
-                                    currency: "PEN" | "USD";
-                                    /** @description Lo que se debe hoy, de cualquier ciclo. Negativo: saldo a favor. */
-                                    debt: string;
-                                    /** @description Lo cargado en el ciclo en curso. De una compra en cuotas, solo la cuota que se factura en este ciclo. */
-                                    cycleCharges: string;
-                                    /** @description Cuotas que todavía no se facturan; ya son parte de `debt`. */
-                                    pendingInstallments: string;
-                                }[];
-                                /** @description El último estado cerrado. Nulo si el saldo inicial es posterior a su corte. */
-                                statement: {
-                                    /** Format: date */
-                                    start: string;
-                                    /**
-                                     * Format: date
-                                     * @description El día de corte.
-                                     */
-                                    end: string;
-                                    /** Format: date */
-                                    dueDate: string;
-                                    /** @description 0 el mismo día; negativo si ya venció. */
-                                    daysLeft: number;
-                                    /** @description Nada por pagar en ninguna moneda. */
-                                    paid: boolean;
-                                    balances: {
-                                        /** @enum {string} */
-                                        currency: "PEN" | "USD";
-                                        /** @description La deuda total el día del corte. */
-                                        balance: string;
-                                        /** @description Pagos y devoluciones después del corte. */
-                                        credited: string;
-                                        /** @description Lo que falta pagar; nunca negativo. */
-                                        remaining: string;
-                                    }[];
-                                } | null;
-                                utilization: {
-                                    /** @description Deuda en la moneda de la línea sobre la línea, en %, sin redondear. */
-                                    percentage: string | null;
-                                    /**
-                                     * @description HIGH > 30 %, CRITICAL ≥ 70 %. Nulo con línea cero.
-                                     * @enum {string|null}
-                                     */
-                                    level: "OK" | "HIGH" | "CRITICAL" | null;
-                                };
-                                /** @description Vence en 3 días o menos, o venció, y todavía se debe algo de ese estado. */
-                                paymentAlert: {
-                                    /** @enum {string} */
-                                    status: "DUE_SOON" | "OVERDUE";
-                                    daysLeft: number;
-                                } | null;
-                            };
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las tarjetas solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La tarjeta no existe o es de otra cuenta (`CREDIT_CARD_NOT_FOUND`); o el módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El id no es un UUID. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/credit-cards/{id}/installments": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Las compras en cuotas de una tarjeta, con lo que falta. */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Los planes, en el orden en que se registraron. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /** Format: uuid */
-                            transactionId: string;
-                            count: number;
-                            /**
-                             * @description El plan sigue a la compra: solo `ACTIVE` cuenta. Borrada, se ignora hasta que se restaure; si cambió de tarjeta, pasó a ingreso o supera el total del banco, queda inválido hasta corregirla.
-                             * @enum {string}
-                             */
-                            state: "ACTIVE" | "PURCHASE_DELETED" | "PURCHASE_NOT_ON_CARD" | "PURCHASE_NOT_A_CHARGE" | "TOTAL_BELOW_PRICE";
-                            /** @description La compra como está hoy; nula si se borró. */
-                            purchase: {
-                                /** Format: date */
-                                date: string;
-                                description: string;
-                                amount: {
-                                    /** @description String decimal con 2 decimales (`"5000.00"`). */
-                                    amount: string;
-                                    /** @enum {string} */
-                                    currency: "PEN" | "USD";
-                                };
-                            } | null;
-                            /** @description Lo que se paga en cuotas: el total del banco, o sin intereses el monto de la compra. */
-                            total: {
-                                /** @description String decimal con 2 decimales (`"5000.00"`). */
-                                amount: string;
-                                /** @enum {string} */
-                                currency: "PEN" | "USD";
-                            } | null;
-                            /** @description Total − precio. Solo cuenta en la deuda de la tarjeta: no es una transacción. */
-                            interest: {
-                                /** @description String decimal con 2 decimales (`"5000.00"`). */
-                                amount: string;
-                                /** @enum {string} */
-                                currency: "PEN" | "USD";
-                            } | null;
-                            /** @description Suman exactamente el total; los céntimos sobrantes van a las primeras. */
-                            installments: {
-                                number: number;
-                                amount: {
-                                    /** @description String decimal con 2 decimales (`"5000.00"`). */
-                                    amount: string;
-                                    /** @enum {string} */
-                                    currency: "PEN" | "USD";
-                                };
-                                /**
-                                 * Format: date
-                                 * @description El estado de cuenta en que se factura.
-                                 */
-                                statementDate: string;
-                                /** @description Ya se facturó (el estado que cierra hoy incluido). */
-                                billed: boolean;
-                            }[];
-                            /** @description Las cuotas que faltan facturar; nulo si no queda ninguna. */
-                            pending: {
-                                count: number;
-                                amount: {
-                                    /** @description String decimal con 2 decimales (`"5000.00"`). */
-                                    amount: string;
-                                    /** @enum {string} */
-                                    currency: "PEN" | "USD";
-                                };
-                            } | null;
-                        }[];
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las tarjetas solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La tarjeta no existe o es de otra cuenta (`CREDIT_CARD_NOT_FOUND`); o el módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El id no es un UUID. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        /**
-         * Marca una compra hecha con la tarjeta como pagada en cuotas.
-         * @description De 2 a 36 cuotas. Sin intereses no se manda `totalAmount`: el total sigue siendo el monto de la compra aunque se corrija. Con intereses, el total del banco (en la moneda de la compra); la diferencia es deuda de la tarjeta. La compra entera sigue siendo gasto el día que se hizo: presupuesto y dashboard no cambian.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        /** Format: uuid */
-                        transactionId: string;
-                        count: number;
-                        totalAmount?: string | null;
-                    };
-                };
-            };
-            responses: {
-                /** @description El plan con sus cuotas. */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /** Format: uuid */
-                            transactionId: string;
-                            count: number;
-                            /**
-                             * @description El plan sigue a la compra: solo `ACTIVE` cuenta. Borrada, se ignora hasta que se restaure; si cambió de tarjeta, pasó a ingreso o supera el total del banco, queda inválido hasta corregirla.
-                             * @enum {string}
-                             */
-                            state: "ACTIVE" | "PURCHASE_DELETED" | "PURCHASE_NOT_ON_CARD" | "PURCHASE_NOT_A_CHARGE" | "TOTAL_BELOW_PRICE";
-                            /** @description La compra como está hoy; nula si se borró. */
-                            purchase: {
-                                /** Format: date */
-                                date: string;
-                                description: string;
-                                amount: {
-                                    /** @description String decimal con 2 decimales (`"5000.00"`). */
-                                    amount: string;
-                                    /** @enum {string} */
-                                    currency: "PEN" | "USD";
-                                };
-                            } | null;
-                            /** @description Lo que se paga en cuotas: el total del banco, o sin intereses el monto de la compra. */
-                            total: {
-                                /** @description String decimal con 2 decimales (`"5000.00"`). */
-                                amount: string;
-                                /** @enum {string} */
-                                currency: "PEN" | "USD";
-                            } | null;
-                            /** @description Total − precio. Solo cuenta en la deuda de la tarjeta: no es una transacción. */
-                            interest: {
-                                /** @description String decimal con 2 decimales (`"5000.00"`). */
-                                amount: string;
-                                /** @enum {string} */
-                                currency: "PEN" | "USD";
-                            } | null;
-                            /** @description Suman exactamente el total; los céntimos sobrantes van a las primeras. */
-                            installments: {
-                                number: number;
-                                amount: {
-                                    /** @description String decimal con 2 decimales (`"5000.00"`). */
-                                    amount: string;
-                                    /** @enum {string} */
-                                    currency: "PEN" | "USD";
-                                };
-                                /**
-                                 * Format: date
-                                 * @description El estado de cuenta en que se factura.
-                                 */
-                                statementDate: string;
-                                /** @description Ya se facturó (el estado que cierra hoy incluido). */
-                                billed: boolean;
-                            }[];
-                            /** @description Las cuotas que faltan facturar; nulo si no queda ninguna. */
-                            pending: {
-                                count: number;
-                                amount: {
-                                    /** @description String decimal con 2 decimales (`"5000.00"`). */
-                                    amount: string;
-                                    /** @enum {string} */
-                                    currency: "PEN" | "USD";
-                                };
-                            } | null;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las tarjetas solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La tarjeta (`CREDIT_CARD_NOT_FOUND`) o la compra (`TRANSACTION_NOT_FOUND`) no existe, está borrada o es de otra cuenta; o el módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La compra ya se paga en cuotas (`INSTALLMENT_PLAN_ALREADY_EXISTS`). */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El cuerpo no tiene la forma esperada, o la compra no es de esta tarjeta (`INSTALLMENT_PURCHASE_NOT_ON_CARD`), es un ingreso (`INSTALLMENT_PURCHASE_NOT_A_CHARGE`), el total baja del precio (`INSTALLMENT_TOTAL_BELOW_PRICE`), las cuotas no van de 2 a 36 (`INSTALLMENT_COUNT_INVALID`) o alguna quedaría en cero (`INSTALLMENT_TOO_SMALL`). */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/credit-cards/{id}/installments/{planId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Deshace un plan de cuotas.
-         * @description La compra vuelve a pagarse entera en su estado de cuenta.
-         */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                    planId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Deshecho. */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las tarjetas solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El plan no existe, es de otra tarjeta o de otra cuenta (`INSTALLMENT_PLAN_NOT_FOUND`); o el módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Algún id no es un UUID. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/credit-cards/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Corrige la configuración de una tarjeta.
-         * @description Solo cambia lo que llega; `openingBalance: null` quita el saldo inicial. Se revisa la tarjeta **como quedaría**, también si su método está archivado. Cambiar el día de corte recalcula todos los ciclos, los pasados incluidos: solo se guarda el día actual.
-         */
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        creditLimit?: {
-                            amount: string;
-                            /** @enum {string} */
-                            currency: "PEN" | "USD";
-                        };
-                        statementDay?: number;
-                        paymentDueRule?: {
-                            /** @enum {string} */
-                            kind: "DAYS_AFTER_STATEMENT";
-                            days: number;
-                        } | {
-                            /** @enum {string} */
-                            kind: "DAY_OF_MONTH";
-                            day: number;
-                        };
-                        openingBalance?: {
-                            /** Format: date */
-                            date: string;
-                            amounts: {
-                                amount: string;
-                                /** @enum {string} */
-                                currency: "PEN" | "USD";
-                            }[];
-                        } | null;
-                    };
-                };
-            };
-            responses: {
-                /** @description La tarjeta como quedó. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /** @description Lo que identifica la tarjeta, leído del método de pago: nunca más que esto. */
-                            paymentMethod: {
-                                /** Format: uuid */
-                                id: string;
-                                alias: string;
-                                institution: string | null;
-                                last4: string | null;
-                                /**
-                                 * @description Nula = bimoneda.
-                                 * @enum {string|null}
-                                 */
-                                currency: "PEN" | "USD" | null;
-                                /** @description Archivada, la tarjeta se sigue viendo y corrigiendo, pero no avisa. */
-                                archived: boolean;
-                            };
-                            /** @description Una sola línea, en una moneda. Cero se permite (una adicional): sin porcentaje de uso. */
-                            creditLimit: {
-                                /** @description String decimal con 2 decimales (`"5000.00"`). */
-                                amount: string;
-                                /** @enum {string} */
-                                currency: "PEN" | "USD";
-                            };
-                            /** @description Día de corte; si el mes no lo tiene, el último día del mes. */
-                            statementDay: number;
-                            paymentDueRule: {
-                                /** @enum {string} */
-                                kind: "DAYS_AFTER_STATEMENT";
-                                days: number;
-                            } | {
-                                /** @enum {string} */
-                                kind: "DAY_OF_MONTH";
-                                day: number;
-                            };
-                            /** @description Lo que ya se debía antes de registrar en la app. Nulo: la deuda arranca en cero. */
-                            openingBalance: {
-                                /** Format: date */
-                                date: string;
-                                /** @description Uno por moneda, primero soles. */
-                                amounts: {
-                                    /** @description String decimal con 2 decimales (`"5000.00"`). */
-                                    amount: string;
-                                    /** @enum {string} */
-                                    currency: "PEN" | "USD";
-                                }[];
-                            } | null;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las tarjetas solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La tarjeta no existe o es de otra cuenta (`CREDIT_CARD_NOT_FOUND`); o el módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El id no es un UUID, el cuerpo no tiene la forma esperada, o se rompe una regla. La línea y el saldo inicial en una moneda que la tarjeta acepte, cero o más (`CREDIT_LIMIT_NEGATIVE`, `OPENING_BALANCE_NEGATIVE`, `CREDIT_CARD_CURRENCY_NOT_ACCEPTED`); corte de 1 a 31 (`STATEMENT_DAY_INVALID`); regla de pago de 1 a 60 días o un día de 1 a 31 (`PAYMENT_DUE_RULE_INVALID`); saldo inicial con al menos un monto, sin repetir moneda y con fecha de hoy o antes (`OPENING_BALANCE_EMPTY`, `OPENING_BALANCE_CURRENCY_REPEATED`, `OPENING_BALANCE_DATE_IN_FUTURE`). */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        trace?: never;
-    };
-    "/api/v1/goals": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Lista las metas de ahorro con su progreso.
-         * @description En el orden en que se crearon. Las archivadas, solo con `?includeArchived=true`.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    includeArchived?: "true" | "false";
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Las metas de la cuenta. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            name: string;
-                            /**
-                             * @description Fija desde que se crea: sus aportes van en ella.
-                             * @enum {string}
-                             */
-                            currency: "PEN" | "USD";
-                            /** @description String decimal con 2 decimales (`"3000.00"`). */
-                            targetAmount: string;
-                            /** Format: date */
-                            startDate: string;
-                            /** Format: date */
-                            endDate: string;
-                            /** @description Archivada no recibe aportes; se sigue corrigiendo. */
-                            archived: boolean;
-                            /** @description Calculado al consultar, con los aportes de hoy. */
-                            progress: {
-                                /** @description Aportes − retiros hasta hoy. Negativo solo si se borró una transacción enlazada. */
-                                saved: string;
-                                /** @description Lo que falta; cero si ya se llegó. */
-                                remaining: string;
-                                /** @description Lo que pasa del objetivo; cero si no se llegó. */
-                                excess: string;
-                                /** @description Ahorrado / objetivo en %, sin redondear (2 decimales al mostrar). */
-                                percentage: string;
-                                /** @description Lo esperado aportando parejo, al cierre del mes anterior, en %, sin redondear. 100 con la fecha fin pasada. */
-                                expectedPercentage: string;
-                                /** @description Lo que falta para ir al día: lo esperado menos lo ahorrado. Cero si se va al día o adelantado. */
-                                behind: string;
-                                /** @description Lo que falta entre los meses que quedan (el actual incluido), redondeado hacia arriba al céntimo. Cero si ya se llegó; nulo con la fecha fin pasada. */
-                                suggestedMonthly: string | null;
-                                /**
-                                 * @description AT_RISK: más de 10 puntos por debajo de lo esperado. OVERDUE: la fecha fin pasó sin llegar. ACHIEVED gana a las demás.
-                                 * @enum {string}
-                                 */
-                                status: "ON_TRACK" | "AT_RISK" | "ACHIEVED" | "OVERDUE";
-                            };
-                        }[];
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las metas solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description `includeArchived` no es `true` ni `false`. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        /**
-         * Crea una meta de ahorro.
-         * @description Fechas libres (una meta a varios años vale) y el inicio puede ser pasado. La moneda queda fija.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        name: string;
-                        /** @enum {string} */
-                        currency: "PEN" | "USD";
-                        targetAmount: string;
-                        /** Format: date */
-                        startDate: string;
-                        /** Format: date */
-                        endDate: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description La meta con su progreso. */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            name: string;
-                            /**
-                             * @description Fija desde que se crea: sus aportes van en ella.
-                             * @enum {string}
-                             */
-                            currency: "PEN" | "USD";
-                            /** @description String decimal con 2 decimales (`"3000.00"`). */
-                            targetAmount: string;
-                            /** Format: date */
-                            startDate: string;
-                            /** Format: date */
-                            endDate: string;
-                            /** @description Archivada no recibe aportes; se sigue corrigiendo. */
-                            archived: boolean;
-                            /** @description Calculado al consultar, con los aportes de hoy. */
-                            progress: {
-                                /** @description Aportes − retiros hasta hoy. Negativo solo si se borró una transacción enlazada. */
-                                saved: string;
-                                /** @description Lo que falta; cero si ya se llegó. */
-                                remaining: string;
-                                /** @description Lo que pasa del objetivo; cero si no se llegó. */
-                                excess: string;
-                                /** @description Ahorrado / objetivo en %, sin redondear (2 decimales al mostrar). */
-                                percentage: string;
-                                /** @description Lo esperado aportando parejo, al cierre del mes anterior, en %, sin redondear. 100 con la fecha fin pasada. */
-                                expectedPercentage: string;
-                                /** @description Lo que falta para ir al día: lo esperado menos lo ahorrado. Cero si se va al día o adelantado. */
-                                behind: string;
-                                /** @description Lo que falta entre los meses que quedan (el actual incluido), redondeado hacia arriba al céntimo. Cero si ya se llegó; nulo con la fecha fin pasada. */
-                                suggestedMonthly: string | null;
-                                /**
-                                 * @description AT_RISK: más de 10 puntos por debajo de lo esperado. OVERDUE: la fecha fin pasó sin llegar. ACHIEVED gana a las demás.
-                                 * @enum {string}
-                                 */
-                                status: "ON_TRACK" | "AT_RISK" | "ACHIEVED" | "OVERDUE";
-                            };
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las metas solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Otra meta de la cuenta, quizá archivada, ya tiene ese nombre sin distinguir mayúsculas (`GOAL_NAME_TAKEN`). */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El cuerpo no tiene la forma esperada, o se rompe una regla. Objetivo mayor que cero (`GOAL_TARGET_NOT_POSITIVE`), con 2 decimales a lo más (`INVALID_AMOUNT`); el fin después del inicio (`GOAL_END_NOT_AFTER_START`). */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/goals/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Corrige, archiva o desarchiva una meta.
-         * @description Solo cambia lo que llega; la moneda no se cambia. Se revisa la meta **como quedaría**, también archivada. Cambiar el objetivo o las fechas con aportes recalcula el progreso.
-         */
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        name?: string;
-                        targetAmount?: string;
-                        /** Format: date */
-                        startDate?: string;
-                        /** Format: date */
-                        endDate?: string;
-                        archived?: boolean;
-                    };
-                };
-            };
-            responses: {
-                /** @description La meta como quedó. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            name: string;
-                            /**
-                             * @description Fija desde que se crea: sus aportes van en ella.
-                             * @enum {string}
-                             */
-                            currency: "PEN" | "USD";
-                            /** @description String decimal con 2 decimales (`"3000.00"`). */
-                            targetAmount: string;
-                            /** Format: date */
-                            startDate: string;
-                            /** Format: date */
-                            endDate: string;
-                            /** @description Archivada no recibe aportes; se sigue corrigiendo. */
-                            archived: boolean;
-                            /** @description Calculado al consultar, con los aportes de hoy. */
-                            progress: {
-                                /** @description Aportes − retiros hasta hoy. Negativo solo si se borró una transacción enlazada. */
-                                saved: string;
-                                /** @description Lo que falta; cero si ya se llegó. */
-                                remaining: string;
-                                /** @description Lo que pasa del objetivo; cero si no se llegó. */
-                                excess: string;
-                                /** @description Ahorrado / objetivo en %, sin redondear (2 decimales al mostrar). */
-                                percentage: string;
-                                /** @description Lo esperado aportando parejo, al cierre del mes anterior, en %, sin redondear. 100 con la fecha fin pasada. */
-                                expectedPercentage: string;
-                                /** @description Lo que falta para ir al día: lo esperado menos lo ahorrado. Cero si se va al día o adelantado. */
-                                behind: string;
-                                /** @description Lo que falta entre los meses que quedan (el actual incluido), redondeado hacia arriba al céntimo. Cero si ya se llegó; nulo con la fecha fin pasada. */
-                                suggestedMonthly: string | null;
-                                /**
-                                 * @description AT_RISK: más de 10 puntos por debajo de lo esperado. OVERDUE: la fecha fin pasó sin llegar. ACHIEVED gana a las demás.
-                                 * @enum {string}
-                                 */
-                                status: "ON_TRACK" | "AT_RISK" | "ACHIEVED" | "OVERDUE";
-                            };
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las metas solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La meta no existe o es de otra cuenta (`GOAL_NOT_FOUND`); o el módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Otra meta de la cuenta ya tiene ese nombre (`GOAL_NAME_TAKEN`). */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El id no es un UUID, el cuerpo no tiene la forma esperada, o se rompe una regla. Objetivo mayor que cero (`GOAL_TARGET_NOT_POSITIVE`), con 2 decimales a lo más (`INVALID_AMOUNT`); el fin después del inicio (`GOAL_END_NOT_AFTER_START`). */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        trace?: never;
-    };
-    "/api/v1/goals/{id}/contributions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Los aportes y retiros de una meta, como están hoy.
-         * @description Primero los más recientes; los enlazados a una transacción borrada, al final.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Los aportes de la meta. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /**
-                             * @description Manual, o enlazado a una transacción entera que sigue.
-                             * @enum {string}
-                             */
-                            source: "MANUAL" | "TRANSACTION";
-                            /**
-                             * @description Un retiro resta; es siempre manual.
-                             * @enum {string}
-                             */
-                            kind: "CONTRIBUTION" | "WITHDRAWAL";
-                            /**
-                             * @description Solo `ACTIVE` cuenta. Uno enlazado deja de contar si su transacción se borra, deja de ser ahorro o inversión o cambia de moneda, y vuelve si se corrige o se restaura.
-                             * @enum {string}
-                             */
-                            state: "ACTIVE" | "TRANSACTION_DELETED" | "TRANSACTION_NOT_A_SAVING" | "CURRENCY_MISMATCH";
-                            /** @description En la moneda de la meta. Nulo si la transacción enlazada se borró. */
-                            amount: string | null;
-                            /**
-                             * Format: date
-                             * @description Nula si la transacción enlazada se borró.
-                             */
-                            date: string | null;
-                            /** @description La transacción que sigue, si es enlazado y sigue vigente. */
-                            transaction: {
-                                /** Format: uuid */
-                                id: string;
-                                description: string;
-                            } | null;
-                        }[];
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las metas solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La meta no existe o es de otra cuenta (`GOAL_NOT_FOUND`); o el módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El id no es un UUID. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        /**
-         * Registra un aporte o un retiro.
-         * @description Manual (`source: MANUAL`): aporte o retiro con monto positivo en la moneda de la meta y fecha de hoy o antes; puede ser anterior al inicio. Enlazado (`source: TRANSACTION`): toma entera una transacción de ahorro o inversión y la sigue si se corrige o se borra.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        /** @enum {string} */
-                        source: "MANUAL";
-                        /** @enum {string} */
-                        kind: "CONTRIBUTION" | "WITHDRAWAL";
-                        amount: string;
-                        /** Format: date */
-                        date: string;
-                    } | {
-                        /** @enum {string} */
-                        source: "TRANSACTION";
-                        /** Format: uuid */
-                        transactionId: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description El aporte registrado. */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /**
-                             * @description Manual, o enlazado a una transacción entera que sigue.
-                             * @enum {string}
-                             */
-                            source: "MANUAL" | "TRANSACTION";
-                            /**
-                             * @description Un retiro resta; es siempre manual.
-                             * @enum {string}
-                             */
-                            kind: "CONTRIBUTION" | "WITHDRAWAL";
-                            /**
-                             * @description Solo `ACTIVE` cuenta. Uno enlazado deja de contar si su transacción se borra, deja de ser ahorro o inversión o cambia de moneda, y vuelve si se corrige o se restaura.
-                             * @enum {string}
-                             */
-                            state: "ACTIVE" | "TRANSACTION_DELETED" | "TRANSACTION_NOT_A_SAVING" | "CURRENCY_MISMATCH";
-                            /** @description En la moneda de la meta. Nulo si la transacción enlazada se borró. */
-                            amount: string | null;
-                            /**
-                             * Format: date
-                             * @description Nula si la transacción enlazada se borró.
-                             */
-                            date: string | null;
-                            /** @description La transacción que sigue, si es enlazado y sigue vigente. */
-                            transaction: {
-                                /** Format: uuid */
-                                id: string;
-                                description: string;
-                            } | null;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las metas solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La meta (`GOAL_NOT_FOUND`) o la transacción (`TRANSACTION_NOT_FOUND`) no existe, está borrada o es de otra cuenta; o el módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La transacción ya aporta a una meta (`GOAL_TRANSACTION_ALREADY_LINKED`). */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El cuerpo no tiene la forma esperada; la meta está archivada (`GOAL_ARCHIVED`); el monto no es positivo (`GOAL_CONTRIBUTION_AMOUNT_NOT_POSITIVE`) o tiene más de 2 decimales (`INVALID_AMOUNT`); la fecha es futura (`GOAL_CONTRIBUTION_DATE_IN_FUTURE`); el retiro saca más de lo ahorrado (`GOAL_WITHDRAWAL_EXCEEDS_SAVED`); o la transacción no es de ahorro o inversión (`GOAL_TRANSACTION_NOT_A_SAVING`) o está en otra moneda (`GOAL_CURRENCY_MISMATCH`). */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/goals/{id}/contributions/{contributionId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Deshace un aporte o un retiro.
-         * @description También en una meta archivada.
-         */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                    contributionId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Deshecho. */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las metas solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La meta no existe o es de otra cuenta (`GOAL_NOT_FOUND`); el aporte no existe o es de otra meta (`GOAL_CONTRIBUTION_NOT_FOUND`); o el módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Algún id no es un UUID, o quitar el aporte dejaría la meta en negativo por los retiros ya hechos (`GOAL_WITHDRAWAL_EXCEEDS_SAVED`). */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/captures": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * La bandeja: las capturas por revisar, o las descartadas.
-         * @description `status=inbox` (por defecto): por revisar, con las duplicadas marcadas. `status=discarded`: las descartadas, que se borran del todo a los 90 días. Las confirmadas no se listan: ya son transacciones. Primero la más reciente; paginación por cursor.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    status?: "inbox" | "discarded";
-                    /** @description El `nextCursor` de la página anterior, tal cual. */
-                    cursor?: string;
-                    /** @description Por defecto 50; más de 100 se recorta. */
-                    limit?: number;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Una página de la bandeja. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            items: {
-                                /** Format: uuid */
-                                id: string;
-                                /** @enum {string} */
-                                source: "IOS_SHORTCUT" | "ANDROID_AUTOMATION";
-                                /**
-                                 * @description Por revisar, duplicada (se puede confirmar igual), descartada, o confirmada (solo en la respuesta de confirmar).
-                                 * @enum {string}
-                                 */
-                                status: "PENDING" | "DUPLICATE" | "DISCARDED" | "CONFIRMED";
-                                /** @description Si tiene monto. */
-                                parsed: boolean;
-                                /** @enum {string} */
-                                type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                                /** @description String decimal, mayor que cero. */
-                                amount: string | null;
-                                /**
-                                 * @description Nula: se elige antes de confirmar.
-                                 * @enum {string|null}
-                                 */
-                                currency: "PEN" | "USD" | null;
-                                merchant: string | null;
-                                cardLast4: string | null;
-                                /** Format: date */
-                                date: string;
-                                /** Format: date-time */
-                                occurredAt: string;
-                                /** Format: uuid */
-                                categoryId: string | null;
-                                /** Format: uuid */
-                                paymentMethodId: string | null;
-                                description: string | null;
-                                /** @description Los avisos con que llegó. */
-                                warnings: string[];
-                                /** @description El pedido como llegó del teléfono, con las tarjetas tapadas: completo mientras no se confirme. */
-                                raw: {
-                                    [key: string]: string;
-                                } | null;
-                                /**
-                                 * Format: date-time
-                                 * @description Se borra del todo 90 días después.
-                                 */
-                                discardedAt: string | null;
-                                /**
-                                 * Format: uuid
-                                 * @description La transacción que salió al confirmarla.
-                                 */
-                                transactionId: string | null;
-                            }[];
-                            nextCursor: string | null;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: la bandeja solo se revisa desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El filtro, el límite o el cursor (`INVALID_CURSOR`) no valen. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        /**
-         * Recibe una captura del teléfono y la deja en la bandeja.
-         * @description Para el atajo de iPhone (monto, comercio y tarjeta) o la automatización de Android (el texto de la notificación). **Siempre guarda** un pedido bien formado, aunque no lo entienda: lo que falte se completa en la bandeja. Los números de tarjeta se tapan antes de guardar. Solo con token personal y el scope `captures:write`; tope de 30 por minuto.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: {
-                    /** @description Opcional. Un reintento con la misma clave devuelve la captura original (200) aunque el cuerpo cambie. Sin ella, la clave sale de todo el pedido. */
-                    "Idempotency-Key"?: string;
-                };
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        /** @enum {string} */
-                        source: "IOS_SHORTCUT" | "ANDROID_AUTOMATION";
-                        /** Format: date-time */
-                        occurredAt: string;
-                        amountText?: string | null;
-                        merchant?: string | null;
-                        card?: string | null;
-                        rawText?: string | null;
-                    };
-                };
-            };
-            responses: {
-                /** @description La clave ya existía: la captura que se guardó antes. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /** @enum {string} */
-                            source: "IOS_SHORTCUT" | "ANDROID_AUTOMATION";
-                            /**
-                             * @description Toda captura nueva entra a la bandeja: `DUPLICATE` si el mismo monto y comercio ya llegaron en ±2 minutos o están registrados ese día. Se puede confirmar igual.
-                             * @enum {string}
-                             */
-                            status: "PENDING" | "DUPLICATE";
-                            /** @description Si se entendió al menos el monto. */
-                            parsed: boolean;
-                            /**
-                             * @description Gasto por defecto; ingreso si lo dice.
-                             * @enum {string}
-                             */
-                            type: "VARIABLE_EXPENSE" | "INCOME";
-                            /** @description String decimal, mayor que cero. Nulo si no se entendió. */
-                            amount: string | null;
-                            /**
-                             * @description Nula si el monto no la dice y el método no tiene una sola: se elige en la bandeja.
-                             * @enum {string|null}
-                             */
-                            currency: "PEN" | "USD" | null;
-                            merchant: string | null;
-                            /** @description Solo los últimos 4: nunca el número completo. */
-                            cardLast4: string | null;
-                            /**
-                             * Format: date
-                             * @description El día en Lima en que pasó; uno futuro queda en hoy.
-                             */
-                            date: string;
-                            /**
-                             * Format: date-time
-                             * @description El instante que mandó el teléfono, en UTC.
-                             */
-                            occurredAt: string;
-                            /**
-                             * Format: uuid
-                             * @description La que sugirió una regla, si alguna aplicó.
-                             */
-                            categoryId: string | null;
-                            /**
-                             * Format: uuid
-                             * @description El método reconocido, si uno solo coincidió.
-                             */
-                            paymentMethodId: string | null;
-                            /** @description Códigos estables de lo que hay que mirar: `UNKNOWN_SOURCE`, `AMOUNT_NOT_FOUND`, `AMBIGUOUS_AMOUNT`, `INVALID_AMOUNT`, `AMOUNT_MISMATCH`, `CARD_NUMBER_MASKED`, `OPERATION_REJECTED`, `FUTURE_DATE`, `OLD_DATE`, `CURRENCY_MISMATCH`, `PARSER_FAILED`, `PROCESSING_FAILED`. */
-                            warnings: string[];
-                        };
-                    };
-                };
-                /** @description La captura guardada, con lo que se entendió. */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /** @enum {string} */
-                            source: "IOS_SHORTCUT" | "ANDROID_AUTOMATION";
-                            /**
-                             * @description Toda captura nueva entra a la bandeja: `DUPLICATE` si el mismo monto y comercio ya llegaron en ±2 minutos o están registrados ese día. Se puede confirmar igual.
-                             * @enum {string}
-                             */
-                            status: "PENDING" | "DUPLICATE";
-                            /** @description Si se entendió al menos el monto. */
-                            parsed: boolean;
-                            /**
-                             * @description Gasto por defecto; ingreso si lo dice.
-                             * @enum {string}
-                             */
-                            type: "VARIABLE_EXPENSE" | "INCOME";
-                            /** @description String decimal, mayor que cero. Nulo si no se entendió. */
-                            amount: string | null;
-                            /**
-                             * @description Nula si el monto no la dice y el método no tiene una sola: se elige en la bandeja.
-                             * @enum {string|null}
-                             */
-                            currency: "PEN" | "USD" | null;
-                            merchant: string | null;
-                            /** @description Solo los últimos 4: nunca el número completo. */
-                            cardLast4: string | null;
-                            /**
-                             * Format: date
-                             * @description El día en Lima en que pasó; uno futuro queda en hoy.
-                             */
-                            date: string;
-                            /**
-                             * Format: date-time
-                             * @description El instante que mandó el teléfono, en UTC.
-                             */
-                            occurredAt: string;
-                            /**
-                             * Format: uuid
-                             * @description La que sugirió una regla, si alguna aplicó.
-                             */
-                            categoryId: string | null;
-                            /**
-                             * Format: uuid
-                             * @description El método reconocido, si uno solo coincidió.
-                             */
-                            paymentMethodId: string | null;
-                            /** @description Códigos estables de lo que hay que mirar: `UNKNOWN_SOURCE`, `AMOUNT_NOT_FOUND`, `AMBIGUOUS_AMOUNT`, `INVALID_AMOUNT`, `AMOUNT_MISMATCH`, `CARD_NUMBER_MASKED`, `OPERATION_REJECTED`, `FUTURE_DATE`, `OLD_DATE`, `CURRENCY_MISMATCH`, `PARSER_FAILED`, `PROCESSING_FAILED`. */
-                            warnings: string[];
-                        };
-                    };
-                };
-                /** @description Falta el token personal, no vale, está revocado o caducó. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El token no tiene el scope `captures:write` (`INSUFFICIENT_TOKEN_SCOPE`), o llegó una sesión: esta ruta es solo del teléfono (`PERSONAL_ACCESS_TOKEN_REQUIRED`). */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Falta `source` u `occurredAt`, el instante no trae zona, sobra un campo o alguno es demasiado largo; o la cabecera `Idempotency-Key` no vale. No se guarda nada. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Más de 30 capturas en un minuto desde la misma IP. */
-                429: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/captures/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Una captura, con el pedido crudo mientras no se confirme. */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description La captura. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /** @enum {string} */
-                            source: "IOS_SHORTCUT" | "ANDROID_AUTOMATION";
-                            /**
-                             * @description Por revisar, duplicada (se puede confirmar igual), descartada, o confirmada (solo en la respuesta de confirmar).
-                             * @enum {string}
-                             */
-                            status: "PENDING" | "DUPLICATE" | "DISCARDED" | "CONFIRMED";
-                            /** @description Si tiene monto. */
-                            parsed: boolean;
-                            /** @enum {string} */
-                            type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                            /** @description String decimal, mayor que cero. */
-                            amount: string | null;
-                            /**
-                             * @description Nula: se elige antes de confirmar.
-                             * @enum {string|null}
-                             */
-                            currency: "PEN" | "USD" | null;
-                            merchant: string | null;
-                            cardLast4: string | null;
-                            /** Format: date */
-                            date: string;
-                            /** Format: date-time */
-                            occurredAt: string;
-                            /** Format: uuid */
-                            categoryId: string | null;
-                            /** Format: uuid */
-                            paymentMethodId: string | null;
-                            description: string | null;
-                            /** @description Los avisos con que llegó. */
-                            warnings: string[];
-                            /** @description El pedido como llegó del teléfono, con las tarjetas tapadas: completo mientras no se confirme. */
-                            raw: {
-                                [key: string]: string;
-                            } | null;
-                            /**
-                             * Format: date-time
-                             * @description Se borra del todo 90 días después.
-                             */
-                            discardedAt: string | null;
-                            /**
-                             * Format: uuid
-                             * @description La transacción que salió al confirmarla.
-                             */
-                            transactionId: string | null;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: la bandeja solo se revisa desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La captura no existe o es de otra cuenta (`CAPTURE_NOT_FOUND`); o el módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El id no es un UUID. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Corrige una captura antes de confirmarla.
-         * @description Solo cambia lo que llega; `null` lo borra. Si cambia el tipo sin categoría, la que había se limpia. Una categoría o un método nuevos tienen que ser de la cuenta y estar activos; si el monto no tiene moneda y el método elegido tiene una sola, la toma. La marca de duplicada se queda.
-         */
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        /** @enum {string} */
-                        type?: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                        /** Format: date */
-                        date?: string;
-                        amount?: string | null;
-                        /** @enum {string|null} */
-                        currency?: "PEN" | "USD" | null;
-                        /** Format: uuid */
-                        categoryId?: string | null;
-                        /** Format: uuid */
-                        paymentMethodId?: string | null;
-                        merchant?: string | null;
-                        description?: string | null;
-                    };
-                };
-            };
-            responses: {
-                /** @description La captura corregida. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /** @enum {string} */
-                            source: "IOS_SHORTCUT" | "ANDROID_AUTOMATION";
-                            /**
-                             * @description Por revisar, duplicada (se puede confirmar igual), descartada, o confirmada (solo en la respuesta de confirmar).
-                             * @enum {string}
-                             */
-                            status: "PENDING" | "DUPLICATE" | "DISCARDED" | "CONFIRMED";
-                            /** @description Si tiene monto. */
-                            parsed: boolean;
-                            /** @enum {string} */
-                            type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                            /** @description String decimal, mayor que cero. */
-                            amount: string | null;
-                            /**
-                             * @description Nula: se elige antes de confirmar.
-                             * @enum {string|null}
-                             */
-                            currency: "PEN" | "USD" | null;
-                            merchant: string | null;
-                            cardLast4: string | null;
-                            /** Format: date */
-                            date: string;
-                            /** Format: date-time */
-                            occurredAt: string;
-                            /** Format: uuid */
-                            categoryId: string | null;
-                            /** Format: uuid */
-                            paymentMethodId: string | null;
-                            description: string | null;
-                            /** @description Los avisos con que llegó. */
-                            warnings: string[];
-                            /** @description El pedido como llegó del teléfono, con las tarjetas tapadas: completo mientras no se confirme. */
-                            raw: {
-                                [key: string]: string;
-                            } | null;
-                            /**
-                             * Format: date-time
-                             * @description Se borra del todo 90 días después.
-                             */
-                            discardedAt: string | null;
-                            /**
-                             * Format: uuid
-                             * @description La transacción que salió al confirmarla.
-                             */
-                            transactionId: string | null;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: la bandeja solo se revisa desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La captura (`CAPTURE_NOT_FOUND`), la categoría (`CATEGORY_NOT_FOUND`) o el método (`PAYMENT_METHOD_NOT_FOUND`) no existen o son de otra cuenta; o el módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Ya se confirmó o se descartó, quizá desde otra pestaña (`CAPTURE_NOT_PENDING`). */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El cuerpo no tiene la forma esperada; el monto no es positivo (`TRANSACTION_AMOUNT_NOT_POSITIVE`) o tiene más de 2 decimales (`INVALID_AMOUNT`); la fecha es futura (`TRANSACTION_DATE_IN_FUTURE`); la categoría es de otro tipo (`CATEGORY_TYPE_MISMATCH`) o está archivada (`CATEGORY_ARCHIVED`); o el método está archivado (`PAYMENT_METHOD_ARCHIVED`). */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        trace?: never;
-    };
-    "/api/v1/captures/{id}/confirm": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Confirma una captura: se crea su transacción.
-         * @description Con monto, moneda, categoría y descripción (sin descripción, el comercio). La transacción sigue las reglas de cualquiera y lleva su captura y su origen. El texto crudo se borra. Una sola transacción por captura, aunque lleguen dos confirmaciones a la vez. Con `rememberCategory`, la regla de su comercio se crea o se actualiza.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        /** @default false */
-                        rememberCategory: boolean;
-                    };
-                };
-            };
-            responses: {
-                /** @description La captura confirmada, con su transacción. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /** @enum {string} */
-                            source: "IOS_SHORTCUT" | "ANDROID_AUTOMATION";
-                            /**
-                             * @description Por revisar, duplicada (se puede confirmar igual), descartada, o confirmada (solo en la respuesta de confirmar).
-                             * @enum {string}
-                             */
-                            status: "PENDING" | "DUPLICATE" | "DISCARDED" | "CONFIRMED";
-                            /** @description Si tiene monto. */
-                            parsed: boolean;
-                            /** @enum {string} */
-                            type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                            /** @description String decimal, mayor que cero. */
-                            amount: string | null;
-                            /**
-                             * @description Nula: se elige antes de confirmar.
-                             * @enum {string|null}
-                             */
-                            currency: "PEN" | "USD" | null;
-                            merchant: string | null;
-                            cardLast4: string | null;
-                            /** Format: date */
-                            date: string;
-                            /** Format: date-time */
-                            occurredAt: string;
-                            /** Format: uuid */
-                            categoryId: string | null;
-                            /** Format: uuid */
-                            paymentMethodId: string | null;
-                            description: string | null;
-                            /** @description Los avisos con que llegó. */
-                            warnings: string[];
-                            /** @description El pedido como llegó del teléfono, con las tarjetas tapadas: completo mientras no se confirme. */
-                            raw: {
-                                [key: string]: string;
-                            } | null;
-                            /**
-                             * Format: date-time
-                             * @description Se borra del todo 90 días después.
-                             */
-                            discardedAt: string | null;
-                            /**
-                             * Format: uuid
-                             * @description La transacción que salió al confirmarla.
-                             */
-                            transactionId: string | null;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: la bandeja solo se revisa desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La captura (`CAPTURE_NOT_FOUND`), su categoría (`CATEGORY_NOT_FOUND`) o su método (`PAYMENT_METHOD_NOT_FOUND`) no existen o son de otra cuenta; o el módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Ya se confirmó o se descartó, quizá desde otra pestaña (`CAPTURE_NOT_PENDING`). */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Falta el monto (`CAPTURE_AMOUNT_MISSING`), la moneda (`CAPTURE_CURRENCY_MISSING`), la categoría (`CAPTURE_CATEGORY_MISSING`) o la descripción (`CAPTURE_DESCRIPTION_MISSING`); se pidió recordar sin comercio (`CAPTURE_MERCHANT_MISSING`); o se rompe una regla de la transacción (fecha futura, categoría de otro tipo o archivada, método archivado). */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/captures/confirm": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Confirma varias capturas, cada una por su lado.
-         * @description Hasta 50. Una que no se puede confirmar no frena a las demás: la respuesta dice cuáles se confirmaron y, de las otras, por qué no.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        captures: {
-                            /** Format: uuid */
-                            id: string;
-                            /** @default false */
-                            rememberCategory: boolean;
-                        }[];
-                    };
-                };
-            };
-            responses: {
-                /** @description Las confirmadas y las que no. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @description Las que se confirmaron, con su transacción. */
-                            confirmed: {
-                                /** Format: uuid */
-                                id: string;
-                                /** Format: uuid */
-                                transactionId: string;
-                            }[];
-                            /** @description Las que no, con el `code` de su error (`CAPTURE_NOT_FOUND`, `CAPTURE_NOT_PENDING`, `CAPTURE_AMOUNT_MISSING`, `CATEGORY_ARCHIVED`…). */
-                            failed: {
-                                /** Format: uuid */
-                                id: string;
-                                code: string;
-                            }[];
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: la bandeja solo se revisa desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El cuerpo no tiene la forma esperada (ninguna, o demasiadas). */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/captures/{id}/discard": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Descarta una captura de la bandeja.
-         * @description Se puede deshacer (`/restore`); se borra del todo 90 días después, con su texto crudo.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description La captura descartada. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /** @enum {string} */
-                            source: "IOS_SHORTCUT" | "ANDROID_AUTOMATION";
-                            /**
-                             * @description Por revisar, duplicada (se puede confirmar igual), descartada, o confirmada (solo en la respuesta de confirmar).
-                             * @enum {string}
-                             */
-                            status: "PENDING" | "DUPLICATE" | "DISCARDED" | "CONFIRMED";
-                            /** @description Si tiene monto. */
-                            parsed: boolean;
-                            /** @enum {string} */
-                            type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                            /** @description String decimal, mayor que cero. */
-                            amount: string | null;
-                            /**
-                             * @description Nula: se elige antes de confirmar.
-                             * @enum {string|null}
-                             */
-                            currency: "PEN" | "USD" | null;
-                            merchant: string | null;
-                            cardLast4: string | null;
-                            /** Format: date */
-                            date: string;
-                            /** Format: date-time */
-                            occurredAt: string;
-                            /** Format: uuid */
-                            categoryId: string | null;
-                            /** Format: uuid */
-                            paymentMethodId: string | null;
-                            description: string | null;
-                            /** @description Los avisos con que llegó. */
-                            warnings: string[];
-                            /** @description El pedido como llegó del teléfono, con las tarjetas tapadas: completo mientras no se confirme. */
-                            raw: {
-                                [key: string]: string;
-                            } | null;
-                            /**
-                             * Format: date-time
-                             * @description Se borra del todo 90 días después.
-                             */
-                            discardedAt: string | null;
-                            /**
-                             * Format: uuid
-                             * @description La transacción que salió al confirmarla.
-                             */
-                            transactionId: string | null;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: la bandeja solo se revisa desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La captura no existe o es de otra cuenta (`CAPTURE_NOT_FOUND`); o el módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Ya se confirmó o se descartó, quizá desde otra pestaña (`CAPTURE_NOT_PENDING`). */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El id no es un UUID. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/captures/{id}/restore": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Deshace un descarte: la captura vuelve como estaba.
-         * @description Por revisar o duplicada, según de dónde se descartó.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description La captura, de vuelta en la bandeja. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /** @enum {string} */
-                            source: "IOS_SHORTCUT" | "ANDROID_AUTOMATION";
-                            /**
-                             * @description Por revisar, duplicada (se puede confirmar igual), descartada, o confirmada (solo en la respuesta de confirmar).
-                             * @enum {string}
-                             */
-                            status: "PENDING" | "DUPLICATE" | "DISCARDED" | "CONFIRMED";
-                            /** @description Si tiene monto. */
-                            parsed: boolean;
-                            /** @enum {string} */
-                            type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
-                            /** @description String decimal, mayor que cero. */
-                            amount: string | null;
-                            /**
-                             * @description Nula: se elige antes de confirmar.
-                             * @enum {string|null}
-                             */
-                            currency: "PEN" | "USD" | null;
-                            merchant: string | null;
-                            cardLast4: string | null;
-                            /** Format: date */
-                            date: string;
-                            /** Format: date-time */
-                            occurredAt: string;
-                            /** Format: uuid */
-                            categoryId: string | null;
-                            /** Format: uuid */
-                            paymentMethodId: string | null;
-                            description: string | null;
-                            /** @description Los avisos con que llegó. */
-                            warnings: string[];
-                            /** @description El pedido como llegó del teléfono, con las tarjetas tapadas: completo mientras no se confirme. */
-                            raw: {
-                                [key: string]: string;
-                            } | null;
-                            /**
-                             * Format: date-time
-                             * @description Se borra del todo 90 días después.
-                             */
-                            discardedAt: string | null;
-                            /**
-                             * Format: uuid
-                             * @description La transacción que salió al confirmarla.
-                             */
-                            transactionId: string | null;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: la bandeja solo se revisa desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La captura no existe o es de otra cuenta (`CAPTURE_NOT_FOUND`); o el módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La captura no está descartada (`CAPTURE_NOT_DISCARDED`). */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El id no es un UUID. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/categorization-rules": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Las reglas de categorización, primero la de mayor prioridad. */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Las reglas de la cuenta. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /** @description Como se escribió. Aplica si el comercio (o, sin comercio, el texto de la notificación) lo contiene, sin tildes ni mayúsculas. */
-                            pattern: string;
-                            /**
-                             * Format: uuid
-                             * @description De cualquier tipo: se sugiere solo a capturas de ese tipo.
-                             */
-                            categoryId: string;
-                            /** @description Cero o más. Si aplican dos, gana la mayor; luego, el patrón más largo. */
-                            priority: number;
-                        }[];
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las reglas solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        /**
-         * Crea una regla de categorización.
-         * @description La categoría, de la cuenta y activa; la prioridad, 0 por defecto. Después, las capturas de la bandeja **sin categoría** a las que aplique toman la suya; las que ya tienen una no se tocan.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        pattern: string;
-                        /** Format: uuid */
-                        categoryId: string;
-                        /** @default 0 */
-                        priority: number;
-                    };
-                };
-            };
-            responses: {
-                /** @description La regla creada. */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /** @description Como se escribió. Aplica si el comercio (o, sin comercio, el texto de la notificación) lo contiene, sin tildes ni mayúsculas. */
-                            pattern: string;
-                            /**
-                             * Format: uuid
-                             * @description De cualquier tipo: se sugiere solo a capturas de ese tipo.
-                             */
-                            categoryId: string;
-                            /** @description Cero o más. Si aplican dos, gana la mayor; luego, el patrón más largo. */
-                            priority: number;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las reglas solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La categoría no existe o es de otra cuenta (`CATEGORY_NOT_FOUND`); o el módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La cuenta ya tiene una regla con ese patrón, sin tildes ni mayúsculas (`RULE_PATTERN_TAKEN`). */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El cuerpo no tiene la forma esperada, o la categoría está archivada (`CATEGORY_ARCHIVED`). */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/categorization-rules/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Borra una regla.
-         * @description Lo que ya sugirió se queda en sus capturas.
-         */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Borrada. */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las reglas solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La regla no existe o es de otra cuenta (`RULE_NOT_FOUND`); o el módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El id no es un UUID. */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        /**
-         * Cambia el patrón, la categoría o la prioridad de una regla.
-         * @description Solo cambia lo que llega. Después, las capturas de la bandeja **sin categoría** a las que aplique toman la suya; las que ya tienen una no se tocan.
-         */
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        pattern?: string;
-                        /** Format: uuid */
-                        categoryId?: string;
-                        priority?: number;
-                    };
-                };
-            };
-            responses: {
-                /** @description La regla como quedó. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            /** @description Como se escribió. Aplica si el comercio (o, sin comercio, el texto de la notificación) lo contiene, sin tildes ni mayúsculas. */
-                            pattern: string;
-                            /**
-                             * Format: uuid
-                             * @description De cualquier tipo: se sugiere solo a capturas de ese tipo.
-                             */
-                            categoryId: string;
-                            /** @description Cero o más. Si aplican dos, gana la mayor; luego, el patrón más largo. */
-                            priority: number;
-                        };
-                    };
-                };
-                /** @description Falta el token de acceso o no vale. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Llegó un token personal: las reglas solo se gestionan desde una sesión. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La regla (`RULE_NOT_FOUND`) o la categoría (`CATEGORY_NOT_FOUND`) no existen o son de otra cuenta; o el módulo está apagado. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description La cuenta ya tiene una regla con ese patrón, sin tildes ni mayúsculas (`RULE_PATTERN_TAKEN`). */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description El id no es un UUID, el cuerpo no tiene la forma esperada, o la categoría nueva está archivada (`CATEGORY_ARCHIVED`). */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        trace?: never;
-    };
-}
-export type webhooks = Record<string, never>;
-export interface components {
-    schemas: {
-        ProblemDetails: {
-            type: string;
-            title: string;
-            status: number;
-            detail: string;
-            errors?: {
+    get?: never;
+    put?: never;
+    /**
+     * Dice qué pasaría al importar un CSV, sin guardar nada.
+     * @description El archivo viaja como texto (`csv`), en el formato oficial (`docs/modules/transactions-import-format.md`). Responde cuántas filas entrarían, cada problema con su línea y columna, las ya importadas antes (por la huella de su fila), las categorías y métodos de pago que no existen o están archivados, las columnas ignoradas y las etiquetas nuevas. Hasta 1 MB y 5000 filas.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            csv: string;
+          };
+        };
+      };
+      responses: {
+        /** @description Lo que pasaría al importar. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** @description Filas de datos leídas, sin la cabecera ni las vacías. */
+              rows: number;
+              /** @description Transacciones que entrarían, una vez resuelto lo pendiente. */
+              transactions: number;
+              /** @description Transferencias que entrarían, una vez resuelto lo pendiente. */
+              transfers: number;
+              /** @description Líneas ya importadas antes: se omiten. */
+              alreadyImported: number[];
+              /** @description Cada problema, por línea y columna. Una fila con problemas no entra. */
+              problems: {
+                line: number;
+                /** @description Columna del formato (`fecha`, `monto`…). */
                 field: string;
                 code: string;
                 message: string;
-            }[];
+              }[];
+              /** @description Columnas que no son del formato. */
+              ignoredColumns: string[];
+              /** @description Categorías por resolver: crearlas o usar una existente al confirmar. */
+              categories: {
+                /** @enum {string} */
+                type:
+                  | 'INCOME'
+                  | 'FIXED_EXPENSE'
+                  | 'VARIABLE_EXPENSE'
+                  | 'SAVING'
+                  | 'INVESTMENT'
+                  | 'DEBT';
+                category: string;
+                subcategory: string | null;
+                /**
+                 * @description No existe en la cuenta, o existe pero está archivada.
+                 * @enum {string}
+                 */
+                status: 'missing' | 'archived';
+                /** @description Líneas del archivo (la cabecera es la 1). */
+                lines: number[];
+              }[];
+              /** @description Métodos (o cuentas de destino) por resolver: usar uno existente o crearlo. */
+              paymentMethods: {
+                alias: string;
+                /**
+                 * @description No existe en la cuenta, o existe pero está archivada.
+                 * @enum {string}
+                 */
+                status: 'missing' | 'archived';
+                /** @description Líneas del archivo (la cabecera es la 1). */
+                lines: number[];
+              }[];
+              /** @description Etiquetas que se crearían. */
+              newTags: string[];
+            };
+          };
         };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El archivo pesa más de 1 MB (`IMPORT_FILE_TOO_LARGE`) o tiene demasiadas filas (`IMPORT_TOO_MANY_ROWS`). */
+        413: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El cuerpo no tiene la forma esperada, el CSV está mal formado (`MALFORMED_CSV`) o le faltan columnas obligatorias (`IMPORT_COLUMNS_MISSING`). */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
     };
-    responses: never;
-    parameters: never;
-    requestBodies: never;
-    headers: never;
-    pathItems: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/transactions/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Devuelve una transacción. */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description La transacción. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /**
+               * Format: date
+               * @description Día en que pasó, sin hora.
+               */
+              date: string;
+              /** @enum {string} */
+              type:
+                'INCOME' | 'FIXED_EXPENSE' | 'VARIABLE_EXPENSE' | 'SAVING' | 'INVESTMENT' | 'DEBT';
+              /** Format: uuid */
+              categoryId: string;
+              /** @description String decimal con 2 decimales (`"25.90"`). Siempre positivo: el signo lo da `type`. */
+              amount: string;
+              /** @enum {string} */
+              currency: 'PEN' | 'USD';
+              description: string;
+              /**
+               * Format: uuid
+               * @description Nulo si no se dijo con qué se pagó.
+               */
+              paymentMethodId: string | null;
+              merchant: string | null;
+              /**
+               * @description De dónde llegó. No cambia al editar.
+               * @enum {string}
+               */
+              source: 'MANUAL' | 'IOS_SHORTCUT' | 'ANDROID_AUTOMATION' | 'IMPORT';
+              /**
+               * Format: uuid
+               * @description Captura del celular de la que salió (H7).
+               */
+              captureId: string | null;
+              /** @description Nombres de sus etiquetas, en orden alfabético. */
+              tags: string[];
+              /** Format: date-time */
+              createdAt: string;
+              /** Format: date-time */
+              updatedAt: string;
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description No existe, es de otra cuenta o está borrada. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    /**
+     * Borra una transacción (borrado lógico).
+     * @description Deja de aparecer, pero la fila queda para la auditoría y se puede restaurar sin plazo.
+     */
+    delete: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Borrada. */
+        204: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description No existe, es de otra cuenta o ya estaba borrada. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    options?: never;
+    head?: never;
+    /**
+     * Corrige una transacción, también de meses pasados.
+     * @description Se manda solo lo que cambia. El origen (`source`) no se corrige. El tipo se cambia junto con una categoría de ese tipo. Sin `currency` la moneda no cambia, aunque cambie el método de pago. Una categoría o un método archivados que la transacción ya tenía siguen valiendo; elegirlos ahora, no. Una fecha nueva no puede ser futura. `tags` **reemplaza** las etiquetas: se manda la lista completa, y `[]` las quita todas.
+     */
+    patch: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            /** Format: date */
+            date?: string;
+            /** @enum {string} */
+            type?:
+              'INCOME' | 'FIXED_EXPENSE' | 'VARIABLE_EXPENSE' | 'SAVING' | 'INVESTMENT' | 'DEBT';
+            /** Format: uuid */
+            categoryId?: string;
+            amount?: string;
+            /** @enum {string} */
+            currency?: 'PEN' | 'USD';
+            description?: string;
+            /** Format: uuid */
+            paymentMethodId?: string | null;
+            merchant?: string | null;
+            tags?: string[];
+          };
+        };
+      };
+      responses: {
+        /** @description La transacción como quedó. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /**
+               * Format: date
+               * @description Día en que pasó, sin hora.
+               */
+              date: string;
+              /** @enum {string} */
+              type:
+                'INCOME' | 'FIXED_EXPENSE' | 'VARIABLE_EXPENSE' | 'SAVING' | 'INVESTMENT' | 'DEBT';
+              /** Format: uuid */
+              categoryId: string;
+              /** @description String decimal con 2 decimales (`"25.90"`). Siempre positivo: el signo lo da `type`. */
+              amount: string;
+              /** @enum {string} */
+              currency: 'PEN' | 'USD';
+              description: string;
+              /**
+               * Format: uuid
+               * @description Nulo si no se dijo con qué se pagó.
+               */
+              paymentMethodId: string | null;
+              merchant: string | null;
+              /**
+               * @description De dónde llegó. No cambia al editar.
+               * @enum {string}
+               */
+              source: 'MANUAL' | 'IOS_SHORTCUT' | 'ANDROID_AUTOMATION' | 'IMPORT';
+              /**
+               * Format: uuid
+               * @description Captura del celular de la que salió (H7).
+               */
+              captureId: string | null;
+              /** @description Nombres de sus etiquetas, en orden alfabético. */
+              tags: string[];
+              /** Format: date-time */
+              createdAt: string;
+              /** Format: date-time */
+              updatedAt: string;
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La transacción no existe, es de otra cuenta o está borrada; o la categoría o el método elegidos no existen o son de otra cuenta. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El cuerpo está vacío, trae `source` u otro campo desconocido, o la transacción quedaría rompiendo una regla. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    trace?: never;
+  };
+  '/api/v1/transactions/{id}/restore': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Deshace el borrado de una transacción.
+     * @description Sin plazo: el aviso de «Deshacer» de unos segundos es cosa de la interfaz. Con una transacción que no está borrada, la devuelve tal cual y no hace nada más.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description La transacción, otra vez vigente. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /**
+               * Format: date
+               * @description Día en que pasó, sin hora.
+               */
+              date: string;
+              /** @enum {string} */
+              type:
+                'INCOME' | 'FIXED_EXPENSE' | 'VARIABLE_EXPENSE' | 'SAVING' | 'INVESTMENT' | 'DEBT';
+              /** Format: uuid */
+              categoryId: string;
+              /** @description String decimal con 2 decimales (`"25.90"`). Siempre positivo: el signo lo da `type`. */
+              amount: string;
+              /** @enum {string} */
+              currency: 'PEN' | 'USD';
+              description: string;
+              /**
+               * Format: uuid
+               * @description Nulo si no se dijo con qué se pagó.
+               */
+              paymentMethodId: string | null;
+              merchant: string | null;
+              /**
+               * @description De dónde llegó. No cambia al editar.
+               * @enum {string}
+               */
+              source: 'MANUAL' | 'IOS_SHORTCUT' | 'ANDROID_AUTOMATION' | 'IMPORT';
+              /**
+               * Format: uuid
+               * @description Captura del celular de la que salió (H7).
+               */
+              captureId: string | null;
+              /** @description Nombres de sus etiquetas, en orden alfabético. */
+              tags: string[];
+              /** Format: date-time */
+              createdAt: string;
+              /** Format: date-time */
+              updatedAt: string;
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description No existe o es de otra cuenta. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/transfers': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Registra una transferencia entre dos cuentas propias.
+     * @description Plata que cambia de lugar sin ser ingreso ni gasto: no entra en los totales. Las dos cuentas son propias, distintas y activas. Cada cuenta pone su moneda; en la misma moneda llega lo mismo que salió. Si la moneda cambia, `receivedAmount` es obligatorio y se copia del voucher: nunca se convierte. Queda con `source: MANUAL`.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            /** Format: date */
+            date: string;
+            /** Format: uuid */
+            fromPaymentMethodId: string;
+            /** Format: uuid */
+            toPaymentMethodId: string;
+            amount: string;
+            /** @enum {string} */
+            currency?: 'PEN' | 'USD';
+            receivedAmount?: string;
+            /** @enum {string} */
+            receivedCurrency?: 'PEN' | 'USD';
+            description: string;
+          };
+        };
+      };
+      responses: {
+        /** @description Transferencia registrada. */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /**
+               * Format: date
+               * @description Día en que pasó, sin hora.
+               */
+              date: string;
+              /**
+               * Format: uuid
+               * @description Cuenta de la que salió la plata.
+               */
+              fromPaymentMethodId: string;
+              /**
+               * Format: uuid
+               * @description Cuenta a la que llegó.
+               */
+              toPaymentMethodId: string;
+              /** @description String decimal. Lo que salió, en la moneda de la cuenta de origen. */
+              amount: string;
+              /** @enum {string} */
+              currency: 'PEN' | 'USD';
+              /** @description String decimal. Lo que llegó. Igual a `amount` si la moneda no cambia. */
+              receivedAmount: string;
+              /** @enum {string} */
+              receivedCurrency: 'PEN' | 'USD';
+              description: string;
+              /** @enum {string} */
+              source: 'MANUAL' | 'IOS_SHORTCUT' | 'ANDROID_AUTOMATION' | 'IMPORT';
+              /** Format: date-time */
+              createdAt: string;
+              /** Format: date-time */
+              updatedAt: string;
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Una de las cuentas no existe o es de otra cuenta. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El cuerpo no tiene la forma esperada, o rompe una regla: la misma cuenta de los dos lados, una cuenta archivada, una moneda que la cuenta no maneja, falta el monto recibido de un cambio de moneda, montos no positivos o fecha futura. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/transfers/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Devuelve una transferencia. */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description La transferencia. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /**
+               * Format: date
+               * @description Día en que pasó, sin hora.
+               */
+              date: string;
+              /**
+               * Format: uuid
+               * @description Cuenta de la que salió la plata.
+               */
+              fromPaymentMethodId: string;
+              /**
+               * Format: uuid
+               * @description Cuenta a la que llegó.
+               */
+              toPaymentMethodId: string;
+              /** @description String decimal. Lo que salió, en la moneda de la cuenta de origen. */
+              amount: string;
+              /** @enum {string} */
+              currency: 'PEN' | 'USD';
+              /** @description String decimal. Lo que llegó. Igual a `amount` si la moneda no cambia. */
+              receivedAmount: string;
+              /** @enum {string} */
+              receivedCurrency: 'PEN' | 'USD';
+              description: string;
+              /** @enum {string} */
+              source: 'MANUAL' | 'IOS_SHORTCUT' | 'ANDROID_AUTOMATION' | 'IMPORT';
+              /** Format: date-time */
+              createdAt: string;
+              /** Format: date-time */
+              updatedAt: string;
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description No existe, es de otra cuenta o está borrada. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    /**
+     * Borra una transferencia (borrado lógico).
+     * @description Deja de aparecer, pero la fila queda y se puede restaurar sin plazo.
+     */
+    delete: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Borrada. */
+        204: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description No existe, es de otra cuenta o ya estaba borrada. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    options?: never;
+    head?: never;
+    /**
+     * Corrige una transferencia, también de meses pasados.
+     * @description Se manda solo lo que cambia; el origen (`source`) no se corrige. Las reglas se aplican a la transferencia como quedaría. Una cuenta archivada que ya tenía sigue valiendo; elegirla ahora, no. En un cambio de moneda, corregir el monto enviado exige mandar también el recibido.
+     */
+    patch: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            /** Format: date */
+            date?: string;
+            /** Format: uuid */
+            fromPaymentMethodId?: string;
+            /** Format: uuid */
+            toPaymentMethodId?: string;
+            amount?: string;
+            /** @enum {string} */
+            currency?: 'PEN' | 'USD';
+            receivedAmount?: string;
+            /** @enum {string} */
+            receivedCurrency?: 'PEN' | 'USD';
+            description?: string;
+          };
+        };
+      };
+      responses: {
+        /** @description La transferencia como quedó. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /**
+               * Format: date
+               * @description Día en que pasó, sin hora.
+               */
+              date: string;
+              /**
+               * Format: uuid
+               * @description Cuenta de la que salió la plata.
+               */
+              fromPaymentMethodId: string;
+              /**
+               * Format: uuid
+               * @description Cuenta a la que llegó.
+               */
+              toPaymentMethodId: string;
+              /** @description String decimal. Lo que salió, en la moneda de la cuenta de origen. */
+              amount: string;
+              /** @enum {string} */
+              currency: 'PEN' | 'USD';
+              /** @description String decimal. Lo que llegó. Igual a `amount` si la moneda no cambia. */
+              receivedAmount: string;
+              /** @enum {string} */
+              receivedCurrency: 'PEN' | 'USD';
+              description: string;
+              /** @enum {string} */
+              source: 'MANUAL' | 'IOS_SHORTCUT' | 'ANDROID_AUTOMATION' | 'IMPORT';
+              /** Format: date-time */
+              createdAt: string;
+              /** Format: date-time */
+              updatedAt: string;
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La transferencia no existe, es de otra cuenta o está borrada; o una cuenta elegida no existe o es de otra cuenta. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El cuerpo está vacío, trae un campo desconocido, o la transferencia quedaría rompiendo una regla. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    trace?: never;
+  };
+  '/api/v1/transfers/{id}/restore': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Deshace el borrado de una transferencia.
+     * @description Sin plazo. Con una transferencia que no está borrada, la devuelve tal cual y no hace nada más.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description La transferencia, otra vez vigente. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /**
+               * Format: date
+               * @description Día en que pasó, sin hora.
+               */
+              date: string;
+              /**
+               * Format: uuid
+               * @description Cuenta de la que salió la plata.
+               */
+              fromPaymentMethodId: string;
+              /**
+               * Format: uuid
+               * @description Cuenta a la que llegó.
+               */
+              toPaymentMethodId: string;
+              /** @description String decimal. Lo que salió, en la moneda de la cuenta de origen. */
+              amount: string;
+              /** @enum {string} */
+              currency: 'PEN' | 'USD';
+              /** @description String decimal. Lo que llegó. Igual a `amount` si la moneda no cambia. */
+              receivedAmount: string;
+              /** @enum {string} */
+              receivedCurrency: 'PEN' | 'USD';
+              description: string;
+              /** @enum {string} */
+              source: 'MANUAL' | 'IOS_SHORTCUT' | 'ANDROID_AUTOMATION' | 'IMPORT';
+              /** Format: date-time */
+              createdAt: string;
+              /** Format: date-time */
+              updatedAt: string;
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description No existe o es de otra cuenta. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tags': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Lista las etiquetas de la cuenta, por nombre.
+     * @description Las etiquetas se crean al usarlas en una transacción (`tags`). Cada una dice cuántas transacciones vigentes la llevan.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Etiquetas de la cuenta. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              name: string;
+              /** @description Transacciones vigentes que la llevan. */
+              transactionCount: number;
+            }[];
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tags/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Borra una etiqueta.
+     * @description La quita de todas las transacciones, que quedan intactas. Sin archivar.
+     */
+    delete: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Borrada. */
+        204: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description No existe o es de otra cuenta. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    options?: never;
+    head?: never;
+    /**
+     * Renombra una etiqueta o la fusiona con otra.
+     * @description Si el nombre nuevo es el de **otra** etiqueta de la cuenta (sin distinguir mayúsculas ni tildes), las fusiona: sus transacciones quedan con la otra, que toma la escritura mandada, y esta desaparece. Devuelve la etiqueta que queda.
+     */
+    patch: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            name: string;
+          };
+        };
+      };
+      responses: {
+        /** @description La etiqueta como quedó (la de destino, si se fusionaron). */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              name: string;
+              /** @description Transacciones vigentes que la llevan. */
+              transactionCount: number;
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las transacciones solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description No existe o es de otra cuenta. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Otra petición creó al mismo tiempo una etiqueta con ese nombre: volver a intentarlo las fusiona. */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El nombre está vacío, es muy largo o lleva `|`. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    trace?: never;
+  };
+  '/api/v1/budgets/{year}/{month}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Devuelve el presupuesto de un mes.
+     * @description Un mes sin presupuesto responde **200 con `lines: []`**: no haberlo armado no es un error.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          year: string;
+          /** @description 1 a 12. */
+          month: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Las partidas del mes. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              year: number;
+              month: number;
+              /** @description Una por categoría y moneda, en el orden en que se guardaron. `[]` sin presupuesto. */
+              lines: {
+                /**
+                 * Format: uuid
+                 * @description Una categoría **madre**: suma lo real de sus hijas.
+                 */
+                categoryId: string;
+                /**
+                 * @description El de su categoría.
+                 * @enum {string}
+                 */
+                type:
+                  | 'INCOME'
+                  | 'FIXED_EXPENSE'
+                  | 'VARIABLE_EXPENSE'
+                  | 'SAVING'
+                  | 'INVESTMENT'
+                  | 'DEBT';
+                /** @description String decimal con 2 decimales (`"800.00"`), cero o más. */
+                plannedAmount: string;
+                /** @enum {string} */
+                currency: 'PEN' | 'USD';
+              }[];
+              /** @description Planeado contra real por tipo y moneda, sin convertir nunca. Lo real de una subcategoría suma en su madre; sin transferencias ni borradas. */
+              summary: {
+                /** @enum {string} */
+                type:
+                  | 'INCOME'
+                  | 'FIXED_EXPENSE'
+                  | 'VARIABLE_EXPENSE'
+                  | 'SAVING'
+                  | 'INVESTMENT'
+                  | 'DEBT';
+                /** @enum {string} */
+                currency: 'PEN' | 'USD';
+                lines: {
+                  /** @description String decimal. */
+                  planned: string;
+                  /** @description String decimal. Lo real del mes. */
+                  actual: string;
+                  /** @description String decimal, «lo bueno es positivo». Límite: planeado − real (lo disponible). Meta: real − planeado (cuánto se superó). */
+                  difference: string;
+                  /** @description Real sobre planeado en %, **sin redondear**. Nulo con lo planeado en cero. */
+                  executed: string | null;
+                  /**
+                   * @description Límite (gasto, deuda): WITHIN o EXCEEDED. Meta (ingreso, ahorro, inversión): PENDING o MET.
+                   * @enum {string}
+                   */
+                  status: 'WITHIN' | 'EXCEEDED' | 'PENDING' | 'MET';
+                  /** Format: uuid */
+                  categoryId: string;
+                }[];
+                /** @description Lo real de categorías sin partida, de mayor a menor: «Sin presupuesto». */
+                unbudgeted: {
+                  /** Format: uuid */
+                  categoryId: string;
+                  amount: string;
+                }[];
+                /** @description Las partidas contra **todo** lo real del tipo. */
+                total: {
+                  /** @description String decimal. */
+                  planned: string;
+                  /** @description String decimal. Lo real del mes. */
+                  actual: string;
+                  /** @description String decimal, «lo bueno es positivo». Límite: planeado − real (lo disponible). Meta: real − planeado (cuánto se superó). */
+                  difference: string;
+                  /** @description Real sobre planeado en %, **sin redondear**. Nulo con lo planeado en cero. */
+                  executed: string | null;
+                  /**
+                   * @description Límite (gasto, deuda): WITHIN o EXCEEDED. Meta (ingreso, ahorro, inversión): PENDING o MET.
+                   * @enum {string}
+                   */
+                  status: 'WITHIN' | 'EXCEEDED' | 'PENDING' | 'MET';
+                };
+              }[];
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: el presupuesto solo se gestiona desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El año o el mes no son válidos (`BUDGET_MONTH_INVALID`). */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    /**
+     * Guarda el presupuesto de un mes entero.
+     * @description La lista **reemplaza** a la anterior (`[]` lo vacía) y entra toda o nada. Cualquier mes, pasado o futuro. Cada partida va en una categoría **madre** y activa de la cuenta, una por categoría y moneda, con un monto de cero o más. Una partida que el mes ya tenía se puede volver a mandar aunque su categoría se haya archivado después.
+     */
+    put: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          year: string;
+          /** @description 1 a 12. */
+          month: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            lines: {
+              /** Format: uuid */
+              categoryId: string;
+              plannedAmount: string;
+              /** @enum {string} */
+              currency: 'PEN' | 'USD';
+            }[];
+          };
+        };
+      };
+      responses: {
+        /** @description El presupuesto como quedó. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              year: number;
+              month: number;
+              /** @description Una por categoría y moneda, en el orden en que se guardaron. `[]` sin presupuesto. */
+              lines: {
+                /**
+                 * Format: uuid
+                 * @description Una categoría **madre**: suma lo real de sus hijas.
+                 */
+                categoryId: string;
+                /**
+                 * @description El de su categoría.
+                 * @enum {string}
+                 */
+                type:
+                  | 'INCOME'
+                  | 'FIXED_EXPENSE'
+                  | 'VARIABLE_EXPENSE'
+                  | 'SAVING'
+                  | 'INVESTMENT'
+                  | 'DEBT';
+                /** @description String decimal con 2 decimales (`"800.00"`), cero o más. */
+                plannedAmount: string;
+                /** @enum {string} */
+                currency: 'PEN' | 'USD';
+              }[];
+              /** @description Planeado contra real por tipo y moneda, sin convertir nunca. Lo real de una subcategoría suma en su madre; sin transferencias ni borradas. */
+              summary: {
+                /** @enum {string} */
+                type:
+                  | 'INCOME'
+                  | 'FIXED_EXPENSE'
+                  | 'VARIABLE_EXPENSE'
+                  | 'SAVING'
+                  | 'INVESTMENT'
+                  | 'DEBT';
+                /** @enum {string} */
+                currency: 'PEN' | 'USD';
+                lines: {
+                  /** @description String decimal. */
+                  planned: string;
+                  /** @description String decimal. Lo real del mes. */
+                  actual: string;
+                  /** @description String decimal, «lo bueno es positivo». Límite: planeado − real (lo disponible). Meta: real − planeado (cuánto se superó). */
+                  difference: string;
+                  /** @description Real sobre planeado en %, **sin redondear**. Nulo con lo planeado en cero. */
+                  executed: string | null;
+                  /**
+                   * @description Límite (gasto, deuda): WITHIN o EXCEEDED. Meta (ingreso, ahorro, inversión): PENDING o MET.
+                   * @enum {string}
+                   */
+                  status: 'WITHIN' | 'EXCEEDED' | 'PENDING' | 'MET';
+                  /** Format: uuid */
+                  categoryId: string;
+                }[];
+                /** @description Lo real de categorías sin partida, de mayor a menor: «Sin presupuesto». */
+                unbudgeted: {
+                  /** Format: uuid */
+                  categoryId: string;
+                  amount: string;
+                }[];
+                /** @description Las partidas contra **todo** lo real del tipo. */
+                total: {
+                  /** @description String decimal. */
+                  planned: string;
+                  /** @description String decimal. Lo real del mes. */
+                  actual: string;
+                  /** @description String decimal, «lo bueno es positivo». Límite: planeado − real (lo disponible). Meta: real − planeado (cuánto se superó). */
+                  difference: string;
+                  /** @description Real sobre planeado en %, **sin redondear**. Nulo con lo planeado en cero. */
+                  executed: string | null;
+                  /**
+                   * @description Límite (gasto, deuda): WITHIN o EXCEEDED. Meta (ingreso, ahorro, inversión): PENDING o MET.
+                   * @enum {string}
+                   */
+                  status: 'WITHIN' | 'EXCEEDED' | 'PENDING' | 'MET';
+                };
+              }[];
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: el presupuesto solo se gestiona desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Una categoría no existe o es de otra cuenta; o el módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El cuerpo no tiene la forma esperada, o una partida rompe una regla: monto negativo o con más de 2 decimales, subcategoría, categoría archivada, repetida, o mes inválido. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/budgets/{year}/{month}/copy-from-previous': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Copia al mes las partidas del mes anterior que le faltan.
+     * @description Copia del mes anterior o, si está vacío, del **último mes con presupuesto**. **Solo completa lo que falta**: nunca pisa una partida (misma categoría y moneda). Las categorías archivadas no se copian y van en `skipped`. Sin ningún mes anterior con presupuesto responde **200** con `copiedFrom: null`: no es un error.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          year: string;
+          /** @description 1 a 12. */
+          month: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description El mes como quedó, con de dónde se copió y lo que quedó fuera. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              year: number;
+              month: number;
+              /** @description Una por categoría y moneda, en el orden en que se guardaron. `[]` sin presupuesto. */
+              lines: {
+                /**
+                 * Format: uuid
+                 * @description Una categoría **madre**: suma lo real de sus hijas.
+                 */
+                categoryId: string;
+                /**
+                 * @description El de su categoría.
+                 * @enum {string}
+                 */
+                type:
+                  | 'INCOME'
+                  | 'FIXED_EXPENSE'
+                  | 'VARIABLE_EXPENSE'
+                  | 'SAVING'
+                  | 'INVESTMENT'
+                  | 'DEBT';
+                /** @description String decimal con 2 decimales (`"800.00"`), cero o más. */
+                plannedAmount: string;
+                /** @enum {string} */
+                currency: 'PEN' | 'USD';
+              }[];
+              /** @description Planeado contra real por tipo y moneda, sin convertir nunca. Lo real de una subcategoría suma en su madre; sin transferencias ni borradas. */
+              summary: {
+                /** @enum {string} */
+                type:
+                  | 'INCOME'
+                  | 'FIXED_EXPENSE'
+                  | 'VARIABLE_EXPENSE'
+                  | 'SAVING'
+                  | 'INVESTMENT'
+                  | 'DEBT';
+                /** @enum {string} */
+                currency: 'PEN' | 'USD';
+                lines: {
+                  /** @description String decimal. */
+                  planned: string;
+                  /** @description String decimal. Lo real del mes. */
+                  actual: string;
+                  /** @description String decimal, «lo bueno es positivo». Límite: planeado − real (lo disponible). Meta: real − planeado (cuánto se superó). */
+                  difference: string;
+                  /** @description Real sobre planeado en %, **sin redondear**. Nulo con lo planeado en cero. */
+                  executed: string | null;
+                  /**
+                   * @description Límite (gasto, deuda): WITHIN o EXCEEDED. Meta (ingreso, ahorro, inversión): PENDING o MET.
+                   * @enum {string}
+                   */
+                  status: 'WITHIN' | 'EXCEEDED' | 'PENDING' | 'MET';
+                  /** Format: uuid */
+                  categoryId: string;
+                }[];
+                /** @description Lo real de categorías sin partida, de mayor a menor: «Sin presupuesto». */
+                unbudgeted: {
+                  /** Format: uuid */
+                  categoryId: string;
+                  amount: string;
+                }[];
+                /** @description Las partidas contra **todo** lo real del tipo. */
+                total: {
+                  /** @description String decimal. */
+                  planned: string;
+                  /** @description String decimal. Lo real del mes. */
+                  actual: string;
+                  /** @description String decimal, «lo bueno es positivo». Límite: planeado − real (lo disponible). Meta: real − planeado (cuánto se superó). */
+                  difference: string;
+                  /** @description Real sobre planeado en %, **sin redondear**. Nulo con lo planeado en cero. */
+                  executed: string | null;
+                  /**
+                   * @description Límite (gasto, deuda): WITHIN o EXCEEDED. Meta (ingreso, ahorro, inversión): PENDING o MET.
+                   * @enum {string}
+                   */
+                  status: 'WITHIN' | 'EXCEEDED' | 'PENDING' | 'MET';
+                };
+              }[];
+            } & {
+              /** @description De qué mes se copió; nulo si no había ninguno anterior con presupuesto. */
+              copiedFrom: {
+                year: number;
+                month: number;
+              } | null;
+              /** @description Partidas del origen que no se copiaron: su categoría está archivada. */
+              skipped: {
+                /** Format: uuid */
+                categoryId: string;
+                /** @enum {string} */
+                currency: 'PEN' | 'USD';
+              }[];
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: el presupuesto solo se gestiona desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El año o el mes no son válidos (`BUDGET_MONTH_INVALID`). */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/reports/monthly': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * El dashboard de un mes: KPIs, gasto diario, dona por categoría y tablas por tipo.
+     * @description Todo en una llamada, por moneda y sin convertir nunca. Sin transferencias ni transacciones borradas; lo de una subcategoría suma en su madre.
+     */
+    get: {
+      parameters: {
+        query: {
+          year: string;
+          /** @description 1 a 12. */
+          month: string;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description El dashboard del mes. Sin movimientos, `currencies` viene vacío. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              year: number;
+              month: number;
+              /** @description Una entrada por moneda con movimientos, primero soles; nunca se convierte. */
+              currencies: {
+                /** @enum {string} */
+                currency: 'PEN' | 'USD';
+                /** @description Strings decimales. */
+                kpis: {
+                  income: string;
+                  /** @description Gasto fijo + variable. */
+                  expense: string;
+                  /** @description Ahorro + inversión. */
+                  saving: string;
+                  debt: string;
+                  /** @description Ingresos menos todo lo demás. Puede ser negativo. */
+                  balance: string;
+                };
+                /** @description Gasto fijo + variable de cada día, **con los días sin gasto en cero**. El mes en curso llega hasta hoy (Lima); uno que no empezó no tiene días. */
+                daily: {
+                  /** Format: date */
+                  date: string;
+                  amount: string;
+                }[];
+                /** @description El gasto por categoría **madre** (con sus hijas), de mayor a menor: las 6 primeras y el resto en «Otras». */
+                distribution: {
+                  /**
+                   * Format: uuid
+                   * @description Nulo es «Otras».
+                   */
+                  categoryId: string | null;
+                  amount: string;
+                  /** @description % del gasto del mes, sin redondear. */
+                  share: string | null;
+                }[];
+                /** @description Cada tipo con sus categorías madre, de mayor a menor. */
+                byType: {
+                  /** @enum {string} */
+                  type:
+                    | 'INCOME'
+                    | 'FIXED_EXPENSE'
+                    | 'VARIABLE_EXPENSE'
+                    | 'SAVING'
+                    | 'INVESTMENT'
+                    | 'DEBT';
+                  total: string;
+                  categories: {
+                    /** Format: uuid */
+                    categoryId: string;
+                    amount: string;
+                  }[];
+                }[];
+              }[];
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: los reportes solo se ven desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Falta el año o el mes, no tienen la forma esperada, o el mes no existe. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/reports/monthly-summary': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * El cierre de un mes: totales, ahorro, comparación, tops y lo de otros módulos.
+     * @description Por moneda y sin convertir nunca. Un mes cerrado, contra el anterior entero; el mes en curso, hasta hoy y contra el anterior hasta el mismo día. Lo de una subcategoría suma en su madre. Las secciones de presupuesto, tarjetas y metas aparecen solo si su módulo está encendido; tarjetas y metas, a la fecha de corte.
+     */
+    get: {
+      parameters: {
+        query: {
+          year: string;
+          /** @description 1 a 12. */
+          month: string;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description El resumen del mes. Sin movimientos, `currencies` viene vacío. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              year: number;
+              month: number;
+              /** @description El mes entero si ya cerró; del 1 a hoy si está en curso. `to` es la fecha de corte. */
+              period: {
+                /** Format: date */
+                from: string;
+                /** Format: date */
+                to: string;
+                complete: boolean;
+              };
+              /** @description El mes anterior entero, o hasta el mismo día si el mes está en curso. */
+              previousPeriod: {
+                /** Format: date */
+                from: string;
+                /** Format: date */
+                to: string;
+              };
+              /** @description Las monedas con movimientos en el mes o en el anterior, primero soles. */
+              currencies: {
+                /** @enum {string} */
+                currency: 'PEN' | 'USD';
+                totals: {
+                  income: string;
+                  /** @description Gasto fijo + variable. */
+                  expense: string;
+                  /** @description Ahorro + inversión. */
+                  saving: string;
+                  debt: string;
+                  balance: string;
+                };
+                /** @description Ahorro (con inversión) / ingresos, en %, sin redondear. Nula: sin ingresos. */
+                savingsRate: string | null;
+                byType: {
+                  /** @enum {string} */
+                  type:
+                    | 'INCOME'
+                    | 'FIXED_EXPENSE'
+                    | 'VARIABLE_EXPENSE'
+                    | 'SAVING'
+                    | 'INVESTMENT'
+                    | 'DEBT';
+                  amount: string;
+                  /** @description Lo del periodo con que se compara. */
+                  previous: string;
+                  /** @description Ahora − antes. */
+                  difference: string;
+                  /** @description La diferencia sobre lo de antes, en %, sin redondear. Nula si antes fue cero. */
+                  change: string | null;
+                }[];
+                /** @description Por categoría madre (sus hijas suman en ella). */
+                byCategory: {
+                  /** Format: uuid */
+                  categoryId: string;
+                  /** @enum {string} */
+                  type:
+                    | 'INCOME'
+                    | 'FIXED_EXPENSE'
+                    | 'VARIABLE_EXPENSE'
+                    | 'SAVING'
+                    | 'INVESTMENT'
+                    | 'DEBT';
+                  amount: string;
+                  /** @description Lo del periodo con que se compara. */
+                  previous: string;
+                  /** @description Ahora − antes. */
+                  difference: string;
+                  /** @description La diferencia sobre lo de antes, en %, sin redondear. Nula si antes fue cero. */
+                  change: string | null;
+                }[];
+                topCategories: {
+                  /** Format: uuid */
+                  categoryId: string;
+                  amount: string;
+                  /** @description Parte del gasto del mes, en %. */
+                  share: string | null;
+                }[];
+                /** @description Solo gasto; juntos los que solo difieren en tildes o mayúsculas. */
+                topMerchants: {
+                  merchant: string;
+                  amount: string;
+                  count: number;
+                }[];
+              }[];
+              /** @description Solo las partidas límite (gasto fijo, variable y deuda). `NONE`: el mes no tiene partidas límite («sin presupuesto»). */
+              budget?:
+                | {
+                    /** @enum {string} */
+                    status: 'NONE';
+                  }
+                | {
+                    /** @enum {string} */
+                    status: 'SET';
+                    currencies: {
+                      /** @enum {string} */
+                      currency: 'PEN' | 'USD';
+                      planned: string;
+                      /** @description Todo lo real de los tipos con límite, también lo gastado sin partida. */
+                      actual: string;
+                      /** @description Real sobre planeado, en %, sin redondear. */
+                      executed: string | null;
+                    }[];
+                    /** @description Las partidas excedidas, la más excedida primero. */
+                    exceeded: {
+                      /** Format: uuid */
+                      categoryId: string;
+                      /** @enum {string} */
+                      type:
+                        | 'INCOME'
+                        | 'FIXED_EXPENSE'
+                        | 'VARIABLE_EXPENSE'
+                        | 'SAVING'
+                        | 'INVESTMENT'
+                        | 'DEBT';
+                      /** @enum {string} */
+                      currency: 'PEN' | 'USD';
+                      planned: string;
+                      actual: string;
+                      /** @description Planeado − real: negativo, cuánto se pasó. */
+                      difference: string;
+                      executed: string | null;
+                    }[];
+                  };
+              /** @description Una archivada aparece solo si se movió en el mes. */
+              cards?: {
+                /** Format: uuid */
+                id: string;
+                alias: string;
+                institution: string | null;
+                last4: string | null;
+                /** @description Lo cargado en el mes calendario, por moneda. */
+                charges: {
+                  /** @description String decimal con 2 decimales (`"5000.00"`). */
+                  amount: string;
+                  /** @enum {string} */
+                  currency: 'PEN' | 'USD';
+                }[];
+                /** @description El estado que cerró en el mes y vence el siguiente; nulo si no hay. */
+                statement: {
+                  /** Format: date */
+                  closingDate: string;
+                  /** Format: date */
+                  dueDate: string;
+                  balances: {
+                    /** @enum {string} */
+                    currency: 'PEN' | 'USD';
+                    /** @description La deuda al corte. */
+                    balance: string;
+                    /** @description Lo que faltaba pagar a la fecha de corte. */
+                    remaining: string;
+                  }[];
+                } | null;
+              }[];
+              /** @description Las metas vivas en el mes, medidas a la fecha de corte. */
+              goals?: {
+                /** Format: uuid */
+                id: string;
+                name: string;
+                /** @enum {string} */
+                currency: 'PEN' | 'USD';
+                /** @description Aportes − retiros del mes. */
+                contributed: string;
+                saved: string;
+                remaining: string;
+                /** @description Ahorrado / objetivo en %, sin redondear. */
+                percentage: string;
+                suggestedMonthly: string | null;
+                /** @enum {string} */
+                status: 'ON_TRACK' | 'AT_RISK' | 'ACHIEVED' | 'OVERDUE';
+              }[];
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: los reportes solo se ven desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Falta el año o el mes, no tienen la forma esperada, el mes no existe, o todavía no empieza (`SUMMARY_MONTH_IN_FUTURE`). */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/reports/annual': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * El año mes a mes: ingresos, gastos, ahorro, inversión, deuda y saldo.
+     * @description Por moneda y sin convertir nunca: una fila por concepto con sus 12 meses (enero a diciembre) y su total. Un mes que todavía no llega viene `null`, no en cero; el año en curso suma hasta hoy. Sin transferencias; lo de una subcategoría suma en su madre.
+     */
+    get: {
+      parameters: {
+        query: {
+          year: string;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description El resumen del año. Sin movimientos, `currencies` viene vacío. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              year: number;
+              /** @description Las monedas con movimientos en el año, primero soles. */
+              currencies: {
+                /** @enum {string} */
+                currency: 'PEN' | 'USD';
+                /** @description En este orden: las filas de la decisión 17. */
+                rows: {
+                  /**
+                   * @description `EXPENSE` = gasto fijo + variable; `BALANCE` = ingresos − todo lo demás.
+                   * @enum {string}
+                   */
+                  row:
+                    | 'INCOME'
+                    | 'FIXED_EXPENSE'
+                    | 'VARIABLE_EXPENSE'
+                    | 'EXPENSE'
+                    | 'SAVING'
+                    | 'INVESTMENT'
+                    | 'DEBT'
+                    | 'BALANCE';
+                  /** @description Enero a diciembre. Nulo: un mes que todavía no llega. */
+                  months: (string | null)[];
+                  /** @description El año hasta hoy. */
+                  total: string;
+                }[];
+                /** @description Ahorro (con inversión) / ingresos del año, en %, sin redondear. Nula: sin ingresos. */
+                savingsRate: string | null;
+                /** @description El gasto del año por categoría madre, como la dona del dashboard. */
+                distribution: {
+                  /**
+                   * Format: uuid
+                   * @description Nula: «Otras».
+                   */
+                  categoryId: string | null;
+                  amount: string;
+                  share: string | null;
+                }[];
+              }[];
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: los reportes solo se ven desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Falta el año o no tiene la forma esperada, está fuera de 2000 a 2100 (`SUMMARY_YEAR_INVALID`) o todavía no empieza (`SUMMARY_YEAR_IN_FUTURE`). */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/reports/monthly-summary/export': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Descarga el cierre de un mes como CSV.
+     * @description Un solo archivo con todas las secciones como filas (Sección, Concepto, Moneda, Monto, Comparado con, Diferencia, Porcentaje), separado por `;`, con BOM UTF-8, montos con punto decimal y sin separador de miles, y porcentajes con 2 decimales. Lo que escribió el usuario nunca se ejecuta como fórmula. Las secciones de un módulo apagado no vienen.
+     */
+    get: {
+      parameters: {
+        query: {
+          year: string;
+          /** @description 1 a 12. */
+          month: string;
+          /** @description Solo `csv` por ahora. */
+          format: 'csv';
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description El archivo (`attachment; filename="resumen-AAAA-MM.csv"`). */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'text/csv': string;
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: los reportes solo se ven desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Falta el año, el mes o el formato, no tienen la forma esperada (un formato que no es `csv`), el mes no existe, o todavía no empieza (`SUMMARY_MONTH_IN_FUTURE`). */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/credit-cards': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Lista las tarjetas configuradas.
+     * @description En el orden en que se configuraron, **archivadas incluidas**: su configuración se conserva. Un método `CREDIT_CARD` sin configurar no aparece aquí.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Las tarjetas de la cuenta. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /** @description Lo que identifica la tarjeta, leído del método de pago: nunca más que esto. */
+              paymentMethod: {
+                /** Format: uuid */
+                id: string;
+                alias: string;
+                institution: string | null;
+                last4: string | null;
+                /**
+                 * @description Nula = bimoneda.
+                 * @enum {string|null}
+                 */
+                currency: 'PEN' | 'USD' | null;
+                /** @description Archivada, la tarjeta se sigue viendo y corrigiendo, pero no avisa. */
+                archived: boolean;
+              };
+              /** @description Una sola línea, en una moneda. Cero se permite (una adicional): sin porcentaje de uso. */
+              creditLimit: {
+                /** @description String decimal con 2 decimales (`"5000.00"`). */
+                amount: string;
+                /** @enum {string} */
+                currency: 'PEN' | 'USD';
+              };
+              /** @description Día de corte; si el mes no lo tiene, el último día del mes. */
+              statementDay: number;
+              paymentDueRule:
+                | {
+                    /** @enum {string} */
+                    kind: 'DAYS_AFTER_STATEMENT';
+                    days: number;
+                  }
+                | {
+                    /** @enum {string} */
+                    kind: 'DAY_OF_MONTH';
+                    day: number;
+                  };
+              /** @description Lo que ya se debía antes de registrar en la app. Nulo: la deuda arranca en cero. */
+              openingBalance: {
+                /** Format: date */
+                date: string;
+                /** @description Uno por moneda, primero soles. */
+                amounts: {
+                  /** @description String decimal con 2 decimales (`"5000.00"`). */
+                  amount: string;
+                  /** @enum {string} */
+                  currency: 'PEN' | 'USD';
+                }[];
+              } | null;
+            }[];
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las tarjetas solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    put?: never;
+    /**
+     * Configura un método de pago como tarjeta de crédito.
+     * @description Un método `CREDIT_CARD` propio y activo, **una vez**. Sin saldo inicial, la deuda arranca en cero.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            /** Format: uuid */
+            paymentMethodId: string;
+            creditLimit: {
+              amount: string;
+              /** @enum {string} */
+              currency: 'PEN' | 'USD';
+            };
+            statementDay: number;
+            paymentDueRule:
+              | {
+                  /** @enum {string} */
+                  kind: 'DAYS_AFTER_STATEMENT';
+                  days: number;
+                }
+              | {
+                  /** @enum {string} */
+                  kind: 'DAY_OF_MONTH';
+                  day: number;
+                };
+            openingBalance?: {
+              /** Format: date */
+              date: string;
+              amounts: {
+                amount: string;
+                /** @enum {string} */
+                currency: 'PEN' | 'USD';
+              }[];
+            } | null;
+          };
+        };
+      };
+      responses: {
+        /** @description La tarjeta configurada. */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /** @description Lo que identifica la tarjeta, leído del método de pago: nunca más que esto. */
+              paymentMethod: {
+                /** Format: uuid */
+                id: string;
+                alias: string;
+                institution: string | null;
+                last4: string | null;
+                /**
+                 * @description Nula = bimoneda.
+                 * @enum {string|null}
+                 */
+                currency: 'PEN' | 'USD' | null;
+                /** @description Archivada, la tarjeta se sigue viendo y corrigiendo, pero no avisa. */
+                archived: boolean;
+              };
+              /** @description Una sola línea, en una moneda. Cero se permite (una adicional): sin porcentaje de uso. */
+              creditLimit: {
+                /** @description String decimal con 2 decimales (`"5000.00"`). */
+                amount: string;
+                /** @enum {string} */
+                currency: 'PEN' | 'USD';
+              };
+              /** @description Día de corte; si el mes no lo tiene, el último día del mes. */
+              statementDay: number;
+              paymentDueRule:
+                | {
+                    /** @enum {string} */
+                    kind: 'DAYS_AFTER_STATEMENT';
+                    days: number;
+                  }
+                | {
+                    /** @enum {string} */
+                    kind: 'DAY_OF_MONTH';
+                    day: number;
+                  };
+              /** @description Lo que ya se debía antes de registrar en la app. Nulo: la deuda arranca en cero. */
+              openingBalance: {
+                /** Format: date */
+                date: string;
+                /** @description Uno por moneda, primero soles. */
+                amounts: {
+                  /** @description String decimal con 2 decimales (`"5000.00"`). */
+                  amount: string;
+                  /** @enum {string} */
+                  currency: 'PEN' | 'USD';
+                }[];
+              } | null;
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las tarjetas solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El método de pago no existe o es de otra cuenta (`PAYMENT_METHOD_NOT_FOUND`); o el módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El método ya está configurado (`CREDIT_CARD_ALREADY_CONFIGURED`). */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El cuerpo no tiene la forma esperada; el método no es una tarjeta (`PAYMENT_METHOD_NOT_CREDIT_CARD`) o está archivado (`PAYMENT_METHOD_ARCHIVED`); o se rompe una regla. La línea y el saldo inicial en una moneda que la tarjeta acepte, cero o más (`CREDIT_LIMIT_NEGATIVE`, `OPENING_BALANCE_NEGATIVE`, `CREDIT_CARD_CURRENCY_NOT_ACCEPTED`); corte de 1 a 31 (`STATEMENT_DAY_INVALID`); regla de pago de 1 a 60 días o un día de 1 a 31 (`PAYMENT_DUE_RULE_INVALID`); saldo inicial con al menos un monto, sin repetir moneda y con fecha de hoy o antes (`OPENING_BALANCE_EMPTY`, `OPENING_BALANCE_CURRENCY_REPEATED`, `OPENING_BALANCE_DATE_IN_FUTURE`). */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/credit-cards/status': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Dónde está cada tarjeta hoy.
+     * @description Las tarjetas configuradas, archivadas incluidas, cada una con su estado: ciclo, deuda, utilización, último estado cerrado y alertas.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Las tarjetas de la cuenta con su estado. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': ({
+              /** Format: uuid */
+              id: string;
+              /** @description Lo que identifica la tarjeta, leído del método de pago: nunca más que esto. */
+              paymentMethod: {
+                /** Format: uuid */
+                id: string;
+                alias: string;
+                institution: string | null;
+                last4: string | null;
+                /**
+                 * @description Nula = bimoneda.
+                 * @enum {string|null}
+                 */
+                currency: 'PEN' | 'USD' | null;
+                /** @description Archivada, la tarjeta se sigue viendo y corrigiendo, pero no avisa. */
+                archived: boolean;
+              };
+              /** @description Una sola línea, en una moneda. Cero se permite (una adicional): sin porcentaje de uso. */
+              creditLimit: {
+                /** @description String decimal con 2 decimales (`"5000.00"`). */
+                amount: string;
+                /** @enum {string} */
+                currency: 'PEN' | 'USD';
+              };
+              /** @description Día de corte; si el mes no lo tiene, el último día del mes. */
+              statementDay: number;
+              paymentDueRule:
+                | {
+                    /** @enum {string} */
+                    kind: 'DAYS_AFTER_STATEMENT';
+                    days: number;
+                  }
+                | {
+                    /** @enum {string} */
+                    kind: 'DAY_OF_MONTH';
+                    day: number;
+                  };
+              /** @description Lo que ya se debía antes de registrar en la app. Nulo: la deuda arranca en cero. */
+              openingBalance: {
+                /** Format: date */
+                date: string;
+                /** @description Uno por moneda, primero soles. */
+                amounts: {
+                  /** @description String decimal con 2 decimales (`"5000.00"`). */
+                  amount: string;
+                  /** @enum {string} */
+                  currency: 'PEN' | 'USD';
+                }[];
+              } | null;
+            } & {
+              /** @description Calculado al consultar. Una compra, deuda, ahorro, inversión o una transferencia que sale de la tarjeta suben la deuda; un ingreso (devolución) o una transferencia que llega (pago, con lo que llegó) la bajan. */
+              status: {
+                /** @description El ciclo en curso (Lima); `end` es el próximo corte. */
+                cycle: {
+                  /** Format: date */
+                  start: string;
+                  /** Format: date */
+                  end: string;
+                };
+                /** @description Primero soles. Siempre la moneda de la línea; la otra si tiene movimientos o saldo inicial. Nunca se convierte. */
+                currencies: {
+                  /** @enum {string} */
+                  currency: 'PEN' | 'USD';
+                  /** @description Lo que se debe hoy, de cualquier ciclo. Negativo: saldo a favor. */
+                  debt: string;
+                  /** @description Lo cargado en el ciclo en curso. De una compra en cuotas, solo la cuota que se factura en este ciclo. */
+                  cycleCharges: string;
+                  /** @description Cuotas que todavía no se facturan; ya son parte de `debt`. */
+                  pendingInstallments: string;
+                }[];
+                /** @description El último estado cerrado. Nulo si el saldo inicial es posterior a su corte. */
+                statement: {
+                  /** Format: date */
+                  start: string;
+                  /**
+                   * Format: date
+                   * @description El día de corte.
+                   */
+                  end: string;
+                  /** Format: date */
+                  dueDate: string;
+                  /** @description 0 el mismo día; negativo si ya venció. */
+                  daysLeft: number;
+                  /** @description Nada por pagar en ninguna moneda. */
+                  paid: boolean;
+                  balances: {
+                    /** @enum {string} */
+                    currency: 'PEN' | 'USD';
+                    /** @description La deuda total el día del corte. */
+                    balance: string;
+                    /** @description Pagos y devoluciones después del corte. */
+                    credited: string;
+                    /** @description Lo que falta pagar; nunca negativo. */
+                    remaining: string;
+                  }[];
+                } | null;
+                utilization: {
+                  /** @description Deuda en la moneda de la línea sobre la línea, en %, sin redondear. */
+                  percentage: string | null;
+                  /**
+                   * @description HIGH > 30 %, CRITICAL ≥ 70 %. Nulo con línea cero.
+                   * @enum {string|null}
+                   */
+                  level: 'OK' | 'HIGH' | 'CRITICAL' | null;
+                };
+                /** @description Vence en 3 días o menos, o venció, y todavía se debe algo de ese estado. */
+                paymentAlert: {
+                  /** @enum {string} */
+                  status: 'DUE_SOON' | 'OVERDUE';
+                  daysLeft: number;
+                } | null;
+              };
+            })[];
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las tarjetas solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/credit-cards/{id}/status': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Dónde está una tarjeta hoy. */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description La tarjeta con su estado. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /** @description Lo que identifica la tarjeta, leído del método de pago: nunca más que esto. */
+              paymentMethod: {
+                /** Format: uuid */
+                id: string;
+                alias: string;
+                institution: string | null;
+                last4: string | null;
+                /**
+                 * @description Nula = bimoneda.
+                 * @enum {string|null}
+                 */
+                currency: 'PEN' | 'USD' | null;
+                /** @description Archivada, la tarjeta se sigue viendo y corrigiendo, pero no avisa. */
+                archived: boolean;
+              };
+              /** @description Una sola línea, en una moneda. Cero se permite (una adicional): sin porcentaje de uso. */
+              creditLimit: {
+                /** @description String decimal con 2 decimales (`"5000.00"`). */
+                amount: string;
+                /** @enum {string} */
+                currency: 'PEN' | 'USD';
+              };
+              /** @description Día de corte; si el mes no lo tiene, el último día del mes. */
+              statementDay: number;
+              paymentDueRule:
+                | {
+                    /** @enum {string} */
+                    kind: 'DAYS_AFTER_STATEMENT';
+                    days: number;
+                  }
+                | {
+                    /** @enum {string} */
+                    kind: 'DAY_OF_MONTH';
+                    day: number;
+                  };
+              /** @description Lo que ya se debía antes de registrar en la app. Nulo: la deuda arranca en cero. */
+              openingBalance: {
+                /** Format: date */
+                date: string;
+                /** @description Uno por moneda, primero soles. */
+                amounts: {
+                  /** @description String decimal con 2 decimales (`"5000.00"`). */
+                  amount: string;
+                  /** @enum {string} */
+                  currency: 'PEN' | 'USD';
+                }[];
+              } | null;
+            } & {
+              /** @description Calculado al consultar. Una compra, deuda, ahorro, inversión o una transferencia que sale de la tarjeta suben la deuda; un ingreso (devolución) o una transferencia que llega (pago, con lo que llegó) la bajan. */
+              status: {
+                /** @description El ciclo en curso (Lima); `end` es el próximo corte. */
+                cycle: {
+                  /** Format: date */
+                  start: string;
+                  /** Format: date */
+                  end: string;
+                };
+                /** @description Primero soles. Siempre la moneda de la línea; la otra si tiene movimientos o saldo inicial. Nunca se convierte. */
+                currencies: {
+                  /** @enum {string} */
+                  currency: 'PEN' | 'USD';
+                  /** @description Lo que se debe hoy, de cualquier ciclo. Negativo: saldo a favor. */
+                  debt: string;
+                  /** @description Lo cargado en el ciclo en curso. De una compra en cuotas, solo la cuota que se factura en este ciclo. */
+                  cycleCharges: string;
+                  /** @description Cuotas que todavía no se facturan; ya son parte de `debt`. */
+                  pendingInstallments: string;
+                }[];
+                /** @description El último estado cerrado. Nulo si el saldo inicial es posterior a su corte. */
+                statement: {
+                  /** Format: date */
+                  start: string;
+                  /**
+                   * Format: date
+                   * @description El día de corte.
+                   */
+                  end: string;
+                  /** Format: date */
+                  dueDate: string;
+                  /** @description 0 el mismo día; negativo si ya venció. */
+                  daysLeft: number;
+                  /** @description Nada por pagar en ninguna moneda. */
+                  paid: boolean;
+                  balances: {
+                    /** @enum {string} */
+                    currency: 'PEN' | 'USD';
+                    /** @description La deuda total el día del corte. */
+                    balance: string;
+                    /** @description Pagos y devoluciones después del corte. */
+                    credited: string;
+                    /** @description Lo que falta pagar; nunca negativo. */
+                    remaining: string;
+                  }[];
+                } | null;
+                utilization: {
+                  /** @description Deuda en la moneda de la línea sobre la línea, en %, sin redondear. */
+                  percentage: string | null;
+                  /**
+                   * @description HIGH > 30 %, CRITICAL ≥ 70 %. Nulo con línea cero.
+                   * @enum {string|null}
+                   */
+                  level: 'OK' | 'HIGH' | 'CRITICAL' | null;
+                };
+                /** @description Vence en 3 días o menos, o venció, y todavía se debe algo de ese estado. */
+                paymentAlert: {
+                  /** @enum {string} */
+                  status: 'DUE_SOON' | 'OVERDUE';
+                  daysLeft: number;
+                } | null;
+              };
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las tarjetas solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La tarjeta no existe o es de otra cuenta (`CREDIT_CARD_NOT_FOUND`); o el módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El id no es un UUID. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/credit-cards/{id}/installments': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Las compras en cuotas de una tarjeta, con lo que falta. */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Los planes, en el orden en que se registraron. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /** Format: uuid */
+              transactionId: string;
+              count: number;
+              /**
+               * @description El plan sigue a la compra: solo `ACTIVE` cuenta. Borrada, se ignora hasta que se restaure; si cambió de tarjeta, pasó a ingreso o supera el total del banco, queda inválido hasta corregirla.
+               * @enum {string}
+               */
+              state:
+                | 'ACTIVE'
+                | 'PURCHASE_DELETED'
+                | 'PURCHASE_NOT_ON_CARD'
+                | 'PURCHASE_NOT_A_CHARGE'
+                | 'TOTAL_BELOW_PRICE';
+              /** @description La compra como está hoy; nula si se borró. */
+              purchase: {
+                /** Format: date */
+                date: string;
+                description: string;
+                amount: {
+                  /** @description String decimal con 2 decimales (`"5000.00"`). */
+                  amount: string;
+                  /** @enum {string} */
+                  currency: 'PEN' | 'USD';
+                };
+              } | null;
+              /** @description Lo que se paga en cuotas: el total del banco, o sin intereses el monto de la compra. */
+              total: {
+                /** @description String decimal con 2 decimales (`"5000.00"`). */
+                amount: string;
+                /** @enum {string} */
+                currency: 'PEN' | 'USD';
+              } | null;
+              /** @description Total − precio. Solo cuenta en la deuda de la tarjeta: no es una transacción. */
+              interest: {
+                /** @description String decimal con 2 decimales (`"5000.00"`). */
+                amount: string;
+                /** @enum {string} */
+                currency: 'PEN' | 'USD';
+              } | null;
+              /** @description Suman exactamente el total; los céntimos sobrantes van a las primeras. */
+              installments: {
+                number: number;
+                amount: {
+                  /** @description String decimal con 2 decimales (`"5000.00"`). */
+                  amount: string;
+                  /** @enum {string} */
+                  currency: 'PEN' | 'USD';
+                };
+                /**
+                 * Format: date
+                 * @description El estado de cuenta en que se factura.
+                 */
+                statementDate: string;
+                /** @description Ya se facturó (el estado que cierra hoy incluido). */
+                billed: boolean;
+              }[];
+              /** @description Las cuotas que faltan facturar; nulo si no queda ninguna. */
+              pending: {
+                count: number;
+                amount: {
+                  /** @description String decimal con 2 decimales (`"5000.00"`). */
+                  amount: string;
+                  /** @enum {string} */
+                  currency: 'PEN' | 'USD';
+                };
+              } | null;
+            }[];
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las tarjetas solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La tarjeta no existe o es de otra cuenta (`CREDIT_CARD_NOT_FOUND`); o el módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El id no es un UUID. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    put?: never;
+    /**
+     * Marca una compra hecha con la tarjeta como pagada en cuotas.
+     * @description De 2 a 36 cuotas. Sin intereses no se manda `totalAmount`: el total sigue siendo el monto de la compra aunque se corrija. Con intereses, el total del banco (en la moneda de la compra); la diferencia es deuda de la tarjeta. La compra entera sigue siendo gasto el día que se hizo: presupuesto y dashboard no cambian.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            /** Format: uuid */
+            transactionId: string;
+            count: number;
+            totalAmount?: string | null;
+          };
+        };
+      };
+      responses: {
+        /** @description El plan con sus cuotas. */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /** Format: uuid */
+              transactionId: string;
+              count: number;
+              /**
+               * @description El plan sigue a la compra: solo `ACTIVE` cuenta. Borrada, se ignora hasta que se restaure; si cambió de tarjeta, pasó a ingreso o supera el total del banco, queda inválido hasta corregirla.
+               * @enum {string}
+               */
+              state:
+                | 'ACTIVE'
+                | 'PURCHASE_DELETED'
+                | 'PURCHASE_NOT_ON_CARD'
+                | 'PURCHASE_NOT_A_CHARGE'
+                | 'TOTAL_BELOW_PRICE';
+              /** @description La compra como está hoy; nula si se borró. */
+              purchase: {
+                /** Format: date */
+                date: string;
+                description: string;
+                amount: {
+                  /** @description String decimal con 2 decimales (`"5000.00"`). */
+                  amount: string;
+                  /** @enum {string} */
+                  currency: 'PEN' | 'USD';
+                };
+              } | null;
+              /** @description Lo que se paga en cuotas: el total del banco, o sin intereses el monto de la compra. */
+              total: {
+                /** @description String decimal con 2 decimales (`"5000.00"`). */
+                amount: string;
+                /** @enum {string} */
+                currency: 'PEN' | 'USD';
+              } | null;
+              /** @description Total − precio. Solo cuenta en la deuda de la tarjeta: no es una transacción. */
+              interest: {
+                /** @description String decimal con 2 decimales (`"5000.00"`). */
+                amount: string;
+                /** @enum {string} */
+                currency: 'PEN' | 'USD';
+              } | null;
+              /** @description Suman exactamente el total; los céntimos sobrantes van a las primeras. */
+              installments: {
+                number: number;
+                amount: {
+                  /** @description String decimal con 2 decimales (`"5000.00"`). */
+                  amount: string;
+                  /** @enum {string} */
+                  currency: 'PEN' | 'USD';
+                };
+                /**
+                 * Format: date
+                 * @description El estado de cuenta en que se factura.
+                 */
+                statementDate: string;
+                /** @description Ya se facturó (el estado que cierra hoy incluido). */
+                billed: boolean;
+              }[];
+              /** @description Las cuotas que faltan facturar; nulo si no queda ninguna. */
+              pending: {
+                count: number;
+                amount: {
+                  /** @description String decimal con 2 decimales (`"5000.00"`). */
+                  amount: string;
+                  /** @enum {string} */
+                  currency: 'PEN' | 'USD';
+                };
+              } | null;
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las tarjetas solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La tarjeta (`CREDIT_CARD_NOT_FOUND`) o la compra (`TRANSACTION_NOT_FOUND`) no existe, está borrada o es de otra cuenta; o el módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La compra ya se paga en cuotas (`INSTALLMENT_PLAN_ALREADY_EXISTS`). */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El cuerpo no tiene la forma esperada, o la compra no es de esta tarjeta (`INSTALLMENT_PURCHASE_NOT_ON_CARD`), es un ingreso (`INSTALLMENT_PURCHASE_NOT_A_CHARGE`), el total baja del precio (`INSTALLMENT_TOTAL_BELOW_PRICE`), las cuotas no van de 2 a 36 (`INSTALLMENT_COUNT_INVALID`) o alguna quedaría en cero (`INSTALLMENT_TOO_SMALL`). */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/credit-cards/{id}/installments/{planId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Deshace un plan de cuotas.
+     * @description La compra vuelve a pagarse entera en su estado de cuenta.
+     */
+    delete: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+          planId: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Deshecho. */
+        204: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las tarjetas solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El plan no existe, es de otra tarjeta o de otra cuenta (`INSTALLMENT_PLAN_NOT_FOUND`); o el módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Algún id no es un UUID. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/credit-cards/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Corrige la configuración de una tarjeta.
+     * @description Solo cambia lo que llega; `openingBalance: null` quita el saldo inicial. Se revisa la tarjeta **como quedaría**, también si su método está archivado. Cambiar el día de corte recalcula todos los ciclos, los pasados incluidos: solo se guarda el día actual.
+     */
+    patch: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            creditLimit?: {
+              amount: string;
+              /** @enum {string} */
+              currency: 'PEN' | 'USD';
+            };
+            statementDay?: number;
+            paymentDueRule?:
+              | {
+                  /** @enum {string} */
+                  kind: 'DAYS_AFTER_STATEMENT';
+                  days: number;
+                }
+              | {
+                  /** @enum {string} */
+                  kind: 'DAY_OF_MONTH';
+                  day: number;
+                };
+            openingBalance?: {
+              /** Format: date */
+              date: string;
+              amounts: {
+                amount: string;
+                /** @enum {string} */
+                currency: 'PEN' | 'USD';
+              }[];
+            } | null;
+          };
+        };
+      };
+      responses: {
+        /** @description La tarjeta como quedó. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /** @description Lo que identifica la tarjeta, leído del método de pago: nunca más que esto. */
+              paymentMethod: {
+                /** Format: uuid */
+                id: string;
+                alias: string;
+                institution: string | null;
+                last4: string | null;
+                /**
+                 * @description Nula = bimoneda.
+                 * @enum {string|null}
+                 */
+                currency: 'PEN' | 'USD' | null;
+                /** @description Archivada, la tarjeta se sigue viendo y corrigiendo, pero no avisa. */
+                archived: boolean;
+              };
+              /** @description Una sola línea, en una moneda. Cero se permite (una adicional): sin porcentaje de uso. */
+              creditLimit: {
+                /** @description String decimal con 2 decimales (`"5000.00"`). */
+                amount: string;
+                /** @enum {string} */
+                currency: 'PEN' | 'USD';
+              };
+              /** @description Día de corte; si el mes no lo tiene, el último día del mes. */
+              statementDay: number;
+              paymentDueRule:
+                | {
+                    /** @enum {string} */
+                    kind: 'DAYS_AFTER_STATEMENT';
+                    days: number;
+                  }
+                | {
+                    /** @enum {string} */
+                    kind: 'DAY_OF_MONTH';
+                    day: number;
+                  };
+              /** @description Lo que ya se debía antes de registrar en la app. Nulo: la deuda arranca en cero. */
+              openingBalance: {
+                /** Format: date */
+                date: string;
+                /** @description Uno por moneda, primero soles. */
+                amounts: {
+                  /** @description String decimal con 2 decimales (`"5000.00"`). */
+                  amount: string;
+                  /** @enum {string} */
+                  currency: 'PEN' | 'USD';
+                }[];
+              } | null;
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las tarjetas solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La tarjeta no existe o es de otra cuenta (`CREDIT_CARD_NOT_FOUND`); o el módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El id no es un UUID, el cuerpo no tiene la forma esperada, o se rompe una regla. La línea y el saldo inicial en una moneda que la tarjeta acepte, cero o más (`CREDIT_LIMIT_NEGATIVE`, `OPENING_BALANCE_NEGATIVE`, `CREDIT_CARD_CURRENCY_NOT_ACCEPTED`); corte de 1 a 31 (`STATEMENT_DAY_INVALID`); regla de pago de 1 a 60 días o un día de 1 a 31 (`PAYMENT_DUE_RULE_INVALID`); saldo inicial con al menos un monto, sin repetir moneda y con fecha de hoy o antes (`OPENING_BALANCE_EMPTY`, `OPENING_BALANCE_CURRENCY_REPEATED`, `OPENING_BALANCE_DATE_IN_FUTURE`). */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    trace?: never;
+  };
+  '/api/v1/goals': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Lista las metas de ahorro con su progreso.
+     * @description En el orden en que se crearon. Las archivadas, solo con `?includeArchived=true`.
+     */
+    get: {
+      parameters: {
+        query?: {
+          includeArchived?: 'true' | 'false';
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Las metas de la cuenta. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              name: string;
+              /**
+               * @description Fija desde que se crea: sus aportes van en ella.
+               * @enum {string}
+               */
+              currency: 'PEN' | 'USD';
+              /** @description String decimal con 2 decimales (`"3000.00"`). */
+              targetAmount: string;
+              /** Format: date */
+              startDate: string;
+              /** Format: date */
+              endDate: string;
+              /** @description Archivada no recibe aportes; se sigue corrigiendo. */
+              archived: boolean;
+              /** @description Calculado al consultar, con los aportes de hoy. */
+              progress: {
+                /** @description Aportes − retiros hasta hoy. Negativo solo si se borró una transacción enlazada. */
+                saved: string;
+                /** @description Lo que falta; cero si ya se llegó. */
+                remaining: string;
+                /** @description Lo que pasa del objetivo; cero si no se llegó. */
+                excess: string;
+                /** @description Ahorrado / objetivo en %, sin redondear (2 decimales al mostrar). */
+                percentage: string;
+                /** @description Lo esperado aportando parejo, al cierre del mes anterior, en %, sin redondear. 100 con la fecha fin pasada. */
+                expectedPercentage: string;
+                /** @description Lo que falta para ir al día: lo esperado menos lo ahorrado. Cero si se va al día o adelantado. */
+                behind: string;
+                /** @description Lo que falta entre los meses que quedan (el actual incluido), redondeado hacia arriba al céntimo. Cero si ya se llegó; nulo con la fecha fin pasada. */
+                suggestedMonthly: string | null;
+                /**
+                 * @description AT_RISK: más de 10 puntos por debajo de lo esperado. OVERDUE: la fecha fin pasó sin llegar. ACHIEVED gana a las demás.
+                 * @enum {string}
+                 */
+                status: 'ON_TRACK' | 'AT_RISK' | 'ACHIEVED' | 'OVERDUE';
+              };
+            }[];
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las metas solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description `includeArchived` no es `true` ni `false`. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    put?: never;
+    /**
+     * Crea una meta de ahorro.
+     * @description Fechas libres (una meta a varios años vale) y el inicio puede ser pasado. La moneda queda fija.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            name: string;
+            /** @enum {string} */
+            currency: 'PEN' | 'USD';
+            targetAmount: string;
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string;
+          };
+        };
+      };
+      responses: {
+        /** @description La meta con su progreso. */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              name: string;
+              /**
+               * @description Fija desde que se crea: sus aportes van en ella.
+               * @enum {string}
+               */
+              currency: 'PEN' | 'USD';
+              /** @description String decimal con 2 decimales (`"3000.00"`). */
+              targetAmount: string;
+              /** Format: date */
+              startDate: string;
+              /** Format: date */
+              endDate: string;
+              /** @description Archivada no recibe aportes; se sigue corrigiendo. */
+              archived: boolean;
+              /** @description Calculado al consultar, con los aportes de hoy. */
+              progress: {
+                /** @description Aportes − retiros hasta hoy. Negativo solo si se borró una transacción enlazada. */
+                saved: string;
+                /** @description Lo que falta; cero si ya se llegó. */
+                remaining: string;
+                /** @description Lo que pasa del objetivo; cero si no se llegó. */
+                excess: string;
+                /** @description Ahorrado / objetivo en %, sin redondear (2 decimales al mostrar). */
+                percentage: string;
+                /** @description Lo esperado aportando parejo, al cierre del mes anterior, en %, sin redondear. 100 con la fecha fin pasada. */
+                expectedPercentage: string;
+                /** @description Lo que falta para ir al día: lo esperado menos lo ahorrado. Cero si se va al día o adelantado. */
+                behind: string;
+                /** @description Lo que falta entre los meses que quedan (el actual incluido), redondeado hacia arriba al céntimo. Cero si ya se llegó; nulo con la fecha fin pasada. */
+                suggestedMonthly: string | null;
+                /**
+                 * @description AT_RISK: más de 10 puntos por debajo de lo esperado. OVERDUE: la fecha fin pasó sin llegar. ACHIEVED gana a las demás.
+                 * @enum {string}
+                 */
+                status: 'ON_TRACK' | 'AT_RISK' | 'ACHIEVED' | 'OVERDUE';
+              };
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las metas solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Otra meta de la cuenta, quizá archivada, ya tiene ese nombre sin distinguir mayúsculas (`GOAL_NAME_TAKEN`). */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El cuerpo no tiene la forma esperada, o se rompe una regla. Objetivo mayor que cero (`GOAL_TARGET_NOT_POSITIVE`), con 2 decimales a lo más (`INVALID_AMOUNT`); el fin después del inicio (`GOAL_END_NOT_AFTER_START`). */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/goals/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Corrige, archiva o desarchiva una meta.
+     * @description Solo cambia lo que llega; la moneda no se cambia. Se revisa la meta **como quedaría**, también archivada. Cambiar el objetivo o las fechas con aportes recalcula el progreso.
+     */
+    patch: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            name?: string;
+            targetAmount?: string;
+            /** Format: date */
+            startDate?: string;
+            /** Format: date */
+            endDate?: string;
+            archived?: boolean;
+          };
+        };
+      };
+      responses: {
+        /** @description La meta como quedó. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              name: string;
+              /**
+               * @description Fija desde que se crea: sus aportes van en ella.
+               * @enum {string}
+               */
+              currency: 'PEN' | 'USD';
+              /** @description String decimal con 2 decimales (`"3000.00"`). */
+              targetAmount: string;
+              /** Format: date */
+              startDate: string;
+              /** Format: date */
+              endDate: string;
+              /** @description Archivada no recibe aportes; se sigue corrigiendo. */
+              archived: boolean;
+              /** @description Calculado al consultar, con los aportes de hoy. */
+              progress: {
+                /** @description Aportes − retiros hasta hoy. Negativo solo si se borró una transacción enlazada. */
+                saved: string;
+                /** @description Lo que falta; cero si ya se llegó. */
+                remaining: string;
+                /** @description Lo que pasa del objetivo; cero si no se llegó. */
+                excess: string;
+                /** @description Ahorrado / objetivo en %, sin redondear (2 decimales al mostrar). */
+                percentage: string;
+                /** @description Lo esperado aportando parejo, al cierre del mes anterior, en %, sin redondear. 100 con la fecha fin pasada. */
+                expectedPercentage: string;
+                /** @description Lo que falta para ir al día: lo esperado menos lo ahorrado. Cero si se va al día o adelantado. */
+                behind: string;
+                /** @description Lo que falta entre los meses que quedan (el actual incluido), redondeado hacia arriba al céntimo. Cero si ya se llegó; nulo con la fecha fin pasada. */
+                suggestedMonthly: string | null;
+                /**
+                 * @description AT_RISK: más de 10 puntos por debajo de lo esperado. OVERDUE: la fecha fin pasó sin llegar. ACHIEVED gana a las demás.
+                 * @enum {string}
+                 */
+                status: 'ON_TRACK' | 'AT_RISK' | 'ACHIEVED' | 'OVERDUE';
+              };
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las metas solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La meta no existe o es de otra cuenta (`GOAL_NOT_FOUND`); o el módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Otra meta de la cuenta ya tiene ese nombre (`GOAL_NAME_TAKEN`). */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El id no es un UUID, el cuerpo no tiene la forma esperada, o se rompe una regla. Objetivo mayor que cero (`GOAL_TARGET_NOT_POSITIVE`), con 2 decimales a lo más (`INVALID_AMOUNT`); el fin después del inicio (`GOAL_END_NOT_AFTER_START`). */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    trace?: never;
+  };
+  '/api/v1/goals/{id}/contributions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Los aportes y retiros de una meta, como están hoy.
+     * @description Primero los más recientes; los enlazados a una transacción borrada, al final.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Los aportes de la meta. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /**
+               * @description Manual, o enlazado a una transacción entera que sigue.
+               * @enum {string}
+               */
+              source: 'MANUAL' | 'TRANSACTION';
+              /**
+               * @description Un retiro resta; es siempre manual.
+               * @enum {string}
+               */
+              kind: 'CONTRIBUTION' | 'WITHDRAWAL';
+              /**
+               * @description Solo `ACTIVE` cuenta. Uno enlazado deja de contar si su transacción se borra, deja de ser ahorro o inversión o cambia de moneda, y vuelve si se corrige o se restaura.
+               * @enum {string}
+               */
+              state:
+                'ACTIVE' | 'TRANSACTION_DELETED' | 'TRANSACTION_NOT_A_SAVING' | 'CURRENCY_MISMATCH';
+              /** @description En la moneda de la meta. Nulo si la transacción enlazada se borró. */
+              amount: string | null;
+              /**
+               * Format: date
+               * @description Nula si la transacción enlazada se borró.
+               */
+              date: string | null;
+              /** @description La transacción que sigue, si es enlazado y sigue vigente. */
+              transaction: {
+                /** Format: uuid */
+                id: string;
+                description: string;
+              } | null;
+            }[];
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las metas solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La meta no existe o es de otra cuenta (`GOAL_NOT_FOUND`); o el módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El id no es un UUID. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    put?: never;
+    /**
+     * Registra un aporte o un retiro.
+     * @description Manual (`source: MANUAL`): aporte o retiro con monto positivo en la moneda de la meta y fecha de hoy o antes; puede ser anterior al inicio. Enlazado (`source: TRANSACTION`): toma entera una transacción de ahorro o inversión y la sigue si se corrige o se borra.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json':
+            | {
+                /** @enum {string} */
+                source: 'MANUAL';
+                /** @enum {string} */
+                kind: 'CONTRIBUTION' | 'WITHDRAWAL';
+                amount: string;
+                /** Format: date */
+                date: string;
+              }
+            | {
+                /** @enum {string} */
+                source: 'TRANSACTION';
+                /** Format: uuid */
+                transactionId: string;
+              };
+        };
+      };
+      responses: {
+        /** @description El aporte registrado. */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /**
+               * @description Manual, o enlazado a una transacción entera que sigue.
+               * @enum {string}
+               */
+              source: 'MANUAL' | 'TRANSACTION';
+              /**
+               * @description Un retiro resta; es siempre manual.
+               * @enum {string}
+               */
+              kind: 'CONTRIBUTION' | 'WITHDRAWAL';
+              /**
+               * @description Solo `ACTIVE` cuenta. Uno enlazado deja de contar si su transacción se borra, deja de ser ahorro o inversión o cambia de moneda, y vuelve si se corrige o se restaura.
+               * @enum {string}
+               */
+              state:
+                'ACTIVE' | 'TRANSACTION_DELETED' | 'TRANSACTION_NOT_A_SAVING' | 'CURRENCY_MISMATCH';
+              /** @description En la moneda de la meta. Nulo si la transacción enlazada se borró. */
+              amount: string | null;
+              /**
+               * Format: date
+               * @description Nula si la transacción enlazada se borró.
+               */
+              date: string | null;
+              /** @description La transacción que sigue, si es enlazado y sigue vigente. */
+              transaction: {
+                /** Format: uuid */
+                id: string;
+                description: string;
+              } | null;
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las metas solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La meta (`GOAL_NOT_FOUND`) o la transacción (`TRANSACTION_NOT_FOUND`) no existe, está borrada o es de otra cuenta; o el módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La transacción ya aporta a una meta (`GOAL_TRANSACTION_ALREADY_LINKED`). */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El cuerpo no tiene la forma esperada; la meta está archivada (`GOAL_ARCHIVED`); el monto no es positivo (`GOAL_CONTRIBUTION_AMOUNT_NOT_POSITIVE`) o tiene más de 2 decimales (`INVALID_AMOUNT`); la fecha es futura (`GOAL_CONTRIBUTION_DATE_IN_FUTURE`); el retiro saca más de lo ahorrado (`GOAL_WITHDRAWAL_EXCEEDS_SAVED`); o la transacción no es de ahorro o inversión (`GOAL_TRANSACTION_NOT_A_SAVING`) o está en otra moneda (`GOAL_CURRENCY_MISMATCH`). */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/goals/{id}/contributions/{contributionId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Deshace un aporte o un retiro.
+     * @description También en una meta archivada.
+     */
+    delete: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+          contributionId: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Deshecho. */
+        204: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las metas solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La meta no existe o es de otra cuenta (`GOAL_NOT_FOUND`); el aporte no existe o es de otra meta (`GOAL_CONTRIBUTION_NOT_FOUND`); o el módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Algún id no es un UUID, o quitar el aporte dejaría la meta en negativo por los retiros ya hechos (`GOAL_WITHDRAWAL_EXCEEDS_SAVED`). */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/captures': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * La bandeja: las capturas por revisar, o las descartadas.
+     * @description `status=inbox` (por defecto): por revisar, con las duplicadas marcadas. `status=discarded`: las descartadas, que se borran del todo a los 90 días. Las confirmadas no se listan: ya son transacciones. Primero la más reciente; paginación por cursor.
+     */
+    get: {
+      parameters: {
+        query?: {
+          status?: 'inbox' | 'discarded';
+          /** @description El `nextCursor` de la página anterior, tal cual. */
+          cursor?: string;
+          /** @description Por defecto 50; más de 100 se recorta. */
+          limit?: number;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Una página de la bandeja. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              items: {
+                /** Format: uuid */
+                id: string;
+                /** @enum {string} */
+                source: 'IOS_SHORTCUT' | 'ANDROID_AUTOMATION';
+                /**
+                 * @description Por revisar, duplicada (se puede confirmar igual), descartada, o confirmada (solo en la respuesta de confirmar).
+                 * @enum {string}
+                 */
+                status: 'PENDING' | 'DUPLICATE' | 'DISCARDED' | 'CONFIRMED';
+                /** @description Si tiene monto. */
+                parsed: boolean;
+                /** @enum {string} */
+                type:
+                  | 'INCOME'
+                  | 'FIXED_EXPENSE'
+                  | 'VARIABLE_EXPENSE'
+                  | 'SAVING'
+                  | 'INVESTMENT'
+                  | 'DEBT';
+                /** @description String decimal, mayor que cero. */
+                amount: string | null;
+                /**
+                 * @description Nula: se elige antes de confirmar.
+                 * @enum {string|null}
+                 */
+                currency: 'PEN' | 'USD' | null;
+                merchant: string | null;
+                cardLast4: string | null;
+                /** Format: date */
+                date: string;
+                /** Format: date-time */
+                occurredAt: string;
+                /** Format: uuid */
+                categoryId: string | null;
+                /** Format: uuid */
+                paymentMethodId: string | null;
+                description: string | null;
+                /** @description Los avisos con que llegó. */
+                warnings: string[];
+                /** @description El pedido como llegó del teléfono, con las tarjetas tapadas: completo mientras no se confirme. */
+                raw: {
+                  [key: string]: string;
+                } | null;
+                /**
+                 * Format: date-time
+                 * @description Se borra del todo 90 días después.
+                 */
+                discardedAt: string | null;
+                /**
+                 * Format: uuid
+                 * @description La transacción que salió al confirmarla.
+                 */
+                transactionId: string | null;
+              }[];
+              nextCursor: string | null;
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: la bandeja solo se revisa desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El filtro, el límite o el cursor (`INVALID_CURSOR`) no valen. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    put?: never;
+    /**
+     * Recibe una captura del teléfono y la deja en la bandeja.
+     * @description Para el atajo de iPhone (monto, comercio y tarjeta) o la automatización de Android (el texto de la notificación). **Siempre guarda** un pedido bien formado, aunque no lo entienda: lo que falte se completa en la bandeja. Los números de tarjeta se tapan antes de guardar. Solo con token personal y el scope `captures:write`; tope de 30 por minuto.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: {
+          /** @description Opcional. Un reintento con la misma clave devuelve la captura original (200) aunque el cuerpo cambie. Sin ella, la clave sale de todo el pedido. */
+          'Idempotency-Key'?: string;
+        };
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            /** @enum {string} */
+            source: 'IOS_SHORTCUT' | 'ANDROID_AUTOMATION';
+            /** Format: date-time */
+            occurredAt: string;
+            amountText?: string | null;
+            merchant?: string | null;
+            card?: string | null;
+            rawText?: string | null;
+          };
+        };
+      };
+      responses: {
+        /** @description La clave ya existía: la captura que se guardó antes. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /** @enum {string} */
+              source: 'IOS_SHORTCUT' | 'ANDROID_AUTOMATION';
+              /**
+               * @description Toda captura nueva entra a la bandeja: `DUPLICATE` si el mismo monto y comercio ya llegaron en ±2 minutos o están registrados ese día. Se puede confirmar igual.
+               * @enum {string}
+               */
+              status: 'PENDING' | 'DUPLICATE';
+              /** @description Si se entendió al menos el monto. */
+              parsed: boolean;
+              /**
+               * @description Gasto por defecto; ingreso si lo dice.
+               * @enum {string}
+               */
+              type: 'VARIABLE_EXPENSE' | 'INCOME';
+              /** @description String decimal, mayor que cero. Nulo si no se entendió. */
+              amount: string | null;
+              /**
+               * @description Nula si el monto no la dice y el método no tiene una sola: se elige en la bandeja.
+               * @enum {string|null}
+               */
+              currency: 'PEN' | 'USD' | null;
+              merchant: string | null;
+              /** @description Solo los últimos 4: nunca el número completo. */
+              cardLast4: string | null;
+              /**
+               * Format: date
+               * @description El día en Lima en que pasó; uno futuro queda en hoy.
+               */
+              date: string;
+              /**
+               * Format: date-time
+               * @description El instante que mandó el teléfono, en UTC.
+               */
+              occurredAt: string;
+              /**
+               * Format: uuid
+               * @description La que sugirió una regla, si alguna aplicó.
+               */
+              categoryId: string | null;
+              /**
+               * Format: uuid
+               * @description El método reconocido, si uno solo coincidió.
+               */
+              paymentMethodId: string | null;
+              /** @description Códigos estables de lo que hay que mirar: `UNKNOWN_SOURCE`, `AMOUNT_NOT_FOUND`, `AMBIGUOUS_AMOUNT`, `INVALID_AMOUNT`, `AMOUNT_MISMATCH`, `CARD_NUMBER_MASKED`, `OPERATION_REJECTED`, `FUTURE_DATE`, `OLD_DATE`, `CURRENCY_MISMATCH`, `PARSER_FAILED`, `PROCESSING_FAILED`. */
+              warnings: string[];
+            };
+          };
+        };
+        /** @description La captura guardada, con lo que se entendió. */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /** @enum {string} */
+              source: 'IOS_SHORTCUT' | 'ANDROID_AUTOMATION';
+              /**
+               * @description Toda captura nueva entra a la bandeja: `DUPLICATE` si el mismo monto y comercio ya llegaron en ±2 minutos o están registrados ese día. Se puede confirmar igual.
+               * @enum {string}
+               */
+              status: 'PENDING' | 'DUPLICATE';
+              /** @description Si se entendió al menos el monto. */
+              parsed: boolean;
+              /**
+               * @description Gasto por defecto; ingreso si lo dice.
+               * @enum {string}
+               */
+              type: 'VARIABLE_EXPENSE' | 'INCOME';
+              /** @description String decimal, mayor que cero. Nulo si no se entendió. */
+              amount: string | null;
+              /**
+               * @description Nula si el monto no la dice y el método no tiene una sola: se elige en la bandeja.
+               * @enum {string|null}
+               */
+              currency: 'PEN' | 'USD' | null;
+              merchant: string | null;
+              /** @description Solo los últimos 4: nunca el número completo. */
+              cardLast4: string | null;
+              /**
+               * Format: date
+               * @description El día en Lima en que pasó; uno futuro queda en hoy.
+               */
+              date: string;
+              /**
+               * Format: date-time
+               * @description El instante que mandó el teléfono, en UTC.
+               */
+              occurredAt: string;
+              /**
+               * Format: uuid
+               * @description La que sugirió una regla, si alguna aplicó.
+               */
+              categoryId: string | null;
+              /**
+               * Format: uuid
+               * @description El método reconocido, si uno solo coincidió.
+               */
+              paymentMethodId: string | null;
+              /** @description Códigos estables de lo que hay que mirar: `UNKNOWN_SOURCE`, `AMOUNT_NOT_FOUND`, `AMBIGUOUS_AMOUNT`, `INVALID_AMOUNT`, `AMOUNT_MISMATCH`, `CARD_NUMBER_MASKED`, `OPERATION_REJECTED`, `FUTURE_DATE`, `OLD_DATE`, `CURRENCY_MISMATCH`, `PARSER_FAILED`, `PROCESSING_FAILED`. */
+              warnings: string[];
+            };
+          };
+        };
+        /** @description Falta el token personal, no vale, está revocado o caducó. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El token no tiene el scope `captures:write` (`INSUFFICIENT_TOKEN_SCOPE`), o llegó una sesión: esta ruta es solo del teléfono (`PERSONAL_ACCESS_TOKEN_REQUIRED`). */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Falta `source` u `occurredAt`, el instante no trae zona, sobra un campo o alguno es demasiado largo; o la cabecera `Idempotency-Key` no vale. No se guarda nada. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Más de 30 capturas en un minuto desde la misma IP. */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/captures/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Una captura, con el pedido crudo mientras no se confirme. */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description La captura. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /** @enum {string} */
+              source: 'IOS_SHORTCUT' | 'ANDROID_AUTOMATION';
+              /**
+               * @description Por revisar, duplicada (se puede confirmar igual), descartada, o confirmada (solo en la respuesta de confirmar).
+               * @enum {string}
+               */
+              status: 'PENDING' | 'DUPLICATE' | 'DISCARDED' | 'CONFIRMED';
+              /** @description Si tiene monto. */
+              parsed: boolean;
+              /** @enum {string} */
+              type:
+                'INCOME' | 'FIXED_EXPENSE' | 'VARIABLE_EXPENSE' | 'SAVING' | 'INVESTMENT' | 'DEBT';
+              /** @description String decimal, mayor que cero. */
+              amount: string | null;
+              /**
+               * @description Nula: se elige antes de confirmar.
+               * @enum {string|null}
+               */
+              currency: 'PEN' | 'USD' | null;
+              merchant: string | null;
+              cardLast4: string | null;
+              /** Format: date */
+              date: string;
+              /** Format: date-time */
+              occurredAt: string;
+              /** Format: uuid */
+              categoryId: string | null;
+              /** Format: uuid */
+              paymentMethodId: string | null;
+              description: string | null;
+              /** @description Los avisos con que llegó. */
+              warnings: string[];
+              /** @description El pedido como llegó del teléfono, con las tarjetas tapadas: completo mientras no se confirme. */
+              raw: {
+                [key: string]: string;
+              } | null;
+              /**
+               * Format: date-time
+               * @description Se borra del todo 90 días después.
+               */
+              discardedAt: string | null;
+              /**
+               * Format: uuid
+               * @description La transacción que salió al confirmarla.
+               */
+              transactionId: string | null;
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: la bandeja solo se revisa desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La captura no existe o es de otra cuenta (`CAPTURE_NOT_FOUND`); o el módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El id no es un UUID. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Corrige una captura antes de confirmarla.
+     * @description Solo cambia lo que llega; `null` lo borra. Si cambia el tipo sin categoría, la que había se limpia. Una categoría o un método nuevos tienen que ser de la cuenta y estar activos; si el monto no tiene moneda y el método elegido tiene una sola, la toma. La marca de duplicada se queda.
+     */
+    patch: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            /** @enum {string} */
+            type?:
+              'INCOME' | 'FIXED_EXPENSE' | 'VARIABLE_EXPENSE' | 'SAVING' | 'INVESTMENT' | 'DEBT';
+            /** Format: date */
+            date?: string;
+            amount?: string | null;
+            /** @enum {string|null} */
+            currency?: 'PEN' | 'USD' | null;
+            /** Format: uuid */
+            categoryId?: string | null;
+            /** Format: uuid */
+            paymentMethodId?: string | null;
+            merchant?: string | null;
+            description?: string | null;
+          };
+        };
+      };
+      responses: {
+        /** @description La captura corregida. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /** @enum {string} */
+              source: 'IOS_SHORTCUT' | 'ANDROID_AUTOMATION';
+              /**
+               * @description Por revisar, duplicada (se puede confirmar igual), descartada, o confirmada (solo en la respuesta de confirmar).
+               * @enum {string}
+               */
+              status: 'PENDING' | 'DUPLICATE' | 'DISCARDED' | 'CONFIRMED';
+              /** @description Si tiene monto. */
+              parsed: boolean;
+              /** @enum {string} */
+              type:
+                'INCOME' | 'FIXED_EXPENSE' | 'VARIABLE_EXPENSE' | 'SAVING' | 'INVESTMENT' | 'DEBT';
+              /** @description String decimal, mayor que cero. */
+              amount: string | null;
+              /**
+               * @description Nula: se elige antes de confirmar.
+               * @enum {string|null}
+               */
+              currency: 'PEN' | 'USD' | null;
+              merchant: string | null;
+              cardLast4: string | null;
+              /** Format: date */
+              date: string;
+              /** Format: date-time */
+              occurredAt: string;
+              /** Format: uuid */
+              categoryId: string | null;
+              /** Format: uuid */
+              paymentMethodId: string | null;
+              description: string | null;
+              /** @description Los avisos con que llegó. */
+              warnings: string[];
+              /** @description El pedido como llegó del teléfono, con las tarjetas tapadas: completo mientras no se confirme. */
+              raw: {
+                [key: string]: string;
+              } | null;
+              /**
+               * Format: date-time
+               * @description Se borra del todo 90 días después.
+               */
+              discardedAt: string | null;
+              /**
+               * Format: uuid
+               * @description La transacción que salió al confirmarla.
+               */
+              transactionId: string | null;
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: la bandeja solo se revisa desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La captura (`CAPTURE_NOT_FOUND`), la categoría (`CATEGORY_NOT_FOUND`) o el método (`PAYMENT_METHOD_NOT_FOUND`) no existen o son de otra cuenta; o el módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Ya se confirmó o se descartó, quizá desde otra pestaña (`CAPTURE_NOT_PENDING`). */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El cuerpo no tiene la forma esperada; el monto no es positivo (`TRANSACTION_AMOUNT_NOT_POSITIVE`) o tiene más de 2 decimales (`INVALID_AMOUNT`); la fecha es futura (`TRANSACTION_DATE_IN_FUTURE`); la categoría es de otro tipo (`CATEGORY_TYPE_MISMATCH`) o está archivada (`CATEGORY_ARCHIVED`); o el método está archivado (`PAYMENT_METHOD_ARCHIVED`). */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    trace?: never;
+  };
+  '/api/v1/captures/{id}/confirm': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Confirma una captura: se crea su transacción.
+     * @description Con monto, moneda, categoría y descripción (sin descripción, el comercio). La transacción sigue las reglas de cualquiera y lleva su captura y su origen. El texto crudo se borra. Una sola transacción por captura, aunque lleguen dos confirmaciones a la vez. Con `rememberCategory`, la regla de su comercio se crea o se actualiza.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: {
+        content: {
+          'application/json': {
+            /** @default false */
+            rememberCategory: boolean;
+          };
+        };
+      };
+      responses: {
+        /** @description La captura confirmada, con su transacción. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /** @enum {string} */
+              source: 'IOS_SHORTCUT' | 'ANDROID_AUTOMATION';
+              /**
+               * @description Por revisar, duplicada (se puede confirmar igual), descartada, o confirmada (solo en la respuesta de confirmar).
+               * @enum {string}
+               */
+              status: 'PENDING' | 'DUPLICATE' | 'DISCARDED' | 'CONFIRMED';
+              /** @description Si tiene monto. */
+              parsed: boolean;
+              /** @enum {string} */
+              type:
+                'INCOME' | 'FIXED_EXPENSE' | 'VARIABLE_EXPENSE' | 'SAVING' | 'INVESTMENT' | 'DEBT';
+              /** @description String decimal, mayor que cero. */
+              amount: string | null;
+              /**
+               * @description Nula: se elige antes de confirmar.
+               * @enum {string|null}
+               */
+              currency: 'PEN' | 'USD' | null;
+              merchant: string | null;
+              cardLast4: string | null;
+              /** Format: date */
+              date: string;
+              /** Format: date-time */
+              occurredAt: string;
+              /** Format: uuid */
+              categoryId: string | null;
+              /** Format: uuid */
+              paymentMethodId: string | null;
+              description: string | null;
+              /** @description Los avisos con que llegó. */
+              warnings: string[];
+              /** @description El pedido como llegó del teléfono, con las tarjetas tapadas: completo mientras no se confirme. */
+              raw: {
+                [key: string]: string;
+              } | null;
+              /**
+               * Format: date-time
+               * @description Se borra del todo 90 días después.
+               */
+              discardedAt: string | null;
+              /**
+               * Format: uuid
+               * @description La transacción que salió al confirmarla.
+               */
+              transactionId: string | null;
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: la bandeja solo se revisa desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La captura (`CAPTURE_NOT_FOUND`), su categoría (`CATEGORY_NOT_FOUND`) o su método (`PAYMENT_METHOD_NOT_FOUND`) no existen o son de otra cuenta; o el módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Ya se confirmó o se descartó, quizá desde otra pestaña (`CAPTURE_NOT_PENDING`). */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Falta el monto (`CAPTURE_AMOUNT_MISSING`), la moneda (`CAPTURE_CURRENCY_MISSING`), la categoría (`CAPTURE_CATEGORY_MISSING`) o la descripción (`CAPTURE_DESCRIPTION_MISSING`); se pidió recordar sin comercio (`CAPTURE_MERCHANT_MISSING`); o se rompe una regla de la transacción (fecha futura, categoría de otro tipo o archivada, método archivado). */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/captures/confirm': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Confirma varias capturas, cada una por su lado.
+     * @description Hasta 50. Una que no se puede confirmar no frena a las demás: la respuesta dice cuáles se confirmaron y, de las otras, por qué no.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            captures: {
+              /** Format: uuid */
+              id: string;
+              /** @default false */
+              rememberCategory: boolean;
+            }[];
+          };
+        };
+      };
+      responses: {
+        /** @description Las confirmadas y las que no. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** @description Las que se confirmaron, con su transacción. */
+              confirmed: {
+                /** Format: uuid */
+                id: string;
+                /** Format: uuid */
+                transactionId: string;
+              }[];
+              /** @description Las que no, con el `code` de su error (`CAPTURE_NOT_FOUND`, `CAPTURE_NOT_PENDING`, `CAPTURE_AMOUNT_MISSING`, `CATEGORY_ARCHIVED`…). */
+              failed: {
+                /** Format: uuid */
+                id: string;
+                code: string;
+              }[];
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: la bandeja solo se revisa desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El cuerpo no tiene la forma esperada (ninguna, o demasiadas). */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/captures/{id}/discard': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Descarta una captura de la bandeja.
+     * @description Se puede deshacer (`/restore`); se borra del todo 90 días después, con su texto crudo.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description La captura descartada. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /** @enum {string} */
+              source: 'IOS_SHORTCUT' | 'ANDROID_AUTOMATION';
+              /**
+               * @description Por revisar, duplicada (se puede confirmar igual), descartada, o confirmada (solo en la respuesta de confirmar).
+               * @enum {string}
+               */
+              status: 'PENDING' | 'DUPLICATE' | 'DISCARDED' | 'CONFIRMED';
+              /** @description Si tiene monto. */
+              parsed: boolean;
+              /** @enum {string} */
+              type:
+                'INCOME' | 'FIXED_EXPENSE' | 'VARIABLE_EXPENSE' | 'SAVING' | 'INVESTMENT' | 'DEBT';
+              /** @description String decimal, mayor que cero. */
+              amount: string | null;
+              /**
+               * @description Nula: se elige antes de confirmar.
+               * @enum {string|null}
+               */
+              currency: 'PEN' | 'USD' | null;
+              merchant: string | null;
+              cardLast4: string | null;
+              /** Format: date */
+              date: string;
+              /** Format: date-time */
+              occurredAt: string;
+              /** Format: uuid */
+              categoryId: string | null;
+              /** Format: uuid */
+              paymentMethodId: string | null;
+              description: string | null;
+              /** @description Los avisos con que llegó. */
+              warnings: string[];
+              /** @description El pedido como llegó del teléfono, con las tarjetas tapadas: completo mientras no se confirme. */
+              raw: {
+                [key: string]: string;
+              } | null;
+              /**
+               * Format: date-time
+               * @description Se borra del todo 90 días después.
+               */
+              discardedAt: string | null;
+              /**
+               * Format: uuid
+               * @description La transacción que salió al confirmarla.
+               */
+              transactionId: string | null;
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: la bandeja solo se revisa desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La captura no existe o es de otra cuenta (`CAPTURE_NOT_FOUND`); o el módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Ya se confirmó o se descartó, quizá desde otra pestaña (`CAPTURE_NOT_PENDING`). */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El id no es un UUID. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/captures/{id}/restore': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Deshace un descarte: la captura vuelve como estaba.
+     * @description Por revisar o duplicada, según de dónde se descartó.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description La captura, de vuelta en la bandeja. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /** @enum {string} */
+              source: 'IOS_SHORTCUT' | 'ANDROID_AUTOMATION';
+              /**
+               * @description Por revisar, duplicada (se puede confirmar igual), descartada, o confirmada (solo en la respuesta de confirmar).
+               * @enum {string}
+               */
+              status: 'PENDING' | 'DUPLICATE' | 'DISCARDED' | 'CONFIRMED';
+              /** @description Si tiene monto. */
+              parsed: boolean;
+              /** @enum {string} */
+              type:
+                'INCOME' | 'FIXED_EXPENSE' | 'VARIABLE_EXPENSE' | 'SAVING' | 'INVESTMENT' | 'DEBT';
+              /** @description String decimal, mayor que cero. */
+              amount: string | null;
+              /**
+               * @description Nula: se elige antes de confirmar.
+               * @enum {string|null}
+               */
+              currency: 'PEN' | 'USD' | null;
+              merchant: string | null;
+              cardLast4: string | null;
+              /** Format: date */
+              date: string;
+              /** Format: date-time */
+              occurredAt: string;
+              /** Format: uuid */
+              categoryId: string | null;
+              /** Format: uuid */
+              paymentMethodId: string | null;
+              description: string | null;
+              /** @description Los avisos con que llegó. */
+              warnings: string[];
+              /** @description El pedido como llegó del teléfono, con las tarjetas tapadas: completo mientras no se confirme. */
+              raw: {
+                [key: string]: string;
+              } | null;
+              /**
+               * Format: date-time
+               * @description Se borra del todo 90 días después.
+               */
+              discardedAt: string | null;
+              /**
+               * Format: uuid
+               * @description La transacción que salió al confirmarla.
+               */
+              transactionId: string | null;
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: la bandeja solo se revisa desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La captura no existe o es de otra cuenta (`CAPTURE_NOT_FOUND`); o el módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La captura no está descartada (`CAPTURE_NOT_DISCARDED`). */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El id no es un UUID. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/categorization-rules': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Las reglas de categorización, primero la de mayor prioridad. */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Las reglas de la cuenta. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /** @description Como se escribió. Aplica si el comercio (o, sin comercio, el texto de la notificación) lo contiene, sin tildes ni mayúsculas. */
+              pattern: string;
+              /**
+               * Format: uuid
+               * @description De cualquier tipo: se sugiere solo a capturas de ese tipo.
+               */
+              categoryId: string;
+              /** @description Cero o más. Si aplican dos, gana la mayor; luego, el patrón más largo. */
+              priority: number;
+            }[];
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las reglas solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    put?: never;
+    /**
+     * Crea una regla de categorización.
+     * @description La categoría, de la cuenta y activa; la prioridad, 0 por defecto. Después, las capturas de la bandeja **sin categoría** a las que aplique toman la suya; las que ya tienen una no se tocan.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            pattern: string;
+            /** Format: uuid */
+            categoryId: string;
+            /** @default 0 */
+            priority: number;
+          };
+        };
+      };
+      responses: {
+        /** @description La regla creada. */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /** @description Como se escribió. Aplica si el comercio (o, sin comercio, el texto de la notificación) lo contiene, sin tildes ni mayúsculas. */
+              pattern: string;
+              /**
+               * Format: uuid
+               * @description De cualquier tipo: se sugiere solo a capturas de ese tipo.
+               */
+              categoryId: string;
+              /** @description Cero o más. Si aplican dos, gana la mayor; luego, el patrón más largo. */
+              priority: number;
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las reglas solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La categoría no existe o es de otra cuenta (`CATEGORY_NOT_FOUND`); o el módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La cuenta ya tiene una regla con ese patrón, sin tildes ni mayúsculas (`RULE_PATTERN_TAKEN`). */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El cuerpo no tiene la forma esperada, o la categoría está archivada (`CATEGORY_ARCHIVED`). */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/categorization-rules/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Borra una regla.
+     * @description Lo que ya sugirió se queda en sus capturas.
+     */
+    delete: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Borrada. */
+        204: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las reglas solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La regla no existe o es de otra cuenta (`RULE_NOT_FOUND`); o el módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El id no es un UUID. */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    options?: never;
+    head?: never;
+    /**
+     * Cambia el patrón, la categoría o la prioridad de una regla.
+     * @description Solo cambia lo que llega. Después, las capturas de la bandeja **sin categoría** a las que aplique toman la suya; las que ya tienen una no se tocan.
+     */
+    patch: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            pattern?: string;
+            /** Format: uuid */
+            categoryId?: string;
+            priority?: number;
+          };
+        };
+      };
+      responses: {
+        /** @description La regla como quedó. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': {
+              /** Format: uuid */
+              id: string;
+              /** @description Como se escribió. Aplica si el comercio (o, sin comercio, el texto de la notificación) lo contiene, sin tildes ni mayúsculas. */
+              pattern: string;
+              /**
+               * Format: uuid
+               * @description De cualquier tipo: se sugiere solo a capturas de ese tipo.
+               */
+              categoryId: string;
+              /** @description Cero o más. Si aplican dos, gana la mayor; luego, el patrón más largo. */
+              priority: number;
+            };
+          };
+        };
+        /** @description Falta el token de acceso o no vale. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Llegó un token personal: las reglas solo se gestionan desde una sesión. */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La regla (`RULE_NOT_FOUND`) o la categoría (`CATEGORY_NOT_FOUND`) no existen o son de otra cuenta; o el módulo está apagado. */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description La cuenta ya tiene una regla con ese patrón, sin tildes ni mayúsculas (`RULE_PATTERN_TAKEN`). */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description El id no es un UUID, el cuerpo no tiene la forma esperada, o la categoría nueva está archivada (`CATEGORY_ARCHIVED`). */
+        422: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/problem+json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    trace?: never;
+  };
+}
+export type webhooks = Record<string, never>;
+export interface components {
+  schemas: {
+    ProblemDetails: {
+      type: string;
+      title: string;
+      status: number;
+      detail: string;
+      errors?: {
+        field: string;
+        code: string;
+        message: string;
+      }[];
+    };
+  };
+  responses: never;
+  parameters: never;
+  requestBodies: never;
+  headers: never;
+  pathItems: never;
 }
 export type $defs = Record<string, never>;
 export type operations = Record<string, never>;
