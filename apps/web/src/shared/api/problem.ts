@@ -30,6 +30,8 @@ const MESSAGES: Readonly<Record<string, string>> = {
   CAPTURE_CATEGORY_MISSING: 'Falta la categoría.',
   CAPTURE_DESCRIPTION_MISSING: 'Falta la descripción.',
   CAPTURE_MERCHANT_MISSING: 'Sin comercio no hay nada que recordar.',
+  RULE_NOT_FOUND: 'Esta regla ya no existe.',
+  RULE_PATTERN_TAKEN: 'Ya tienes una regla para ese texto: corrige esa.',
 };
 
 export const GENERIC_ERROR = 'Algo salió mal. Inténtalo de nuevo en un momento.';

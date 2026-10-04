@@ -9,6 +9,7 @@ import type { Outcome } from '@/features/transactions/mutations';
 import { ApiRequestError, queryKeys } from '@/features/transactions/queries';
 
 import type { CapturePatch } from './capture-model';
+import type { RuleBody } from './rules-model';
 
 export const capturesKey = ['captures'] as const;
 
@@ -73,6 +74,7 @@ function useInvalidate() {
     await Promise.all([
       client.invalidateQueries({ queryKey: capturesKey }),
       client.invalidateQueries({ queryKey: queryKeys.allMovements }),
+      client.invalidateQueries({ queryKey: ['categorization-rules'] }),
     ]);
   };
 }
@@ -143,6 +145,74 @@ export function useDiscardCapture() {
         input.action === 'discard'
           ? await api.POST('/api/v1/captures/{id}/discard', { params: { path: { id: input.id } } })
           : await api.POST('/api/v1/captures/{id}/restore', { params: { path: { id: input.id } } });
+      return outcomeOf(response, error);
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export const rulesKey = ['categorization-rules'] as const;
+
+/** Las reglas de categorización, primero la de mayor prioridad. */
+export function useRules() {
+  const api = useApi();
+
+  return useQuery({
+    queryKey: rulesKey,
+    queryFn: async () => {
+      const { data, response } = await api.GET('/api/v1/categorization-rules');
+      if (data === undefined) throw new ApiRequestError(response.status);
+
+      return data;
+    },
+  });
+}
+
+/**
+ * Crear o cambiar una regla vuelve a sugerir en la bandeja (decidido el 2026-10-04): se piden de
+ * nuevo las reglas y las capturas. «Recordar» al confirmar también crea reglas.
+ */
+function useInvalidateRules() {
+  const client = useQueryClient();
+
+  return async () => {
+    await Promise.all([
+      client.invalidateQueries({ queryKey: rulesKey }),
+      client.invalidateQueries({ queryKey: capturesKey }),
+    ]);
+  };
+}
+
+/** Crea una regla, o corrige la de `ruleId`. */
+export function useSaveRule(ruleId: string | null) {
+  const api = useApi();
+  const invalidate = useInvalidateRules();
+
+  return useMutation({
+    mutationFn: async (body: RuleBody): Promise<Outcome> => {
+      const { error, response } =
+        ruleId === null
+          ? await api.POST('/api/v1/categorization-rules', { body })
+          : await api.PATCH('/api/v1/categorization-rules/{id}', {
+              params: { path: { id: ruleId } },
+              body,
+            });
+      return outcomeOf(response, error);
+    },
+    onSuccess: invalidate,
+  });
+}
+
+/** Borra una regla: no se deshace, por eso se pide confirmar antes (decidido el 2026-10-04). */
+export function useDeleteRule() {
+  const api = useApi();
+  const invalidate = useInvalidateRules();
+
+  return useMutation({
+    mutationFn: async (ruleId: string): Promise<Outcome> => {
+      const { error, response } = await api.DELETE('/api/v1/categorization-rules/{id}', {
+        params: { path: { id: ruleId } },
+      });
       return outcomeOf(response, error);
     },
     onSuccess: invalidate,

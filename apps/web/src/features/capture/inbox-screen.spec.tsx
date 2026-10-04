@@ -1,7 +1,7 @@
 import { FixedClock } from '@sol-a-sol/domain';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { createQueryClient, QueryProvider } from '@/shared/api/query-provider';
 import { UndoProvider } from '@/shared/feedback/undo-toast';
@@ -88,6 +88,7 @@ function setup(
   options: {
     inbox?: unknown[];
     discarded?: unknown[];
+    rules?: unknown[];
     respond?: (sent: Sent) => Response | undefined;
     failures?: number;
   } = {},
@@ -120,6 +121,10 @@ function setup(
         return Response.json({ items, nextCursor: null });
       }
       if (url.pathname === '/api/v1/categories') return Response.json(CATEGORIES);
+      if (input.method === 'GET' && url.pathname === '/api/v1/categorization-rules') {
+        return Response.json(options.rules ?? []);
+      }
+      if (input.method === 'DELETE') return new Response(null, { status: 204 });
       if (url.pathname === '/api/v1/payment-methods') return Response.json(METHODS);
       if (url.pathname === '/api/v1/captures/confirm') {
         return Response.json({ confirmed: [], failed: [] });
@@ -161,6 +166,11 @@ function problem(code: string, status: number): Response {
 }
 
 describe('InboxScreen', () => {
+  beforeAll(() => {
+    // jsdom no desplaza nada: la regla resaltada solo necesita que exista.
+    Element.prototype.scrollIntoView = vi.fn();
+  });
+
   it('says so while it loads and when there is nothing to review', async () => {
     setup();
 
@@ -373,11 +383,150 @@ describe('InboxScreen', () => {
     expect(screen.queryByRole('button', { name: 'Confirmar' })).not.toBeInTheDocument();
   });
 
+  it('asks for the inbox again when coming back to its tab: captures arrive meanwhile', async () => {
+    const { sent, user } = setup();
+    await screen.findByText('No hay nada por revisar.');
+    const before = sent.filter(({ path }) => path === '/api/v1/captures').length;
+
+    await user.click(screen.getByRole('tab', { name: 'Reglas' }));
+    await user.click(screen.getByRole('tab', { name: 'Por revisar' }));
+
+    await waitFor(() => {
+      expect(sent.filter(({ path }) => path === '/api/v1/captures').length).toBeGreaterThan(before);
+    });
+  });
+
   it('says so when no capture was discarded', async () => {
     const { user } = setup();
 
     await user.click(await screen.findByRole('tab', { name: 'Descartadas' }));
 
     expect(await screen.findByText('No hay capturas descartadas.')).toBeInTheDocument();
+  });
+
+  describe('rules (decided 2026-10-04)', () => {
+    const RULE = {
+      id: '77777777-7777-4777-8777-777777777777',
+      pattern: 'Tambo',
+      categoryId: GROCERIES,
+      priority: 2,
+    };
+
+    it('says which rule gave a capture its category, and shows it in the rules tab', async () => {
+      const { user } = setup({ inbox: [capture(TAMBO)], rules: [RULE] });
+
+      await user.click(
+        await screen.findByRole('button', { name: 'Coincide con la regla «Tambo»' }),
+      );
+
+      expect(screen.getByRole('tab', { name: 'Reglas' })).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByRole('listitem', { name: 'Regla «Tambo»' })).toHaveClass('ring-2');
+    });
+
+    it('says nothing when the category was chosen by hand', async () => {
+      setup({ inbox: [capture(TAMBO, { categoryId: FEES, type: 'INCOME' })], rules: [RULE] });
+
+      await screen.findByText('Honorarios');
+      expect(
+        screen.queryByRole('button', { name: /Coincide con la regla/u }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('lists the rules, and says so when there are none', async () => {
+      const { user } = setup({ rules: [RULE] });
+
+      await user.click(await screen.findByRole('tab', { name: 'Reglas' }));
+
+      const item = screen.getByRole('listitem', { name: 'Regla «Tambo»' });
+      expect(item).toHaveTextContent('Si el comercio contiene «Tambo» → Víveres');
+      expect(item).toHaveTextContent('Prioridad 2');
+    });
+
+    it('says so when there are no rules', async () => {
+      const { user } = setup();
+
+      await user.click(await screen.findByRole('tab', { name: 'Reglas' }));
+
+      expect(await screen.findByText('Todavía no tienes reglas.')).toBeInTheDocument();
+    });
+
+    it('creates a rule', async () => {
+      const { sent, user } = setup();
+
+      await user.click(await screen.findByRole('tab', { name: 'Reglas' }));
+      await user.click(await screen.findByRole('button', { name: 'Nueva regla' }));
+      await user.type(screen.getByLabelText('Si el comercio contiene'), ' Tambo ');
+      await user.selectOptions(screen.getByLabelText('Categoría'), GROCERIES);
+      await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+      await waitFor(() => {
+        expect(actions(sent)).toEqual([
+          {
+            method: 'POST',
+            path: '/api/v1/categorization-rules',
+            body: { pattern: 'Tambo', categoryId: GROCERIES, priority: 0 },
+          },
+        ]);
+      });
+    });
+
+    it('corrects a rule, and puts a repeated pattern next to its field', async () => {
+      const { sent, user } = setup({
+        rules: [RULE],
+        respond: ({ method }) =>
+          method === 'PATCH' ? problem('RULE_PATTERN_TAKEN', 409) : undefined,
+      });
+
+      await user.click(await screen.findByRole('tab', { name: 'Reglas' }));
+      await user.click(await screen.findByRole('button', { name: 'Corregir' }));
+      await user.clear(screen.getByLabelText('Prioridad'));
+      await user.type(screen.getByLabelText('Prioridad'), '5');
+      await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+      expect(await screen.findByLabelText('Si el comercio contiene')).toHaveAccessibleDescription(
+        /Ya tienes una regla para ese texto: corrige esa\./u,
+      );
+      expect(actions(sent)[0]).toEqual({
+        method: 'PATCH',
+        path: `/api/v1/categorization-rules/${RULE.id}`,
+        body: { pattern: 'Tambo', categoryId: GROCERIES, priority: 5 },
+      });
+    });
+
+    it('checks the priority before sending anything', async () => {
+      const { sent, user } = setup({ rules: [RULE] });
+
+      await user.click(await screen.findByRole('tab', { name: 'Reglas' }));
+      await user.click(await screen.findByRole('button', { name: 'Corregir' }));
+      await user.clear(screen.getByLabelText('Prioridad'));
+      await user.type(screen.getByLabelText('Prioridad'), '-1');
+      await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+      expect(screen.getByLabelText('Prioridad')).toHaveAccessibleDescription(
+        /La prioridad es un número entero, 0 o más\./u,
+      );
+      expect(actions(sent)).toEqual([]);
+    });
+
+    it('asks before deleting a rule, and deletes it', async () => {
+      const { sent, user } = setup({ rules: [RULE] });
+
+      await user.click(await screen.findByRole('tab', { name: 'Reglas' }));
+      await user.click(await screen.findByRole('button', { name: 'Borrar' }));
+      expect(
+        screen.getByText('¿Borrar la regla «Tambo»? Lo que ya sugirió se queda.'),
+      ).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+      expect(actions(sent)).toEqual([]);
+
+      await user.click(screen.getByRole('button', { name: 'Borrar' }));
+      await user.click(screen.getByRole('button', { name: 'Sí, borrar' }));
+
+      await waitFor(() => {
+        expect(actions(sent)).toEqual([
+          { method: 'DELETE', path: `/api/v1/categorization-rules/${RULE.id}`, body: null },
+        ]);
+      });
+    });
   });
 });

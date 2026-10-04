@@ -65,4 +65,30 @@ test.describe('bandeja', () => {
     await expect(page).toHaveURL('/capture');
     await expect(page.getByRole('article', { name: 'S/ 12.00 Plaza Vea' })).toBeVisible();
   });
+
+  test('una regla creada en la web pone la categoría a lo que llega de ese comercio', async ({
+    page,
+  }) => {
+    const account = await createAccount();
+    await page.goto('/capture');
+    await page.getByLabel('Correo').fill(account.email);
+    await page.getByLabel('Contraseña').fill(account.password);
+    await page.getByRole('button', { name: 'Entrar' }).click();
+    await expect(page).toHaveURL('/capture');
+
+    await page.getByRole('tab', { name: 'Reglas' }).click();
+    await page.getByRole('button', { name: 'Nueva regla' }).click();
+    await page.getByLabel('Si el comercio contiene').fill('tambo');
+    await page.getByLabel('Categoría').selectOption({ label: 'Comida' });
+    await page.getByRole('button', { name: 'Guardar' }).click();
+    await expect(page.getByRole('listitem', { name: 'Regla «tambo»' })).toBeVisible();
+
+    await sendCapture(account, { amountText: 'S/ 9.90', merchant: 'TAMBO Larco' });
+    await page.getByRole('tab', { name: 'Por revisar' }).click();
+
+    const card = page.getByRole('article', { name: 'S/ 9.90 TAMBO Larco' });
+    await expect(card).toContainText('Comida');
+    await card.getByRole('button', { name: 'Coincide con la regla «tambo»' }).click();
+    await expect(page.getByRole('listitem', { name: 'Regla «tambo»' })).toBeVisible();
+  });
 });

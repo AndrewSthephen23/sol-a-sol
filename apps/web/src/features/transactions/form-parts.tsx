@@ -9,7 +9,12 @@ import type { Currency } from '@/shared/format/money';
 
 import { Field, INPUT } from './field';
 import type { Option, OptionGroup } from './form-options';
-import { type Checked, type FieldErrors, formErrorFor } from './movement-form-model';
+import {
+  type Checked,
+  type FieldErrors,
+  type FormError,
+  formErrorFor,
+} from './movement-form-model';
 import type { Outcome } from './mutations';
 
 interface MovementFormOptions<V, B, F extends string> {
@@ -19,6 +24,8 @@ interface MovementFormOptions<V, B, F extends string> {
   save: UseMutationResult<Outcome, Error, B>;
   /** Puede seguir trabajando (guardar las cuotas): el botón sigue desactivado hasta que termine. */
   onSaved: (body: B, outcome: Extract<Outcome, { ok: true }>) => void | Promise<void>;
+  /** Dónde va cada error de la API; por defecto, como en los movimientos. */
+  placeError?: (code: string | null) => FormError<string> | null;
 }
 
 /**
@@ -31,6 +38,7 @@ export function useMovementForm<V extends object, B, F extends string>({
   check,
   save,
   onSaved,
+  placeError = formErrorFor,
 }: MovementFormOptions<V, B, F>) {
   const [values, setValues] = useState(initial);
   const [errors, setErrors] = useState<FieldErrors<F>>({});
@@ -64,7 +72,7 @@ export function useMovementForm<V extends object, B, F extends string>({
 
         return;
       }
-      const placed = formErrorFor(outcome.code);
+      const placed = placeError(outcome.code);
       if (placed?.field !== undefined && placed.field in values) {
         setErrors({ [placed.field]: placed.message } as FieldErrors<F>);
       } else {

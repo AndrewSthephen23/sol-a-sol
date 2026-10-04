@@ -17,13 +17,17 @@ import {
   warningLabel,
 } from './capture-model';
 import { CorrectionForm } from './correction-form';
+import { type Rule, ruleBehind } from './rules-model';
 import { useConfirmCapture, useDiscardCapture } from './queries';
 
 interface CaptureCardProps {
   capture: Capture;
   categories: readonly Category[];
   paymentMethods: readonly PaymentMethod[];
+  rules: readonly Rule[];
   today: string;
+  /** Lleva a la pestaña de reglas, con esa resaltada. */
+  onShowRule: (ruleId: string) => void;
 }
 
 const SECONDARY =
@@ -45,7 +49,9 @@ export function CaptureCard({
   capture,
   categories,
   paymentMethods,
+  rules,
   today,
+  onShowRule,
 }: Readonly<CaptureCardProps>) {
   const [editing, setEditing] = useState(false);
   const [remember, setRemember] = useState(false);
@@ -58,6 +64,7 @@ export function CaptureCard({
     capture.categoryId === null ? undefined : categoriesById(categories).get(capture.categoryId);
   const method = paymentMethods.find(({ id }) => id === capture.paymentMethodId);
   const missing = missingToConfirm(capture);
+  const matched = ruleBehind(capture, rules, categories);
   const discarded = capture.status === 'DISCARDED';
   const busy = confirm.isPending || discard.isPending;
 
@@ -189,7 +196,20 @@ export function CaptureCard({
 
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
         <dt className="text-stone-500">Categoría</dt>
-        <dd>{category?.name ?? 'Sin categoría'}</dd>
+        <dd>
+          {category?.name ?? 'Sin categoría'}
+          {matched !== null && (
+            <button
+              type="button"
+              onClick={() => {
+                onShowRule(matched.id);
+              }}
+              className="ml-2 text-xs text-amber-700 underline"
+            >
+              Coincide con la regla «{matched.pattern}»
+            </button>
+          )}
+        </dd>
         <dt className="text-stone-500">Método</dt>
         <dd>{method === undefined ? 'Sin método' : paymentMethodLabel(method)}</dd>
         {capture.description !== null && (
