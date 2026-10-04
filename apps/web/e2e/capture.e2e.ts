@@ -91,4 +91,22 @@ test.describe('bandeja', () => {
     await card.getByRole('button', { name: 'Coincide con la regla «tambo»' }).click();
     await expect(page.getByRole('listitem', { name: 'Regla «tambo»' })).toBeVisible();
   });
+
+  test('el resumen del mes avisa de las capturas que faltan revisar', async ({ page }) => {
+    const account = await createAccount();
+    await sendCapture(account, { amountText: 'S/ 30.00', merchant: 'Metro' });
+    await page.goto('/reports');
+    await page.getByLabel('Correo').fill(account.email);
+    await page.getByLabel('Contraseña').fill(account.password);
+    await page.getByRole('button', { name: 'Entrar' }).click();
+    await expect(page).toHaveURL('/reports');
+
+    await expect(
+      page.getByText(
+        /Tienes 1 captura sin revisar de .+ \(S\/ 30\.00\): el resumen puede estar incompleto\./u,
+      ),
+    ).toBeVisible();
+    await page.getByRole('main').getByRole('link', { name: 'Ir a la bandeja' }).click();
+    await expect(page).toHaveURL('/capture');
+  });
 });

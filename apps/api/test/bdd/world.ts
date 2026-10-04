@@ -36,6 +36,8 @@ import {
   DeleteGoalContribution,
   ListGoalContributions,
 } from '../../src/modules/goals/application/goal-contributions.js';
+import { CaptureLookup } from '../../src/modules/capture/application/capture-lookup.js';
+import { FakeCaptureRepository } from '../../src/modules/capture/ports/capture-repository.fake.js';
 import type { GoalView } from '../../src/modules/goals/application/goal-views.js';
 import { CreateGoal, ListGoals, UpdateGoal } from '../../src/modules/goals/application/goals.js';
 import { GoalsLookup } from '../../src/modules/goals/application/goals-lookup.js';
@@ -118,6 +120,7 @@ export class TransactionsWorld extends World {
   /** Los métodos de pago vistos por `credit-cards`, con su tipo: el mismo id que en `catalog`. */
   readonly cardCatalog = new FakeCreditCardCatalogReader();
   readonly goals = new FakeGoalRepository();
+  readonly captures = new FakeCaptureRepository();
   readonly goalContributions = new FakeGoalContributionRepository();
   /** Qué módulos ve encendidos el resumen mensual: todos, salvo que el escenario apague uno. */
   readonly reportFlags = new FakeReportFeatureFlags();
@@ -398,6 +401,7 @@ export class TransactionsWorld extends World {
         this.installmentPlans,
       ),
       new GoalsLookup(this.goals, this.goalContributions, this.transactionsLookup, this.clock),
+      new CaptureLookup(this.captures),
       this.reportFlags,
       this.clock,
     );

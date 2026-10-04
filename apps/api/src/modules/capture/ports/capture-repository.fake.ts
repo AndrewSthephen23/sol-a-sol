@@ -1,3 +1,5 @@
+import type { LocalDate } from '@sol-a-sol/domain';
+
 import {
   type Capture,
   type CaptureChanges,
@@ -135,5 +137,19 @@ export class FakeCaptureRepository implements CaptureRepository {
     );
     for (const entry of moved) entry.capture = { ...entry.capture, categoryId: intoId };
     return Promise.resolve(moved.length);
+  }
+
+  listInboxBetween(userId: string, from: LocalDate, to: LocalDate): Promise<Capture[]> {
+    return Promise.resolve(
+      this.stored
+        .filter(
+          ({ userId: owner, capture }) =>
+            owner === userId &&
+            (capture.status === 'PENDING' || capture.status === 'DUPLICATE') &&
+            !capture.businessDate.isBefore(from) &&
+            !capture.businessDate.isAfter(to),
+        )
+        .map(({ capture }) => ({ ...capture })),
+    );
   }
 }

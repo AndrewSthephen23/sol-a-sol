@@ -1570,6 +1570,15 @@ function monthlySummarySchema(
       }),
     )
     .describe('Las metas vivas en el mes, medidas a la fecha de corte.');
+  const captures = z
+    .object({
+      count: z.int().describe('Cuántas esperan en la bandeja (por revisar y duplicadas).'),
+      withoutAmount: z.int().describe('De ellas, cuántas no tienen monto o moneda: no suman.'),
+      totals: z.array(MONEY_RESPONSE).describe('Su monto por moneda, primero soles.'),
+    })
+    .describe(
+      'Lo que llegó del teléfono en el mes y falta revisar: el resumen puede estar incompleto.',
+    );
 
   return schemaOf(
     z.object({
@@ -1622,6 +1631,7 @@ function monthlySummarySchema(
       ...(isFeatureEnabled('budgeting') ? { budget: budget.optional() } : {}),
       ...(isFeatureEnabled('credit-cards') ? { cards: cards.optional() } : {}),
       ...(isFeatureEnabled('goals') ? { goals: goals.optional() } : {}),
+      ...(isFeatureEnabled('capture') ? { captures: captures.optional() } : {}),
     }),
   );
 }

@@ -126,6 +126,15 @@ export interface SummaryGoalInput {
   contributions: readonly GoalMovement[];
 }
 
+/**
+ * Una captura del teléfono que espera en la bandeja (por revisar o duplicada), con su día en Lima.
+ * `amount` es nulo si no tiene monto **o no tiene moneda**: se cuenta pero no suma.
+ */
+export interface SummaryCaptureInput {
+  date: LocalDate;
+  amount: Money | null;
+}
+
 export interface MonthlySummaryInput {
   periods: MonthlySummaryPeriods;
   /** Lo del periodo, por categoría **madre** (sus hijas ya sumadas) y por comercio. */
@@ -136,6 +145,7 @@ export interface MonthlySummaryInput {
   budget?: { lines: readonly BudgetedAmount[] };
   cards?: readonly SummaryCardInput[];
   goals?: readonly SummaryGoalInput[];
+  captures?: readonly SummaryCaptureInput[];
 }
 
 /** Ahora contra antes: la diferencia y su porcentaje, sin redondear; `null` con base cero. */
@@ -204,12 +214,23 @@ export interface SummaryGoal {
   progress: GoalProgress;
 }
 
+/**
+ * Lo que llegó del teléfono en el mes y todavía no se revisó (decisión 16 de H7): el resumen
+ * puede estar incompleto. Cuántas, su monto por moneda (primero los soles) y cuántas no suman.
+ */
+export interface SummaryCaptures {
+  count: number;
+  withoutAmount: number;
+  totals: Money[];
+}
+
 export interface MonthlySummary {
   /** Las monedas con movimientos en el mes o en el anterior, primero los soles. */
   currencies: CurrencySummary[];
   budget?: SummaryBudget;
   cards?: SummaryCard[];
   goals?: SummaryGoal[];
+  captures?: SummaryCaptures;
 }
 
 export function computeMonthlySummary(input: MonthlySummaryInput): MonthlySummary {
@@ -224,6 +245,33 @@ export function computeMonthlySummary(input: MonthlySummaryInput): MonthlySummar
       : { budget: budgetSection(input.budget.lines, current.byCategory) }),
     ...(input.cards === undefined ? {} : { cards: cardsSection(input.cards, periods) }),
     ...(input.goals === undefined ? {} : { goals: goalsSection(input.goals, periods) }),
+    ...(input.captures === undefined ? {} : { captures: capturesSection(input.captures, periods) }),
+  };
+}
+
+/**
+ * Las capturas pendientes del periodo, por su día en Lima (decisión 16 de H7): las sin monto o
+ * sin moneda se cuentan pero no suman. Nunca se convierte moneda.
+ */
+function capturesSection(
+  captures: readonly SummaryCaptureInput[],
+  periods: MonthlySummaryPeriods,
+): SummaryCaptures {
+  const { from, to } = periods.current;
+  const inPeriod = captures.filter(
+    (capture) => !capture.date.isBefore(from) && !capture.date.isAfter(to),
+  );
+  const amounts = inPeriod.flatMap((capture) => (capture.amount === null ? [] : [capture.amount]));
+
+  return {
+    count: inPeriod.length,
+    withoutAmount: inPeriod.length - amounts.length,
+    totals: CURRENCIES.flatMap((currency) => {
+      const inCurrency = amounts.filter((amount) => amount.currency === currency);
+      return inCurrency.length === 0
+        ? []
+        : [inCurrency.reduce((total, amount) => total.add(amount), Money.zero(currency))];
+    }),
   };
 }
 

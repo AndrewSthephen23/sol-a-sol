@@ -37,6 +37,7 @@ const FLAGS = [
   'FEATURE_CREDIT_CARDS',
   'FEATURE_GOALS',
   'FEATURE_REPORTS',
+  'FEATURE_CAPTURE',
 ];
 
 interface SummaryBody {
@@ -64,6 +65,11 @@ interface SummaryBody {
     } | null;
   }[];
   goals?: { name: string; contributed: string; saved: string; status: string }[];
+  captures?: {
+    count: number;
+    withoutAmount: number;
+    totals: { amount: string; currency: string }[];
+  };
 }
 
 /** Lo que cada cuenta registra: los mismos nombres en las dos, para que nada se cruce. */
@@ -338,10 +344,46 @@ describe('monthly summary', () => {
     },
   );
 
+  /** Lo que haría el teléfono: con un token personal de la cuenta, manda una captura. */
+  async function captured(session: string, occurredAt: string, amountText?: string) {
+    const created = await request(server)
+      .post(TOKENS)
+      .set('Authorization', `Bearer ${session}`)
+      .send({ name: 'iPhone', scopes: ['captures:write'] })
+      .expect(201);
+    await request(server)
+      .post(`/${API_PREFIX}/captures`)
+      .set('Authorization', `Bearer ${(created.body as { token: string }).token}`)
+      .send({
+        source: 'IOS_SHORTCUT',
+        occurredAt,
+        merchant: 'Wong',
+        ...(amountText === undefined ? {} : { amountText }),
+      })
+      .expect(201);
+  }
+
+  // Decisión 16 de H7: el cierre avisa de lo que llegó del teléfono y falta revisar.
+  it('warns about the captures of the month still waiting in the inbox, only of the account', async () => {
+    await captured(ana.session, '2026-09-20T12:00:00-05:00', 'S/ 25.90');
+    await captured(ana.session, '2026-09-21T12:00:00-05:00');
+    await captured(ana.session, '2026-08-31T12:00:00-05:00', 'S/ 1.00');
+    await captured(bruno.session, '2026-09-20T12:00:00-05:00', 'S/ 999.00');
+
+    const summary = await summaryOf();
+
+    expect(summary.captures).toEqual({
+      count: 2,
+      withoutAmount: 1,
+      totals: [{ amount: '25.90', currency: 'PEN' }],
+    });
+  });
+
   it.each([
     ['FEATURE_BUDGETING', 'budget'],
     ['FEATURE_CREDIT_CARDS', 'cards'],
     ['FEATURE_GOALS', 'goals'],
+    ['FEATURE_CAPTURE', 'captures'],
   ])('leaves the section out while %s is off', async (flag, section) => {
     process.env[flag] = 'false';
 
@@ -383,6 +425,7 @@ describe('monthly summary', () => {
       expect(
         rows.some((row) => row.startsWith('Tarjetas;Visa BCP •••• 4321 · consumo del mes;')),
       ).toBe(true);
+      expect(rows).toContain('Capturas pendientes;Ninguna por revisar;;;;;');
     });
 
     it('never runs what the user wrote as a formula', async () => {
@@ -405,10 +448,11 @@ describe('monthly summary', () => {
     it('leaves out the sections of a switched-off module', async () => {
       process.env.FEATURE_CREDIT_CARDS = 'false';
       process.env.FEATURE_GOALS = 'false';
+      process.env.FEATURE_CAPTURE = 'false';
 
       const rows = rowsOf(await download().expect(200));
 
-      expect(rows.some((row) => /^(Tarjetas|Metas);/u.test(row))).toBe(false);
+      expect(rows.some((row) => /^(Tarjetas|Metas|Capturas pendientes);/u.test(row))).toBe(false);
       expect(rows.some((row) => row.startsWith('Presupuesto;'))).toBe(true);
     });
 

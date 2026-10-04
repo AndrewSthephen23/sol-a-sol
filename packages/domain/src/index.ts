@@ -245,6 +245,8 @@ export {
   type SummaryCardInput,
   type SummaryGoal,
   type SummaryGoalInput,
+  type SummaryCaptureInput,
+  type SummaryCaptures,
   SummaryMonthInFutureError,
   type SummaryPeriod,
   type SummaryStatement,

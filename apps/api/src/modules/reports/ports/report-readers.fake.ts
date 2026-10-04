@@ -5,10 +5,12 @@ import type {
   ReportBudgetReader,
   ReportCard,
   ReportCardsReader,
+  ReportCapturesReader,
   ReportCatalogReader,
   ReportFeatureFlags,
   ReportGoal,
   ReportGoalsReader,
+  ReportPendingCapture,
   SummarySection,
 } from './report-readers.js';
 
@@ -167,6 +169,28 @@ export class FakeReportGoalsReader extends CountingReader implements ReportGoals
 
     return Promise.resolve(
       this.goals.filter((entry) => entry.userId === userId).map((entry) => entry.goal),
+    );
+  }
+}
+
+/** Capturas por revisar en memoria, por cuenta: el rango lo filtra el dominio. */
+export class FakeReportCapturesReader extends CountingReader implements ReportCapturesReader {
+  private readonly captures: { userId: string; capture: ReportPendingCapture }[] = [];
+  /** El último rango pedido. */
+  asked: { from: LocalDate; to: LocalDate } | null = null;
+
+  with(userId: string, capture: ReportPendingCapture): this {
+    this.captures.push({ userId, capture });
+
+    return this;
+  }
+
+  pendingCaptures(userId: string, from: LocalDate, to: LocalDate) {
+    this.count();
+    this.asked = { from, to };
+
+    return Promise.resolve(
+      this.captures.filter((entry) => entry.userId === userId).map((entry) => entry.capture),
     );
   }
 }

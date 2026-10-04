@@ -13,6 +13,7 @@ import {
   FakeReportCardsReader,
   FakeReportCatalogReader,
   FakeReportFeatureFlags,
+  FakeReportCapturesReader,
   FakeReportGoalsReader,
 } from '../ports/report-readers.fake.js';
 import { GetMonthlySummary } from './monthly-summary.js';
@@ -29,6 +30,7 @@ describe('GetMonthlySummary', () => {
   let budget: FakeReportBudgetReader;
   let cards: FakeReportCardsReader;
   let goals: FakeReportGoalsReader;
+  let captures: FakeReportCapturesReader;
   let flags: FakeReportFeatureFlags;
   let summary: GetMonthlySummary;
 
@@ -67,6 +69,10 @@ describe('GetMonthlySummary', () => {
       endDate: date('2026-12-31'),
       contributions: [{ kind: 'CONTRIBUTION', amount: pen('300.00'), date: date('2026-09-15') }],
     });
+    captures = new FakeReportCapturesReader()
+      .with(ANA, { date: date('2026-09-20'), amount: pen('25.90') })
+      .with(ANA, { date: date('2026-09-21'), amount: null })
+      .with(BRUNO, { date: date('2026-09-20'), amount: pen('999.00') });
     flags = new FakeReportFeatureFlags();
     summary = new GetMonthlySummary(
       actuals,
@@ -74,6 +80,7 @@ describe('GetMonthlySummary', () => {
       budget,
       cards,
       goals,
+      captures,
       flags,
       FixedClock.at(NOW),
     );
@@ -122,15 +129,28 @@ describe('GetMonthlySummary', () => {
     expect(cards.asked?.to.toString()).toBe('2026-10-03');
   });
 
-  it.each(['budgeting', 'credit-cards', 'goals'] as const)(
+  it('warns about the captures of the month still in the inbox, asking for the month', async () => {
+    const view = await summary.execute({ userId: ANA, year: 2026, month: 9 });
+
+    expect(view.summary.captures).toEqual({ count: 2, withoutAmount: 1, totals: [pen('25.90')] });
+    expect(captures.asked?.from.toString()).toBe('2026-09-01');
+    expect(captures.asked?.to.toString()).toBe('2026-09-30');
+  });
+
+  it.each(['budgeting', 'credit-cards', 'goals', 'capture'] as const)(
     'leaves %s out without asking it when it is off',
     async (module) => {
       flags.turnOff(module);
 
       const view = await summary.execute({ userId: ANA, year: 2026, month: 9 });
 
-      const section = { budgeting: 'budget', 'credit-cards': 'cards', goals: 'goals' }[module];
-      const reader = { budgeting: budget, 'credit-cards': cards, goals }[module];
+      const section = {
+        budgeting: 'budget',
+        'credit-cards': 'cards',
+        goals: 'goals',
+        capture: 'captures',
+      }[module];
+      const reader = { budgeting: budget, 'credit-cards': cards, goals, capture: captures }[module];
       expect(view.summary).not.toHaveProperty(section);
       expect(reader.calls).toBe(0);
     },

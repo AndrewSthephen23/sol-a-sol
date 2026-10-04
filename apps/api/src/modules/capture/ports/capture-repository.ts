@@ -106,6 +106,9 @@ export interface CaptureRepository {
     expected: readonly Capture['status'][],
   ): Promise<Capture | null>;
 
+  /** Las de la bandeja (por revisar y duplicadas) con su día de negocio entre esos dos, incluidos. */
+  listInboxBetween(userId: string, from: LocalDate, to: LocalDate): Promise<Capture[]>;
+
   /** Las de la bandeja (por revisar y duplicadas) que todavía no tienen categoría. */
   listUncategorizedInInbox(userId: string): Promise<Capture[]>;
 

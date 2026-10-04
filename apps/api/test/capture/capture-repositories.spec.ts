@@ -118,6 +118,26 @@ describe('capture repositories', () => {
     });
   }
 
+  it('lists the captures of the inbox between two days, only in its own account', async () => {
+    const inRange = await captures.create(ana, { ...CAPTURE, idempotencyKey: 'a' });
+    await captures.create(ana, {
+      ...CAPTURE,
+      idempotencyKey: 'b',
+      businessDate: LocalDate.parse('2026-09-30'),
+    });
+    const discarded = await captures.create(ana, { ...CAPTURE, idempotencyKey: 'c' });
+    await discard(discarded.id);
+    await captures.create(bruno, { ...CAPTURE, idempotencyKey: 'd' });
+
+    const found = await captures.listInboxBetween(
+      ana,
+      LocalDate.parse('2026-10-01'),
+      LocalDate.parse('2026-10-31'),
+    );
+
+    expect(found.map(({ id }) => id)).toEqual([inRange.id]);
+  });
+
   it('finds a capture only in its own account', async () => {
     const created = await captures.create(ana, CAPTURE);
 

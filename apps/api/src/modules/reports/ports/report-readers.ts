@@ -76,8 +76,20 @@ export interface ReportGoalsReader {
   goalsWithMovements(userId: string): Promise<ReportGoal[]>;
 }
 
+/** Una captura que espera en la bandeja, como la entrega `CaptureLookup`. */
+export interface ReportPendingCapture {
+  date: LocalDate;
+  /** Nulo sin monto o sin moneda: se cuenta, pero no suma. */
+  amount: Money | null;
+}
+
+/** Las capturas por revisar, sin conocer las tablas de `capture`. Lo cumple `CaptureLookup`. */
+export interface ReportCapturesReader {
+  pendingCaptures(userId: string, from: LocalDate, to: LocalDate): Promise<ReportPendingCapture[]>;
+}
+
 /** Los módulos que el resumen mensual junta, si están encendidos. */
-export type SummarySection = 'budgeting' | 'credit-cards' | 'goals';
+export type SummarySection = 'budgeting' | 'credit-cards' | 'goals' | 'capture';
 
 /**
  * Qué módulos están encendidos, sin leer el entorno desde `application/`. Lo cumple
@@ -91,5 +103,6 @@ export const REPORT_ACTUALS_READER = Symbol('ReportActualsReader');
 export const REPORT_BUDGET_READER = Symbol('ReportBudgetReader');
 export const REPORT_CARDS_READER = Symbol('ReportCardsReader');
 export const REPORT_GOALS_READER = Symbol('ReportGoalsReader');
+export const REPORT_CAPTURES_READER = Symbol('ReportCapturesReader');
 export const REPORT_FEATURE_FLAGS = Symbol('ReportFeatureFlags');
 export const REPORT_CATALOG_READER = Symbol('ReportCatalogReader');

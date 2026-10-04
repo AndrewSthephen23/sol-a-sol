@@ -95,6 +95,10 @@ La base exige por su cuenta, aunque alguien se salte la aplicación:
 - **Emite:** nada. `CaptureReceived` (plan) **no se creó** porque nadie lo escucharía (decidido el 2026-10-04), igual que `GoalContributionAdded` en H6: llega con las notificaciones de H8, si hace falta. El contador de la bandeja se calcula al consultar.
 - **Escucha:** `catalog.category.merged` (ADR-0005; decidido el 2026-10-04): las reglas y las capturas **sin confirmar** de la categoría origen pasan a la destino. Si no, la regla dejaría de sugerir y la captura no se podría confirmar, porque la origen queda archivada. Las confirmadas no se tocan: su transacción sigue a la fusión por su lado. Si falla, se registra y la fusión sigue; volver a fusionar las mueve.
 
+## API pública para otros módulos
+
+`CaptureLookup` (exportado por `index.ts`): `pendingCaptures(userId, from, to)` da las capturas de la bandeja (por revisar y duplicadas) con su día en Lima entre esas fechas, cada una con su monto (`null` sin monto o sin moneda). Lo lee el **resumen mensual** de `reports` detrás de su puerto, solo con `capture` encendido (decisión 16; tarea 11). Exige el `userId`.
+
 ## Endpoints
 
 Bajo `/api/v1`, con `@RequiresFeature('capture')`: **404** y fuera de OpenAPI con el flag apagado. La bandeja y las reglas llegan con las tareas 07 y 08, solo con sesión.

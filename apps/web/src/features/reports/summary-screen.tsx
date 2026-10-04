@@ -13,7 +13,7 @@ import { useCategories } from '@/features/transactions/queries';
 import { useDownloadSummaryCsv, useMonthlySummary } from './queries';
 import { BudgetSection, CardsSection, CurrencySection, GoalsSection } from './summary-sections';
 import { ReportTabs } from './report-tabs';
-import { previousLabel } from './summary-model';
+import { pendingCapturesNotice, previousLabel } from './summary-model';
 
 const NOTICE = 'rounded-lg border border-stone-200 bg-white p-6 text-center text-sm text-stone-600';
 
@@ -22,6 +22,22 @@ export interface SummarySections {
   budget: boolean;
   cards: boolean;
   goals: boolean;
+  /** La bandeja de capturas: avisa si quedan sin revisar del mes (decisión 16 de H7). */
+  captures: boolean;
+}
+
+/** Lo que llegó del teléfono y falta revisar: el resumen puede estar incompleto. */
+function PendingCaptures({ notice }: Readonly<{ notice: string | null }>) {
+  if (notice === null) return null;
+
+  return (
+    <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-stone-800">
+      {notice}{' '}
+      <Link href="/capture" className="font-semibold text-amber-800 underline">
+        Ir a la bandeja
+      </Link>
+    </p>
+  );
 }
 
 /**
@@ -98,6 +114,7 @@ export function SummaryScreen({
 
       {summary.isSuccess && (
         <>
+          {sections.captures && <PendingCaptures notice={pendingCapturesNotice(summary.data)} />}
           {summary.data.currencies.length === 0 ? (
             <div className={NOTICE}>
               <p>No hay movimientos en {formatMonth(month)} ni en el mes anterior.</p>

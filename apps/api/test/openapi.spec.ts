@@ -203,14 +203,17 @@ describe('GET /openapi.json', () => {
       process.env.FEATURE_BUDGETING = 'false';
       process.env.FEATURE_CREDIT_CARDS = 'false';
       process.env.FEATURE_GOALS = 'false';
+      process.env.FEATURE_CAPTURE = 'false';
       const allOff = await summaryProperties();
       process.env.FEATURE_BUDGETING = 'true';
       process.env.FEATURE_CREDIT_CARDS = 'true';
       process.env.FEATURE_GOALS = 'true';
+      process.env.FEATURE_CAPTURE = 'true';
+      const sections = ['budget', 'cards', 'goals', 'captures'];
 
-      expect(allOn).toEqual(expect.arrayContaining(['budget', 'cards', 'goals']));
+      expect(allOn).toEqual(expect.arrayContaining(sections));
       expect(allOff).toContain('currencies');
-      expect(allOff.filter((key) => ['budget', 'cards', 'goals'].includes(key))).toEqual([]);
+      expect(allOff.filter((key) => sections.includes(key))).toEqual([]);
     });
 
     it('leaves the goals out too', async () => {
