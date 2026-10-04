@@ -13,6 +13,10 @@ import {
 import {
   type CaptureParams,
   captureParamsSchema,
+  type ConfirmCaptureRequest,
+  confirmCaptureRequestSchema,
+  type ConfirmCapturesRequest,
+  confirmCapturesRequestSchema,
   type ListCapturesQuery,
   listCapturesQuerySchema,
   type UpdateCaptureRequest,
@@ -23,6 +27,11 @@ import { LocalDate } from '@sol-a-sol/domain';
 import { RequiresFeature } from '../../../shared/feature-flags/feature-flag.guard.js';
 import { ZodValidationPipe } from '../../../shared/http/zod-validation.pipe.js';
 import { AccessTokenGuard, CurrentUser } from '../../identity/index.js';
+import {
+  ConfirmCapture,
+  ConfirmCaptures,
+  type ConfirmCapturesResult,
+} from '../application/confirm.js';
 import {
   CorrectCapture,
   DiscardCapture,
@@ -42,6 +51,8 @@ export interface InboxCaptureResponse extends CaptureResponse {
   description: string | null;
   raw: Record<string, string> | null;
   discardedAt: string | null;
+  /** La transacción que salió al confirmarla. */
+  transactionId: string | null;
 }
 
 export interface InboxPageResponse {
@@ -56,6 +67,7 @@ function inboxResponse(capture: Capture): InboxCaptureResponse {
     description: capture.description,
     raw: capture.rawPayload,
     discardedAt: capture.discardedAt?.toISOString() ?? null,
+    transactionId: capture.transactionId,
   };
 }
 
@@ -73,7 +85,22 @@ export class InboxController {
     private readonly correctCapture: CorrectCapture,
     private readonly discardCapture: DiscardCapture,
     private readonly restoreCapture: RestoreCapture,
+    private readonly confirmCapture: ConfirmCapture,
+    private readonly confirmCaptures: ConfirmCaptures,
   ) {}
+
+  /**
+   * Confirmar varias (decisión 10): cada una por su lado. `200` siempre que el pedido esté bien
+   * formado; la respuesta dice cuáles se confirmaron y, de las otras, por qué no.
+   */
+  @Post('confirm')
+  @HttpCode(HttpStatus.OK)
+  async confirmMany(
+    @CurrentUser() userId: string,
+    @Body(new ZodValidationPipe(confirmCapturesRequestSchema)) body: ConfirmCapturesRequest,
+  ): Promise<ConfirmCapturesResult> {
+    return this.confirmCaptures.execute(userId, body.captures);
+  }
 
   @Get()
   async list(
@@ -114,6 +141,17 @@ export class InboxController {
         ...(date === undefined ? {} : { date: LocalDate.parse(date) }),
       }),
     );
+  }
+
+  /** Confirma una: se crea su transacción. Dos veces responde 409, sin crear otra. */
+  @Post(':id/confirm')
+  @HttpCode(HttpStatus.OK)
+  async confirm(
+    @CurrentUser() userId: string,
+    @Param(new ZodValidationPipe(captureParamsSchema)) params: CaptureParams,
+    @Body(new ZodValidationPipe(confirmCaptureRequestSchema)) body: ConfirmCaptureRequest,
+  ): Promise<InboxCaptureResponse> {
+    return inboxResponse(await this.confirmCapture.execute(userId, params.id, body));
   }
 
   @Post(':id/discard')

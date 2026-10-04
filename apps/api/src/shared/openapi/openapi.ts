@@ -1,5 +1,8 @@
 import {
   changePasswordRequestSchema,
+  confirmCaptureRequestSchema,
+  confirmCapturesRequestSchema,
+  CONFIRM_CAPTURES_MAX,
   createCaptureRequestSchema,
   CAPTURES_DEFAULT_LIMIT,
   CAPTURES_MAX_LIMIT,
@@ -2482,8 +2485,11 @@ const INBOX_CAPTURE_SCHEMA = schemaOf(
     id: z.uuid(),
     source: z.enum(['IOS_SHORTCUT', 'ANDROID_AUTOMATION']),
     status: z
-      .enum(['PENDING', 'DUPLICATE', 'DISCARDED'])
-      .describe('Por revisar, duplicada (se puede confirmar igual) o descartada.'),
+      .enum(['PENDING', 'DUPLICATE', 'DISCARDED', 'CONFIRMED'])
+      .describe(
+        'Por revisar, duplicada (se puede confirmar igual), descartada, o confirmada (solo en la ' +
+          'respuesta de confirmar).',
+      ),
     parsed: z.boolean().describe('Si tiene monto.'),
     type: z.enum(['INCOME', 'FIXED_EXPENSE', 'VARIABLE_EXPENSE', 'SAVING', 'INVESTMENT', 'DEBT']),
     amount: z.string().nullable().describe('String decimal, mayor que cero.'),
@@ -2504,6 +2510,21 @@ const INBOX_CAPTURE_SCHEMA = schemaOf(
           'confirme.',
       ),
     discardedAt: z.iso.datetime().nullable().describe('Se borra del todo 90 días después.'),
+    transactionId: z.uuid().nullable().describe('La transacción que salió al confirmarla.'),
+  }),
+);
+
+const CONFIRM_CAPTURES_SCHEMA = schemaOf(
+  z.object({
+    confirmed: z
+      .array(z.object({ id: z.uuid(), transactionId: z.uuid() }))
+      .describe('Las que se confirmaron, con su transacción.'),
+    failed: z
+      .array(z.object({ id: z.uuid(), code: z.string() }))
+      .describe(
+        'Las que no, con el `code` de su error (`CAPTURE_NOT_FOUND`, `CAPTURE_NOT_PENDING`, ' +
+          '`CAPTURE_AMOUNT_MISSING`, `CATEGORY_ARCHIVED`…).',
+      ),
   }),
 );
 
@@ -2664,6 +2685,59 @@ function capturePaths(): Record<string, unknown> {
               'categoría es de otro tipo (`CATEGORY_TYPE_MISMATCH`) o está archivada ' +
               '(`CATEGORY_ARCHIVED`); o el método está archivado (`PAYMENT_METHOD_ARCHIVED`).',
           ),
+        },
+      },
+    },
+    [`/${API_PREFIX}/captures/{id}/confirm`]: {
+      post: {
+        tags: ['capture'],
+        summary: 'Confirma una captura: se crea su transacción.',
+        description:
+          'Con monto, moneda, categoría y descripción (sin descripción, el comercio). La ' +
+          'transacción sigue las reglas de cualquiera y lleva su captura y su origen. El texto ' +
+          'crudo se borra. Una sola transacción por captura, aunque lleguen dos confirmaciones a ' +
+          'la vez. Con `rememberCategory`, la regla de su comercio se crea o se actualiza.',
+        security: [{ accessToken: [] }],
+        parameters: [ID_PARAMETER],
+        requestBody: { ...jsonBody(confirmCaptureRequestSchema), required: false },
+        responses: {
+          '200': { description: 'La captura confirmada, con su transacción.', ...inboxCapture },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem(
+            'La captura (`CAPTURE_NOT_FOUND`), su categoría (`CATEGORY_NOT_FOUND`) o su método ' +
+              '(`PAYMENT_METHOD_NOT_FOUND`) no existen o son de otra cuenta; o el módulo está ' +
+              'apagado.',
+          ),
+          '409': notPending,
+          '422': problem(
+            'Falta el monto (`CAPTURE_AMOUNT_MISSING`), la moneda (`CAPTURE_CURRENCY_MISSING`), ' +
+              'la categoría (`CAPTURE_CATEGORY_MISSING`) o la descripción ' +
+              '(`CAPTURE_DESCRIPTION_MISSING`); se pidió recordar sin comercio ' +
+              '(`CAPTURE_MERCHANT_MISSING`); o se rompe una regla de la transacción (fecha ' +
+              'futura, categoría de otro tipo o archivada, método archivado).',
+          ),
+        },
+      },
+    },
+    [`/${API_PREFIX}/captures/confirm`]: {
+      post: {
+        tags: ['capture'],
+        summary: 'Confirma varias capturas, cada una por su lado.',
+        description:
+          `Hasta ${String(CONFIRM_CAPTURES_MAX)}. Una que no se puede confirmar no frena a las ` +
+          'demás: la respuesta dice cuáles se confirmaron y, de las otras, por qué no.',
+        security: [{ accessToken: [] }],
+        requestBody: jsonBody(confirmCapturesRequestSchema),
+        responses: {
+          '200': {
+            description: 'Las confirmadas y las que no.',
+            content: { 'application/json': { schema: CONFIRM_CAPTURES_SCHEMA } },
+          },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem('El módulo está apagado.'),
+          '422': problem('El cuerpo no tiene la forma esperada (ninguna, o demasiadas).'),
         },
       },
     },

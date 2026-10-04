@@ -6,6 +6,7 @@ import {
 } from '@sol-a-sol/domain';
 
 import {
+  CaptureAlreadyRecordedError,
   type CategoryAmount,
   type DayAmount,
   type MerchantAmount,
@@ -47,13 +48,17 @@ export class FakeTransactionRepository implements TransactionRepository {
 
   constructor(private readonly now = new Date('2026-09-24T15:00:00.000Z')) {}
 
-  create({ tags, ...transaction }: NewTransaction): Promise<Transaction> {
+  create({ tags, captureId, ...transaction }: NewTransaction): Promise<Transaction> {
+    // Una captura, una transacción: como `transactions.capture_id` único en la base.
+    if (captureId !== undefined && this.rows.some((row) => row.captureId === captureId)) {
+      return Promise.reject(new CaptureAlreadyRecordedError());
+    }
     this.sequence += 1;
     const row: FakeTransactionRow = {
       ...transaction,
       tagIds: this.tagIdsOf(transaction.userId, tags),
       id: `01999999-9999-7999-8999-${String(this.sequence).padStart(12, '0')}`,
-      captureId: null,
+      captureId: captureId ?? null,
       createdAt: this.now,
       updatedAt: this.now,
       deletedAt: null,
@@ -61,6 +66,12 @@ export class FakeTransactionRepository implements TransactionRepository {
     this.rows.push(row);
 
     return Promise.resolve(this.publicOf(row));
+  }
+
+  findIdByCapture(userId: string, captureId: string): Promise<string | null> {
+    const row = this.rows.find((entry) => entry.userId === userId && entry.captureId === captureId);
+
+    return Promise.resolve(row?.id ?? null);
   }
 
   find(userId: string, id: string): Promise<Transaction | null> {

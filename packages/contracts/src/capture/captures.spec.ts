@@ -5,6 +5,9 @@ import {
   captureParamsSchema,
   CAPTURES_DEFAULT_LIMIT,
   CAPTURES_MAX_LIMIT,
+  CONFIRM_CAPTURES_MAX,
+  confirmCaptureRequestSchema,
+  confirmCapturesRequestSchema,
   createCaptureRequestSchema,
   IDEMPOTENCY_KEY_MAX_LENGTH,
   idempotencyKeySchema,
@@ -154,5 +157,54 @@ describe('captureParamsSchema', () => {
       captureParamsSchema.safeParse({ id: '01999999-9999-7999-8999-000000000001' }).success,
     ).toBe(true);
     expect(captureParamsSchema.safeParse({ id: '1' }).success).toBe(false);
+  });
+});
+
+const ID = '01999999-9999-7999-8999-000000000001';
+
+describe('confirmCaptureRequestSchema', () => {
+  it('remembers nothing without a body or without the box ticked', () => {
+    expect(confirmCaptureRequestSchema.parse(undefined)).toEqual({ rememberCategory: false });
+    expect(confirmCaptureRequestSchema.parse({})).toEqual({ rememberCategory: false });
+  });
+
+  it('remembers the category when the box is ticked', () => {
+    expect(confirmCaptureRequestSchema.parse({ rememberCategory: true })).toEqual({
+      rememberCategory: true,
+    });
+  });
+
+  it.each([
+    ['text for the box', { rememberCategory: 'sí' }],
+    ['an unknown field', { categoryId: ID }],
+  ])('rejects %s', (_label, body) => {
+    expect(confirmCaptureRequestSchema.safeParse(body).success).toBe(false);
+  });
+});
+
+describe('confirmCapturesRequestSchema', () => {
+  it('accepts several, each with its own box', () => {
+    expect(
+      confirmCapturesRequestSchema.parse({
+        captures: [{ id: ID }, { id: ID, rememberCategory: true }],
+      }),
+    ).toEqual({
+      captures: [
+        { id: ID, rememberCategory: false },
+        { id: ID, rememberCategory: true },
+      ],
+    });
+  });
+
+  it.each([
+    ['none', { captures: [] }],
+    [
+      'too many',
+      { captures: Array.from({ length: CONFIRM_CAPTURES_MAX + 1 }, () => ({ id: ID })) },
+    ],
+    ['an id that is not a UUID', { captures: [{ id: '1' }] }],
+    ['a bare list of ids', { captures: [ID] }],
+  ])('rejects %s', (_label, body) => {
+    expect(confirmCapturesRequestSchema.safeParse(body).success).toBe(false);
   });
 });

@@ -4,7 +4,12 @@ import { PrismaModule } from '../../shared/prisma/prisma.module.js';
 import { CatalogLookup, CatalogModule } from '../catalog/index.js';
 import { IdentityModule, ListAccountIds } from '../identity/index.js';
 import { FeatureFlagsService } from '../../shared/feature-flags/feature-flags.js';
-import { TransactionsLookup, TransactionsModule } from '../transactions/index.js';
+import {
+  TransactionsLookup,
+  TransactionsModule,
+  TransactionsRecorder,
+} from '../transactions/index.js';
+import { ConfirmCapture, ConfirmCaptures } from './application/confirm.js';
 import {
   CorrectCapture,
   DiscardCapture,
@@ -24,6 +29,7 @@ import { CAPTURE_REPOSITORY } from './ports/capture-repository.js';
 import { CAPTURE_CATALOG_READER } from './ports/catalog-reader.js';
 import { CATEGORIZATION_RULE_REPOSITORY } from './ports/categorization-rule-repository.js';
 import { CAPTURE_TRANSACTIONS_READER } from './ports/transactions-reader.js';
+import { CAPTURE_TRANSACTIONS_WRITER } from './ports/transactions-writer.js';
 
 /**
  * Módulo capture. Entra a main detrás de FEATURE_CAPTURE: sus rutas llevan
@@ -32,7 +38,9 @@ import { CAPTURE_TRANSACTIONS_READER } from './ports/transactions-reader.js';
  * Importa solo la API pública de otros módulos: de `identity`, el guard y el decorador de las
  * rutas del teléfono; de `catalog`, `CatalogLookup`, que cumple `CaptureCatalogReader` (métodos
  * de pago y categorías); de `transactions`, `TransactionsLookup`, que cumple
- * `CaptureTransactionsReader` (las transacciones de un día, para los duplicados). Las cuentas, para
+ * `CaptureTransactionsReader` (las transacciones de un día, para los duplicados), y
+ * `TransactionsRecorder`, que cumple `CaptureTransactionsWriter` (la transacción de una captura
+ * confirmada: la única escritura de `capture` en otro módulo). Las cuentas, para
  * el borrado diario de las descartadas, salen de `ListAccountIds`; qué está encendido, de
  * `FeatureFlagsService`, también detrás de un puerto.
  */
@@ -46,12 +54,15 @@ import { CAPTURE_TRANSACTIONS_READER } from './ports/transactions-reader.js';
     CorrectCapture,
     DiscardCapture,
     RestoreCapture,
+    ConfirmCapture,
+    ConfirmCaptures,
     PurgeDiscardedCaptures,
     DiscardedCapturesPurgeJob,
     { provide: CAPTURE_REPOSITORY, useClass: PrismaCaptureRepository },
     { provide: CATEGORIZATION_RULE_REPOSITORY, useClass: PrismaCategorizationRuleRepository },
     { provide: CAPTURE_CATALOG_READER, useExisting: CatalogLookup },
     { provide: CAPTURE_TRANSACTIONS_READER, useExisting: TransactionsLookup },
+    { provide: CAPTURE_TRANSACTIONS_WRITER, useExisting: TransactionsRecorder },
     { provide: CAPTURE_ACCOUNTS_READER, useExisting: ListAccountIds },
     { provide: CAPTURE_FEATURE_FLAGS, useExisting: FeatureFlagsService },
   ],

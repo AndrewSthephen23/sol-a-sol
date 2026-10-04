@@ -11,6 +11,7 @@ import {
 import { Prisma } from '../../../generated/prisma/client.js';
 import { PrismaService } from '../../../shared/prisma/prisma.service.js';
 import {
+  CaptureAlreadyRecordedError,
   type CategoryAmount,
   type DayAmount,
   type MerchantAmount,
@@ -108,7 +109,29 @@ export class PrismaTransactionRepository implements TransactionRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   /** La fila y sus etiquetas en una sola transacción de la base: o queda todo, o nada. */
-  async create({ tags, amount, date, ...fields }: NewTransaction): Promise<Transaction> {
+  async create(transaction: NewTransaction): Promise<Transaction> {
+    try {
+      return await this.createIn(transaction);
+    } catch (error) {
+      // Con `captureId`, la única restricción única que puede chocar es la de `capture_id`: otra
+      // confirmación de la misma captura ya creó su transacción.
+      if (transaction.captureId !== undefined && isUniqueViolation(error)) {
+        throw new CaptureAlreadyRecordedError();
+      }
+      throw error;
+    }
+  }
+
+  async findIdByCapture(userId: string, captureId: string): Promise<string | null> {
+    const row = await this.prisma.transaction.findFirst({
+      where: { userId, captureId },
+      select: { id: true },
+    });
+
+    return row?.id ?? null;
+  }
+
+  private async createIn({ tags, amount, date, ...fields }: NewTransaction): Promise<Transaction> {
     return this.prisma.$transaction(async (client) => {
       const { id } = await client.transaction.create({
         data: {
@@ -417,4 +440,9 @@ function toTransaction({ amount, currency, date, tags, ...fields }: Row): Transa
     // NUMERIC(18,2) ya trae dos decimales: el texto entra a `Money` sin redondear nada.
     amount: Money.of(amount.toFixed(2), currency),
   };
+}
+
+/** Prisma señala la violación de una restricción única con este código. */
+function isUniqueViolation(error: unknown): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
 }
