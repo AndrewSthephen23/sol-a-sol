@@ -144,7 +144,7 @@ Dockerfiles multi-stage en `docker/` (`pruner` → `deps` → `build` → `runti
 sol-a-sol/
 ├── .github/
 │   ├── actions/setup/  # action compuesta: pnpm + Node.js + dependencias
-│   ├── workflows/      # ci.yml, security.yml
+│   ├── workflows/      # ci.yml, mutation.yml, release.yml, security.yml
 │   └── dependabot.yml
 ├── docker/        # Dockerfiles multi-stage e init.sql de PostgreSQL
 ├── docs/
@@ -160,6 +160,8 @@ sol-a-sol/
 │       └── src/features/  # una carpeta por módulo, cada una con su manifest de navegación
 └── packages/
     ├── config/    # @sol-a-sol/config: tsconfig, ESLint y Prettier compartidos
+    ├── capture-parsers/ # @sol-a-sol/capture-parsers: lectores de notificaciones bancarias (TDD + Stryker)
+    ├── contracts/ # @sol-a-sol/contracts: esquemas Zod de lo que viaja por HTTP (de ellos sale OpenAPI)
     ├── domain/    # @sol-a-sol/domain: lógica de negocio pura (TDD + Stryker)
     └── tooling/   # @sol-a-sol/tooling: generador de módulos (pnpm gen:module)
 ```

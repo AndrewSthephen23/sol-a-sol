@@ -35,6 +35,25 @@ Decididas con el autor el **2026-10-03**:
 
 **Nunca datos sensibles de tarjeta:** de una tarjeta solo se guardan sus últimos 4 dígitos. Si una notificación trajera un número completo, el parser lo enmascara **antes** de guardar, también en el texto crudo.
 
+### Cómo se lee una notificación
+
+`parseNotification` en [`@sol-a-sol/capture-parsers`](../../packages/capture-parsers/), decidido con el autor el **2026-10-03**:
+
+- **Se tapa toda tira de 13 o más dígitos** (juntos o en grupos de 3 o más, separados por espacio o guion) y queda solo con sus últimos 4 (`••••1111`), con el aviso `CARD_NUMBER_MASKED`. Las tarjetas tienen de 13 a 19 dígitos; tapar también un número de cuenta o un CCI de 20 no hace daño, dejar pasar una tarjeta sí. Si todos los números tapados terminan igual, esos 4 dígitos son los de la tarjeta.
+- El texto se lee con el parser de su fuente. **Si ninguna fuente lo reconoce**, se lee como **gasto** con el monto que se encuentre y el aviso `UNKNOWN_SOURCE`: no se adivina un ingreso por palabras sueltas, se corrige en la bandeja.
+- **Nunca lanza:** sin monto, con montos distintos o ilegible, el monto queda nulo con su aviso. Un parser que falla cae a la lectura genérica con `PARSER_FAILED`.
+- Una operación **rechazada** no es otro tipo: es un gasto o un ingreso con el aviso `OPERATION_REJECTED`.
+
+| Aviso                | Qué significa                                                     |
+| -------------------- | ----------------------------------------------------------------- |
+| `UNKNOWN_SOURCE`     | Ninguna fuente conocida reconoció el texto: se leyó solo el monto |
+| `PARSER_FAILED`      | El parser de la fuente falló (quizás cambió el formato)           |
+| `AMOUNT_NOT_FOUND`   | No hay monto pegado a una moneda                                  |
+| `AMBIGUOUS_AMOUNT`   | Hay montos distintos y no se elige uno                            |
+| `INVALID_AMOUNT`     | El monto no se puede leer (por ejemplo, con más de 2 decimales)   |
+| `CARD_NUMBER_MASKED` | Traía un número de tarjeta completo: quedan solo sus últimos 4    |
+| `OPERATION_REJECTED` | El banco rechazó la operación                                     |
+
 ## Modelo de datos
 
 | Tabla                  | Qué guarda                                                                                                                                                                                                                                                                                                                                             |

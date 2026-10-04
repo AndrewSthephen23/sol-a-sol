@@ -1,11 +1,13 @@
 name: Mutation testing
 
-# Stryker sobre @sol-a-sol/domain: falla si el mutation score baja del umbral `break`
-# de stryker.config.json. Corre en PRs que tocan el dominio y cada noche.
+# Stryker sobre @sol-a-sol/domain y @sol-a-sol/capture-parsers: falla si el mutation score baja
+# del umbral `break` de cada stryker.config.json. Corre en PRs que tocan alguno de los dos y cada
+# noche.
 on:
   pull_request:
     paths:
       - packages/domain/**
+      - packages/capture-parsers/**
       - pnpm-lock.yaml
   schedule:
     # 03:00 en Lima (UTC-5)
@@ -41,5 +43,25 @@ jobs:
         with:
           name: mutation-report
           path: packages/domain/reports/mutation/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  capture-parsers:
+    name: Mutation testing (capture-parsers)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Stryker
+        run: pnpm turbo run test:mutation --filter=@sol-a-sol/capture-parsers
+      - name: Publicar reporte de mutación
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mutation-report-capture-parsers
+          path: packages/capture-parsers/reports/mutation/
           if-no-files-found: ignore
           retention-days: 14

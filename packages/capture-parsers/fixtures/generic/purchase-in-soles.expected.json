@@ -1,0 +1,9 @@
+{
+  "source": "GENERIC",
+  "kind": "EXPENSE",
+  "amount": "25.90",
+  "currency": "PEN",
+  "merchant": null,
+  "cardLast4": null,
+  "warnings": ["UNKNOWN_SOURCE"]
+}

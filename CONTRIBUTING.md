@@ -47,7 +47,7 @@ El hook `commit-msg` los valida localmente y CI los vuelve a validar en el PR.
 | Nivel       | Herramienta             | Alcance                                              | Umbral                                                        |
 | ----------- | ----------------------- | ---------------------------------------------------- | ------------------------------------------------------------- |
 | Unitarias   | Vitest                  | dominio, parsers, casos de uso con puertos simulados | líneas ≥ 90 % en `domain` y `capture-parsers`                 |
-| Mutación    | Stryker                 | `packages/domain`                                    | mutation score ≥ 80 %                                         |
+| Mutación    | Stryker                 | `packages/domain` y `packages/capture-parsers`       | ≥ 80 % en `domain`; 100 % en `capture-parsers`                |
 | Integración | Vitest + Testcontainers | repositorios Prisma, controllers, autorización       | cada endpoint: caso feliz + acceso denegado                   |
 | BDD         | Cucumber.js             | reglas de negocio, contra dominio y casos de uso     | un `.feature` por módulo; sin `@pendiente` al cerrar su tarea |
 | E2E         | Playwright              | login, registrar gasto, dashboard, confirmar captura | verde en escritorio y móvil                                   |
@@ -58,7 +58,7 @@ El hook `commit-msg` los valida localmente y CI los vuelve a validar en el PR.
 ```bash
 pnpm lint && pnpm typecheck && pnpm test && pnpm build
 pnpm test:integration   # si tocaste API, base de datos o migraciones
-pnpm test:mutation      # si tocaste packages/domain (también corre en CI)
+pnpm test:mutation      # si tocaste packages/domain o packages/capture-parsers (también corre en CI)
 pnpm api:client         # si cambiaste rutas o esquemas de la API: versiona el resultado
 pnpm test:e2e           # si tocaste la web o la sesión (requiere Docker)
 pnpm test:bdd           # si tocaste reglas de negocio o un .feature

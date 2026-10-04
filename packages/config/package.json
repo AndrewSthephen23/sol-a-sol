@@ -8,6 +8,7 @@
     "./tsconfig/base.json": "./tsconfig/base.json",
     "./tsconfig/library.json": "./tsconfig/library.json",
     "./eslint": "./eslint/base.js",
+    "./eslint/pure": "./eslint/pure.js",
     "./prettier": "./prettier/index.js"
   },
   "scripts": {
