@@ -365,3 +365,42 @@ export {
   linkedContributionState,
   type LinkedTransaction,
 } from './goals/goal-policy.js';
+export { type CaptureAmount, type CaptureDomainWarning } from './capture/capture-amount.js';
+export {
+  type CaptureReading,
+  type CaptureRequest,
+  type NotificationReading,
+  readCaptureRequest,
+} from './capture/capture-request.js';
+export {
+  CAPTURE_MAX_AGE_DAYS,
+  type CaptureDate,
+  captureBusinessDate,
+} from './capture/capture-date.js';
+export {
+  type CaptureCurrency,
+  type CategorizationRuleCandidate,
+  matchPaymentMethod,
+  type PaymentMethodCandidate,
+  resolveCaptureCurrency,
+  suggestCategory,
+} from './capture/capture-matching.js';
+export {
+  type CapturedMovement,
+  type CaptureStatus,
+  type Duplicate,
+  DUPLICATE_WINDOW_MS,
+  type DuplicateProbe,
+  findDuplicate,
+  type RecordedMovement,
+} from './capture/capture-duplicates.js';
+export {
+  CaptureAmountMissingError,
+  CaptureCategoryMissingError,
+  CaptureCurrencyMissingError,
+  CaptureDescriptionMissingError,
+  CaptureNotPendingError,
+  type CaptureToConfirm,
+  transactionFromCapture,
+  type TransactionFromCapture,
+} from './capture/capture-confirmation.js';
