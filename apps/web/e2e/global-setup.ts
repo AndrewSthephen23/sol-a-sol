@@ -49,6 +49,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     FEATURE_REPORTS: 'true',
     FEATURE_CREDIT_CARDS: 'true',
     FEATURE_GOALS: 'true',
+    FEATURE_CAPTURE: 'true',
   };
   const api = start('api', ['dist/main.js'], API_ROOT, {
     ...flags,

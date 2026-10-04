@@ -16,10 +16,12 @@ import { Field, INPUT } from './field';
 import { categoryGroups, lastPaymentMethod, paymentMethodOptions } from './form-options';
 import {
   AmountField,
+  CategoryField,
   CurrencyField,
   DateField,
   DescriptionField,
   FormFooter,
+  PaymentMethodField,
   useMovementForm,
 } from './form-parts';
 import { categoriesById } from './labels';
@@ -166,51 +168,23 @@ export function TransactionForm({
         }}
       />
 
-      <Field label="Categoría" error={errors.categoryId}>
-        {(control) => (
-          <select
-            {...control}
-            name="categoryId"
-            value={values.categoryId}
-            onChange={(event) => {
-              set('categoryId', event.target.value);
-            }}
-            className={INPUT}
-          >
-            <option value="">Elige una categoría</option>
-            {groups.map((group) => (
-              <optgroup key={group.label} label={group.label}>
-                {group.options.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        )}
-      </Field>
+      <CategoryField
+        value={values.categoryId}
+        groups={groups}
+        error={errors.categoryId}
+        onChange={(categoryId) => {
+          set('categoryId', categoryId);
+        }}
+      />
 
-      <Field label="Método de pago" error={errors.paymentMethodId}>
-        {(control) => (
-          <select
-            {...control}
-            name="paymentMethodId"
-            value={values.paymentMethodId ?? ''}
-            onChange={(event) => {
-              set('paymentMethodId', event.target.value || null);
-            }}
-            className={INPUT}
-          >
-            <option value="">Sin método de pago</option>
-            {methods.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        )}
-      </Field>
+      <PaymentMethodField
+        value={values.paymentMethodId}
+        options={methods}
+        error={errors.paymentMethodId}
+        onChange={(paymentMethodId) => {
+          set('paymentMethodId', paymentMethodId);
+        }}
+      />
 
       {/* Solo si el método no fija la moneda. Sin valor por defecto: nunca se suponen soles. */}
       {methodCurrency === null && (
