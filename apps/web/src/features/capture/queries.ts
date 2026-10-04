@@ -1,6 +1,6 @@
 'use client';
 
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { problemCode } from '@/shared/api/problem';
 import { useApi } from '@/shared/session/session-provider';
@@ -34,6 +34,31 @@ export function useCaptures(status: InboxStatus) {
     },
     initialPageParam: null as string | null,
     getNextPageParam: (page) => page.nextCursor,
+  });
+}
+
+/** Hasta cuántas se cuentan: con más, el contador dice «99+» (decidido el 2026-10-04). */
+const COUNT_LIMIT = 100;
+
+/**
+ * Cuántas capturas hay por revisar, para el menú y para «Inicio» (decisión 17). Se cuenta con la
+ * misma lista de la bandeja, sin un endpoint aparte: una página de 100 dice si son 99 o más.
+ * Cualquier cambio en la bandeja lo vuelve a pedir (comparte la clave `captures`).
+ */
+export function usePendingCaptureCount() {
+  const api = useApi();
+
+  return useQuery({
+    queryKey: [...capturesKey, 'pending-count'],
+    staleTime: 0,
+    queryFn: async () => {
+      const { data, response } = await api.GET('/api/v1/captures', {
+        params: { query: { status: 'inbox', limit: COUNT_LIMIT } },
+      });
+      if (data === undefined) throw new ApiRequestError(response.status);
+
+      return { count: data.items.length, more: data.nextCursor !== null };
+    },
   });
 }
 

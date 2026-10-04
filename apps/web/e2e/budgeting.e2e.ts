@@ -1,4 +1,4 @@
-import { expect, test } from './support/test';
+import { expect, openSection, test } from './support/test';
 import { formatMonth, shiftMonth } from '../src/shared/time/dates';
 import { createAccount } from './support/accounts';
 import { limaDates, seedMovements } from './support/movements';
@@ -28,14 +28,14 @@ test.describe('presupuesto', () => {
     await expect(spending).toContainText('60.80 %');
 
     // Un gasto nuevo se come lo disponible, y la partida queda excedida.
-    await page.getByRole('link', { name: 'Transacciones' }).click();
+    await openSection(page, 'Transacciones');
     await page.getByRole('link', { name: '+ Registrar' }).click();
     await page.getByLabel('Monto').fill('25');
     await page.getByLabel('Categoría').selectOption({ label: 'Comida' });
     await page.getByLabel('Método de pago').selectOption({ label: 'BCP Sueldo' });
     await page.getByRole('button', { name: 'Guardar' }).click();
     await expect(page).toHaveURL('/transactions');
-    await page.getByRole('link', { name: 'Presupuesto' }).click();
+    await openSection(page, 'Presupuesto');
     await expect(spending).toContainText('S/ 55.40 de S/ 50.00');
     await expect(spending).toContainText('Te pasaste S/ 5.40');
     await expect(spending).toContainText('110.80 %');

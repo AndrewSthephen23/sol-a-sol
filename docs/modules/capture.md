@@ -149,7 +149,9 @@ Solo desde una **sesión**: un token personal recibe 403 en todas sus rutas (el 
 - **Corregir en la misma tarjeta**, sin cambiar de pantalla: monto, moneda (si el método no la fija), categoría (el tipo sale de ella, como al registrar un movimiento), método, fecha, comercio y descripción. Los errores de la API van junto a su campo.
 - **Descartar** con «Deshacer» (decisión 11). **«Confirmar las N completas»** confirma todas las que están listas, cada una por su lado, y dice cuántas no se pudieron.
 - La lista se pide de nuevo al volver a ella (`staleTime: 0`): llegan capturas mientras se mira.
-- El menú desplegable en el teléfono, el contador de pendientes y el aviso en «Inicio» (decisión 17) llegan en el siguiente PR.
+- **«Bandeja» con su contador** en el menú (decisión 17): cuántas hay por revisar, **exacto hasta 99 y luego «99+»**, contadas con la misma lista de la bandeja (una página de 100), sin endpoint aparte. Sin pendientes no muestra nada.
+- **Menú desplegable en el teléfono** (decidido el 2026-10-04): con 8 secciones ya no cabían. En pantallas angostas las secciones van detrás de «Menú»; **«Bandeja» queda siempre a la vista**, fuera del desplegable (`pinned` en su manifest). En escritorio, todo en una fila como antes.
+- **Aviso en «Inicio»** cuando hay pendientes: «Tienes 3 capturas por revisar: lo que llegó del teléfono todavía no cuenta en el mes», con enlace a la bandeja. La página lee el flag en el servidor (`showPendingCaptures`): apagado, no se pide nada de capturas.
 
 ## Estado
 

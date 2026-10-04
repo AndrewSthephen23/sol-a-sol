@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { buildNavigation, type FeatureManifest } from './navigation';
+import { SectionsMenu } from './sections-menu';
 
 interface SidebarProps {
   manifests: readonly FeatureManifest[];
@@ -11,27 +12,27 @@ interface SidebarProps {
 
 /**
  * Barra de secciones. Se arma leyendo los manifests, no una lista escrita a mano:
- * un módulo nuevo aparece solo cuando su flag está activo.
- *
- * Usa enlaces normales porque hoy existe una sola ruta; cuando haya varias pantallas
- * conviene pasar a `next/link` para la navegación del lado del cliente.
+ * un módulo nuevo aparece solo cuando su flag está activo. En el teléfono las secciones van en un
+ * menú desplegable, salvo las fijas (`SectionsMenu`).
  */
 export function Sidebar({ manifests, isEnabled, actions }: Readonly<SidebarProps>) {
-  const items = buildNavigation(manifests, isEnabled);
+  const items = buildNavigation(manifests, isEnabled).map(
+    ({ id, title, route, pinned, counter }) => ({
+      id,
+      title,
+      route,
+      pinned: pinned === true,
+      ...(counter === undefined ? {} : { counter }),
+    }),
+  );
 
   return (
     <nav aria-label="Secciones" className="border-b border-stone-200 bg-white">
-      {/* Las secciones pasan a otra línea si no caben: en un teléfono nunca desbordan la página. */}
       <div className="mx-auto flex max-w-3xl items-start justify-between gap-4 px-4 py-3 text-sm">
-        <ul className="flex min-w-0 flex-wrap gap-x-4 gap-y-2">
-          {items.map((item) => (
-            <li key={item.id}>
-              <a className="font-medium text-stone-700 hover:text-amber-600" href={item.route}>
-                {item.title}
-              </a>
-            </li>
-          ))}
-        </ul>
+        <SectionsMenu
+          items={items.filter((item) => !item.pinned)}
+          pinned={items.filter((item) => item.pinned)}
+        />
         {actions !== undefined && <div className="shrink-0">{actions}</div>}
       </div>
     </nav>

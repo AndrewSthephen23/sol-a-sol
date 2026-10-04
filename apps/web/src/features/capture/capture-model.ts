@@ -141,3 +141,17 @@ export function checkCorrection(
     },
   };
 }
+
+/** Más de 99 dice lo que hay que saber: hay que revisarlas (decidido el 2026-10-04). */
+export const COUNT_CAP = 99;
+
+/** «3», o «99+» con más de 99 (o si hay otra página). */
+export function pendingCountLabel({ count, more }: { count: number; more: boolean }): string {
+  return more || count > COUNT_CAP ? `${String(COUNT_CAP)}+` : String(count);
+}
+
+/** «1 captura» / «3 capturas» / «99+ capturas». */
+export function pendingCapturesText(pending: { count: number; more: boolean }): string {
+  const label = pendingCountLabel(pending);
+  return `${label} ${label === '1' ? 'captura' : 'capturas'}`;
+}
