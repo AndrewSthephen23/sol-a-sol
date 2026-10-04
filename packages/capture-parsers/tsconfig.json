@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "@sol-a-sol/config/tsconfig/library.json",
+  "compilerOptions": {
+    // Paquete puro, como el dominio: sin tipos de Node ni del navegador. La prueba de fixtures
+    // los lee con `import.meta.glob` de Vite, que no necesita `node:fs`.
+    "types": [],
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": ["src"]
+}
