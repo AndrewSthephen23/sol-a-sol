@@ -308,6 +308,33 @@ describe('monthlySummaryCsv', () => {
     expect(none.some((row) => /^(Presupuesto|Tarjetas|Metas);/u.test(row))).toBe(false);
   });
 
+  it('warns about the captures waiting in the inbox, and says when there are none', () => {
+    const pending = lines(
+      monthlySummaryCsv(
+        view({
+          captures: [
+            { date: date('2026-09-10'), amount: pen('25.90') },
+            { date: date('2026-09-11'), amount: usd('10.00') },
+            { date: date('2026-09-12'), amount: null },
+          ],
+        }),
+      ),
+    );
+    const none = lines(monthlySummaryCsv(view({ captures: [] })));
+    const off = lines(monthlySummaryCsv(view()));
+
+    expect(pending.filter((row) => row.startsWith('Capturas pendientes;'))).toEqual([
+      'Capturas pendientes;Por revisar: 3;;;;;',
+      'Capturas pendientes;Monto por revisar;PEN;25.90;;;',
+      'Capturas pendientes;Monto por revisar;USD;10.00;;;',
+      'Capturas pendientes;Sin monto (no suman): 1;;;;;',
+    ]);
+    expect(none.filter((row) => row.startsWith('Capturas pendientes;'))).toEqual([
+      'Capturas pendientes;Ninguna por revisar;;;;;',
+    ]);
+    expect(off.some((row) => row.startsWith('Capturas pendientes;'))).toBe(false);
+  });
+
   it('names a card with only what identifies it', () => {
     const base = view({
       cards: [{ cardId: 'visa', archived: false, charges: [pen('5.00')], statements: [] }],

@@ -756,4 +756,50 @@ describe('computeMonthlySummary', () => {
       ).toThrow(CurrencyMismatchError);
     });
   });
+
+  describe('pending captures (decision 16 of H7)', () => {
+    const capture = (day: string, amount: Money | null) => ({ date: date(day), amount });
+
+    it('counts the captures of the month waiting in the inbox, and adds their amounts by currency', () => {
+      expect(
+        summary({
+          captures: [
+            capture('2026-09-01', usd('20.00')),
+            capture('2026-09-15', pen('25.90')),
+            capture('2026-09-30', pen('59.50')),
+          ],
+        }).captures,
+      ).toEqual({ count: 3, withoutAmount: 0, totals: [pen('85.40'), usd('20.00')] });
+    });
+
+    it('counts the ones without an amount (or without a currency), but they do not add up', () => {
+      expect(
+        summary({ captures: [capture('2026-09-10', null), capture('2026-09-11', pen('5.00'))] })
+          .captures,
+      ).toEqual({ count: 2, withoutAmount: 1, totals: [pen('5.00')] });
+    });
+
+    it('leaves out the captures of another month', () => {
+      expect(
+        summary({
+          captures: [capture('2026-08-31', pen('1.00')), capture('2026-10-01', pen('2.00'))],
+        }).captures,
+      ).toEqual({ count: 0, withoutAmount: 0, totals: [] });
+    });
+
+    it('counts a month in progress up to today', () => {
+      const result = computeMonthlySummary({
+        periods: monthlySummaryPeriods(2026, 10, date('2026-10-03')),
+        current: { byCategory: [], byMerchant: [] },
+        previous: { byCategory: [] },
+        captures: [capture('2026-10-03', pen('7.00'))],
+      });
+
+      expect(result.captures).toEqual({ count: 1, withoutAmount: 0, totals: [pen('7.00')] });
+    });
+
+    it('has no section while the capture module is off', () => {
+      expect(summary()).not.toHaveProperty('captures');
+    });
+  });
 });

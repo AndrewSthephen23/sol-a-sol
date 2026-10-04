@@ -11,7 +11,7 @@ import { SummaryScreen, type SummarySections } from './summary-screen';
 
 const CLOCK = FixedClock.at('2026-10-03T15:00:00Z');
 const FOOD = '11111111-1111-4111-8111-111111111111';
-const ALL_ON: SummarySections = { budget: true, cards: true, goals: true };
+const ALL_ON: SummarySections = { budget: true, cards: true, goals: true, captures: true };
 
 const navigation = vi.hoisted(() => ({ search: '', push: vi.fn() }));
 
@@ -265,12 +265,56 @@ describe('SummaryScreen', () => {
   });
 
   it('asks only the summary: switched-off modules are never asked separately', async () => {
-    const { asked } = setup({ sections: { budget: false, cards: false, goals: false } });
+    const { asked } = setup({
+      sections: { budget: false, cards: false, goals: false, captures: false },
+    });
 
     await screen.findByRole('region', { name: 'Soles' });
     expect(asked.filter((path) => !path.startsWith('/api/v1/categories'))).toEqual([
       '/api/v1/reports/monthly-summary?year=2026&month=9',
     ]);
+  });
+
+  describe('pending captures (decision 16 of H7)', () => {
+    const pending = {
+      count: 3,
+      withoutAmount: 1,
+      totals: [
+        { amount: '85.40', currency: 'PEN' },
+        { amount: '20.00', currency: 'USD' },
+      ],
+    };
+
+    it('warns that the summary may be incomplete, with a link to the inbox', async () => {
+      setup({ summary: september({ captures: pending }) });
+
+      expect(
+        await screen.findByText(
+          /Tienes 3 capturas sin revisar de setiembre \(S\/ 85\.40 y US\$ 20\.00\): el resumen puede estar incompleto\./u,
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Ir a la bandeja' })).toHaveAttribute(
+        'href',
+        '/capture',
+      );
+    });
+
+    it('says nothing without captures waiting', async () => {
+      setup({ summary: september({ captures: { count: 0, withoutAmount: 0, totals: [] } }) });
+
+      await screen.findByRole('region', { name: 'Soles' });
+      expect(screen.queryByText(/sin revisar/u)).not.toBeInTheDocument();
+    });
+
+    it('says nothing while the capture module is off', async () => {
+      setup({
+        summary: september({ captures: pending }),
+        sections: { ...ALL_ON, captures: false },
+      });
+
+      await screen.findByRole('region', { name: 'Soles' });
+      expect(screen.queryByText(/sin revisar/u)).not.toBeInTheDocument();
+    });
   });
 
   it('offers to try again when it does not load', async () => {

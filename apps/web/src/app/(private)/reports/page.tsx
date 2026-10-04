@@ -19,6 +19,7 @@ export default async function ReportsPage() {
           budget: isFeatureEnabled('FEATURE_BUDGETING'),
           cards: isFeatureEnabled('FEATURE_CREDIT_CARDS'),
           goals: isFeatureEnabled('FEATURE_GOALS'),
+          captures: isFeatureEnabled('FEATURE_CAPTURE'),
         }}
       />
     </Suspense>

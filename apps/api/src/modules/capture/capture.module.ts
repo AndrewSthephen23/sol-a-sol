@@ -9,6 +9,7 @@ import {
   TransactionsModule,
   TransactionsRecorder,
 } from '../transactions/index.js';
+import { CaptureLookup } from './application/capture-lookup.js';
 import { ConfirmCapture, ConfirmCaptures } from './application/confirm.js';
 import {
   CreateCategorizationRule,
@@ -57,6 +58,7 @@ import { CAPTURE_TRANSACTIONS_WRITER } from './ports/transactions-writer.js';
   imports: [PrismaModule, IdentityModule, CatalogModule, TransactionsModule],
   controllers: [CapturesController, InboxController, CategorizationRulesController],
   providers: [
+    CaptureLookup,
     ReceiveCapture,
     ListCaptures,
     GetCapture,
@@ -81,6 +83,7 @@ import { CAPTURE_TRANSACTIONS_WRITER } from './ports/transactions-writer.js';
     { provide: CAPTURE_ACCOUNTS_READER, useExisting: ListAccountIds },
     { provide: CAPTURE_FEATURE_FLAGS, useExisting: FeatureFlagsService },
   ],
-  exports: [],
+  // Lo que otros módulos pueden leer (el resumen mensual de `reports`).
+  exports: [CaptureLookup],
 })
 export class CaptureModule {}

@@ -141,3 +141,22 @@ export function contributedText(goal: SummaryGoal): string {
 export function goalProgressText(goal: SummaryGoal): string {
   return `Llevas ${formatMoney(goal.saved, goal.currency)} (${formatPercentage(goal.percentage)} %), ${STATUS_LABELS[goal.status]}`;
 }
+
+/**
+ * El aviso del cierre cuando quedan capturas sin revisar del mes (decisión 16 de H7): «Tienes 3
+ * capturas sin revisar de setiembre (S/ 85.40): el resumen puede estar incompleto». Las sin monto
+ * se cuentan pero no suman. `null` sin pendientes.
+ */
+export function pendingCapturesNotice(summary: MonthlySummary): string | null {
+  const captures = summary.captures;
+  if (captures === undefined || captures.count === 0) return null;
+  const amounts = captures.totals.map(({ amount, currency }) => formatMoney(amount, currency));
+  const noun = captures.count === 1 ? 'captura' : 'capturas';
+  const of = monthName(summary.period.from, summary.period.from);
+
+  return (
+    `Tienes ${String(captures.count)} ${noun} sin revisar de ${of}` +
+    (amounts.length === 0 ? '' : ` (${amounts.join(' y ')})`) +
+    ': el resumen puede estar incompleto.'
+  );
+}

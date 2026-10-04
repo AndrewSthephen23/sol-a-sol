@@ -10,6 +10,7 @@ import {
   goalProgressText,
   merchantText,
   type MonthlySummary,
+  pendingCapturesNotice,
   previousLabel,
   savingsRateText,
   shareText,
@@ -177,5 +178,24 @@ describe('other texts', () => {
     expect(contributedText({ ...GOAL, contributed: '-50.00' })).toBe('Retiraste S/ 50.00 este mes');
     expect(contributedText({ ...GOAL, contributed: '0.00' })).toBe('Sin aportes este mes');
     expect(goalProgressText(GOAL)).toBe('Llevas S/ 300.00 (25.00 %), en riesgo');
+  });
+});
+
+describe('pendingCapturesNotice', () => {
+  const base = {
+    period: { from: '2026-09-01', to: '2026-09-30', complete: true },
+  } as unknown as MonthlySummary;
+
+  it('counts one capture without an amount, with no amounts in brackets', () => {
+    expect(
+      pendingCapturesNotice({ ...base, captures: { count: 1, withoutAmount: 1, totals: [] } }),
+    ).toBe('Tienes 1 captura sin revisar de setiembre: el resumen puede estar incompleto.');
+  });
+
+  it('says nothing without captures, or with the module off', () => {
+    expect(
+      pendingCapturesNotice({ ...base, captures: { count: 0, withoutAmount: 0, totals: [] } }),
+    ).toBeNull();
+    expect(pendingCapturesNotice(base)).toBeNull();
   });
 });

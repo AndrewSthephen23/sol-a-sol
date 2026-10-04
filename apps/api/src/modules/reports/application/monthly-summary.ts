@@ -12,12 +12,14 @@ import { CLOCK } from '../../../shared/time/system-clock.js';
 import {
   REPORT_ACTUALS_READER,
   REPORT_BUDGET_READER,
+  REPORT_CAPTURES_READER,
   REPORT_CARDS_READER,
   REPORT_CATALOG_READER,
   REPORT_FEATURE_FLAGS,
   REPORT_GOALS_READER,
   type ReportActualsReader,
   type ReportBudgetReader,
+  type ReportCapturesReader,
   type ReportCard,
   type ReportCardsReader,
   type ReportCatalogReader,
@@ -54,6 +56,7 @@ export class GetMonthlySummary {
     @Inject(REPORT_BUDGET_READER) private readonly budget: ReportBudgetReader,
     @Inject(REPORT_CARDS_READER) private readonly cards: ReportCardsReader,
     @Inject(REPORT_GOALS_READER) private readonly goals: ReportGoalsReader,
+    @Inject(REPORT_CAPTURES_READER) private readonly captures: ReportCapturesReader,
     @Inject(REPORT_FEATURE_FLAGS) private readonly flags: ReportFeatureFlags,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
@@ -70,7 +73,7 @@ export class GetMonthlySummary {
     // Un mes que no existe lo rechaza `LocalDate`; uno que no empezó, el dominio.
     const periods = monthlySummaryPeriods(year, month, today(this.clock));
     const { current, previous } = periods;
-    const [now, before, merchants, categories, lines, cards, goals] = await Promise.all([
+    const [now, before, merchants, categories, lines, cards, goals, captures] = await Promise.all([
       this.actuals.totalsByCategory(userId, current.from, current.to),
       this.actuals.totalsByCategory(userId, previous.from, previous.to),
       this.actuals.totalsByMerchant(userId, current.from, current.to),
@@ -80,6 +83,10 @@ export class GetMonthlySummary {
         ? this.cards.monthlyCards(userId, current.from, current.to)
         : undefined,
       this.flags.isEnabled('goals') ? this.goals.goalsWithMovements(userId) : undefined,
+      // Lo que llegó del teléfono y falta revisar (decisión 16 de H7): el mes puede estar incompleto.
+      this.flags.isEnabled('capture')
+        ? this.captures.pendingCaptures(userId, current.from, current.to)
+        : undefined,
     ]);
     const parentOf = new Map(categories.map((category) => [category.id, category.parentId]));
     const toParent = <T extends { categoryId: string }>(entry: T): T => ({
@@ -96,6 +103,7 @@ export class GetMonthlySummary {
         ...(lines === undefined ? {} : { budget: { lines } }),
         ...(cards === undefined ? {} : { cards }),
         ...(goals === undefined ? {} : { goals }),
+        ...(captures === undefined ? {} : { captures }),
       }),
       categories: new Map(categories.map((category) => [category.id, category.name])),
       cards: new Map((cards ?? []).map((card) => [card.cardId, card.label])),

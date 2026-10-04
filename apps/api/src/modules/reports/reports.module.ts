@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { FeatureFlagsService } from '../../shared/feature-flags/feature-flags.js';
 import { BudgetingLookup, BudgetingModule } from '../budgeting/index.js';
+import { CaptureLookup, CaptureModule } from '../capture/index.js';
 import { CatalogLookup, CatalogModule } from '../catalog/index.js';
 import { CreditCardsLookup, CreditCardsModule } from '../credit-cards/index.js';
 import { GoalsLookup, GoalsModule } from '../goals/index.js';
@@ -14,6 +15,7 @@ import { ReportsController } from './http/reports.controller.js';
 import {
   REPORT_ACTUALS_READER,
   REPORT_BUDGET_READER,
+  REPORT_CAPTURES_READER,
   REPORT_CARDS_READER,
   REPORT_CATALOG_READER,
   REPORT_FEATURE_FLAGS,
@@ -27,7 +29,7 @@ import {
  * Solo lectura y sin tablas propias (sección 6.3 del plan): lee lo real de `transactions`
  * (`TransactionsLookup`), las categorías de `catalog` (`CatalogLookup`), las partidas de
  * `budgeting` (`BudgetingLookup`), las tarjetas de `credit-cards` (`CreditCardsLookup`) y las metas
- * de `goals` (`GoalsLookup`), cada una por su API pública y detrás de un puerto propio. Qué módulos
+ * de `goals` (`GoalsLookup`) y las capturas por revisar de `capture` (`CaptureLookup`), cada una por su API pública y detrás de un puerto propio. Qué módulos
  * están encendidos lo dice `FeatureFlagsService`, también detrás de un puerto.
  */
 @Module({
@@ -38,6 +40,7 @@ import {
     BudgetingModule,
     CreditCardsModule,
     GoalsModule,
+    CaptureModule,
   ],
   controllers: [ReportsController],
   providers: [
@@ -49,6 +52,7 @@ import {
     { provide: REPORT_BUDGET_READER, useExisting: BudgetingLookup },
     { provide: REPORT_CARDS_READER, useExisting: CreditCardsLookup },
     { provide: REPORT_GOALS_READER, useExisting: GoalsLookup },
+    { provide: REPORT_CAPTURES_READER, useExisting: CaptureLookup },
     { provide: REPORT_FEATURE_FLAGS, useExisting: FeatureFlagsService },
   ],
   exports: [],

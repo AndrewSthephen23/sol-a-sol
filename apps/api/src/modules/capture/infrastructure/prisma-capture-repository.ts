@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { Currency, TransactionType } from '@sol-a-sol/domain';
+import type { Currency, LocalDate, TransactionType } from '@sol-a-sol/domain';
 
 import { Prisma } from '../../../generated/prisma/client.js';
 import { fromDatabaseDate, toDatabaseDate } from '../../../shared/prisma/database-date.js';
@@ -158,6 +158,19 @@ export class PrismaCaptureRepository implements CaptureRepository {
     if (count === 0) return null;
 
     return this.find(userId, id);
+  }
+
+  async listInboxBetween(userId: string, from: LocalDate, to: LocalDate): Promise<Capture[]> {
+    const rows = await this.prisma.capture.findMany({
+      where: {
+        userId,
+        status: { in: ['PENDING', 'DUPLICATE'] },
+        businessDate: { gte: toDatabaseDate(from), lte: toDatabaseDate(to) },
+      },
+      select: CAPTURE_FIELDS,
+    });
+
+    return rows.map(captureOf);
   }
 
   async listUncategorizedInInbox(userId: string): Promise<Capture[]> {

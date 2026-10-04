@@ -65,6 +65,12 @@ export interface MonthlySummaryResponse {
       balances: { currency: string; balance: string; remaining: string }[];
     } | null;
   }[];
+  /** Las capturas del mes que esperan en la bandeja: cuántas, su monto por moneda y cuántas no suman. */
+  captures?: {
+    count: number;
+    withoutAmount: number;
+    totals: MoneyResponse[];
+  };
   goals?: {
     id: string;
     name: string;
@@ -199,6 +205,15 @@ export function monthlySummaryResponse(view: MonthlySummaryView): MonthlySummary
             suggestedMonthly: goal.progress.suggestedMonthly?.toFixed() ?? null,
             status: goal.progress.status,
           })),
+        }),
+    ...(summary.captures === undefined
+      ? {}
+      : {
+          captures: {
+            count: summary.captures.count,
+            withoutAmount: summary.captures.withoutAmount,
+            totals: summary.captures.totals.map(moneyOf),
+          },
         }),
   };
 }

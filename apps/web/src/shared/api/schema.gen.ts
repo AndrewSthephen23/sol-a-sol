@@ -4322,6 +4322,20 @@ export interface paths {
                                 /** @enum {string} */
                                 status: "ON_TRACK" | "AT_RISK" | "ACHIEVED" | "OVERDUE";
                             }[];
+                            /** @description Lo que llegó del teléfono en el mes y falta revisar: el resumen puede estar incompleto. */
+                            captures?: {
+                                /** @description Cuántas esperan en la bandeja (por revisar y duplicadas). */
+                                count: number;
+                                /** @description De ellas, cuántas no tienen monto o moneda: no suman. */
+                                withoutAmount: number;
+                                /** @description Su monto por moneda, primero soles. */
+                                totals: {
+                                    /** @description String decimal con 2 decimales (`"5000.00"`). */
+                                    amount: string;
+                                    /** @enum {string} */
+                                    currency: "PEN" | "USD";
+                                }[];
+                            };
                         };
                     };
                 };

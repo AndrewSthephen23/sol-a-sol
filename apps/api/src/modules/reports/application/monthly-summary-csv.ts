@@ -84,6 +84,7 @@ export function monthlySummaryCsv(view: MonthlySummaryView): CsvFile {
     ...budgetRows(view),
     ...cardRows(view),
     ...goalRows(view),
+    ...captureRows(view),
   ];
   const lines = [
     HEADER.map(field),
@@ -253,6 +254,26 @@ function cardRows(view: MonthlySummaryView): Row[] {
           }))),
     ];
   });
+}
+
+/**
+ * Lo que llegó del teléfono en el mes y falta revisar (decisión 16 de H7; en el CSV, decidido el
+ * 2026-10-04): cuántas, su monto por moneda y cuántas no suman. Quien lea el archivo sabe que el
+ * mes puede estar incompleto. Con el módulo apagado no hay sección.
+ */
+function captureRows(view: MonthlySummaryView): Row[] {
+  const { captures } = view.summary;
+  if (captures === undefined) return [];
+  const section = 'Capturas pendientes';
+  if (captures.count === 0) return [{ section, concept: 'Ninguna por revisar' }];
+
+  return [
+    { section, concept: `Por revisar: ${String(captures.count)}` },
+    ...captures.totals.map((total) => ({ section, concept: 'Monto por revisar', ...money(total) })),
+    ...(captures.withoutAmount === 0
+      ? []
+      : [{ section, concept: `Sin monto (no suman): ${String(captures.withoutAmount)}` }]),
+  ];
 }
 
 function goalRows(view: MonthlySummaryView): Row[] {
