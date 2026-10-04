@@ -43,4 +43,26 @@ test.describe('bandeja', () => {
 
     await expect(card).toBeVisible();
   });
+
+  test('Inicio y el menú avisan cuántas capturas esperan, y llevan a la bandeja', async ({
+    page,
+  }) => {
+    const account = await createAccount();
+    await sendCapture(account, { amountText: 'S/ 12.00', merchant: 'Plaza Vea' });
+    await page.goto('/');
+    await page.getByLabel('Correo').fill(account.email);
+    await page.getByLabel('Contraseña').fill(account.password);
+    await page.getByRole('button', { name: 'Entrar' }).click();
+
+    await expect(page.getByText(/Tienes 1 captura por revisar/u)).toBeVisible();
+    // «Bandeja» queda a la vista también en el teléfono, fuera del menú plegado.
+    const inbox = page
+      .getByRole('navigation', { name: 'Secciones' })
+      .getByRole('link', { name: 'Bandeja 1 por revisar' });
+    await expect(inbox).toBeVisible();
+
+    await inbox.click();
+    await expect(page).toHaveURL('/capture');
+    await expect(page.getByRole('article', { name: 'S/ 12.00 Plaza Vea' })).toBeVisible();
+  });
 });

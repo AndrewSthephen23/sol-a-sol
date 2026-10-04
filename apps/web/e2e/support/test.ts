@@ -22,3 +22,13 @@ export const test = base.extend<{ contentSecurityPolicy: undefined }>({
 });
 
 export { expect };
+
+/**
+ * Va a una sección por el menú. En el teléfono las secciones están plegadas detrás de «Menú»
+ * (decidido el 2026-10-04): se abre primero.
+ */
+export async function openSection(page: import('@playwright/test').Page, name: string) {
+  const menu = page.getByRole('button', { name: 'Menú' });
+  if (await menu.isVisible()) await menu.click();
+  await page.getByRole('navigation', { name: 'Secciones' }).getByRole('link', { name }).click();
+}

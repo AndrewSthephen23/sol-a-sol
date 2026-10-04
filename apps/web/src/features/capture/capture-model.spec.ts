@@ -9,6 +9,8 @@ import {
   correctionValuesFor,
   missingLabel,
   missingToConfirm,
+  pendingCapturesText,
+  pendingCountLabel,
   warningLabel,
 } from './capture-model';
 
@@ -145,5 +147,22 @@ describe('checkCorrection', () => {
     const checked = checkCorrection({ ...correctionValuesFor(CAPTURE), ...extra }, CONTEXT);
 
     expect('errors' in checked ? Object.keys(checked.errors) : []).toEqual([field]);
+  });
+});
+
+describe('pendingCountLabel (decided 2026-10-04)', () => {
+  it.each([
+    [{ count: 3, more: false }, '3'],
+    [{ count: 99, more: false }, '99'],
+    [{ count: 100, more: false }, '99+'],
+    [{ count: 100, more: true }, '99+'],
+  ])('counts %j as %s', (pending, label) => {
+    expect(pendingCountLabel(pending)).toBe(label);
+  });
+
+  it('puts the count in words', () => {
+    expect(pendingCapturesText({ count: 1, more: false })).toBe('1 captura');
+    expect(pendingCapturesText({ count: 4, more: false })).toBe('4 capturas');
+    expect(pendingCapturesText({ count: 100, more: true })).toBe('99+ capturas');
   });
 });

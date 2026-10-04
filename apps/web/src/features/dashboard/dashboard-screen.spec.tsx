@@ -1,5 +1,5 @@
 import { FixedClock } from '@sol-a-sol/domain';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -101,7 +101,7 @@ const SEPTEMBER = {
  * Una API falsa: `report` responde el dashboard, y cada petición queda anotada. Con `cards`, el
  * flag de tarjetas está encendido y `/credit-cards/status` responde esas tarjetas.
  */
-function setup(report: (url: URL) => Response, cards?: unknown[]) {
+function setup(report: (url: URL) => Response, cards?: unknown[], captures?: unknown[]) {
   const requests: URL[] = [];
   const session = new Session({
     fetch: (input) => {
@@ -113,6 +113,9 @@ function setup(report: (url: URL) => Response, cards?: unknown[]) {
       if (url.pathname === '/api/v1/credit-cards/status') {
         return Promise.resolve(Response.json(cards ?? []));
       }
+      if (url.pathname === '/api/v1/captures') {
+        return Promise.resolve(Response.json({ items: captures ?? [], nextCursor: null }));
+      }
 
       return Promise.resolve(report(url));
     },
@@ -122,7 +125,11 @@ function setup(report: (url: URL) => Response, cards?: unknown[]) {
   render(
     <SessionProvider session={session}>
       <QueryProvider client={createQueryClient()}>
-        <DashboardScreen clock={CLOCK} showCardAlerts={cards !== undefined} />
+        <DashboardScreen
+          clock={CLOCK}
+          showCardAlerts={cards !== undefined}
+          showPendingCaptures={captures !== undefined}
+        />
       </QueryProvider>
     </SessionProvider>,
   );
@@ -303,6 +310,34 @@ describe('DashboardScreen', () => {
         'href',
         '/credit-cards#tarjeta-card-visa',
       );
+    });
+  });
+
+  describe('pending captures (decision 17 of H7)', () => {
+    it('says how many captures wait in the inbox, with a link to it', async () => {
+      setup(() => Response.json(SEPTEMBER), undefined, [{ id: 'a' }, { id: 'b' }, { id: 'c' }]);
+
+      expect(await screen.findByText(/Tienes 3 capturas por revisar/u)).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Ir a la bandeja' })).toHaveAttribute(
+        'href',
+        '/capture',
+      );
+    });
+
+    it('says nothing when the inbox is empty', async () => {
+      const { requests } = setup(() => Response.json(SEPTEMBER), undefined, []);
+
+      await waitFor(() => {
+        expect(requests.some((url) => url.pathname === '/api/v1/captures')).toBe(true);
+      });
+      expect(screen.queryByText(/por revisar/u)).not.toBeInTheDocument();
+    });
+
+    it('asks nothing about captures while the module is off', async () => {
+      const { requests } = setup(() => Response.json(SEPTEMBER));
+
+      await screen.findByRole('heading', { name: 'Inicio' });
+      expect(requests.some((url) => url.pathname === '/api/v1/captures')).toBe(false);
     });
   });
 });
