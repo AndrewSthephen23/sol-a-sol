@@ -37,6 +37,8 @@ const STATUS_BY_DOMAIN_CODE = new Map<string, number>([
   ['TOO_MANY_LOGIN_ATTEMPTS', HttpStatus.TOO_MANY_REQUESTS],
   // Se sabe quién es, pero su token no puede hacer eso: 403, no 401.
   ['INSUFFICIENT_TOKEN_SCOPE', HttpStatus.FORBIDDEN],
+  // Igual: la sesión vale, pero esa ruta es solo del teléfono.
+  ['PERSONAL_ACCESS_TOKEN_REQUIRED', HttpStatus.FORBIDDEN],
   ['PERSONAL_ACCESS_TOKEN_NOT_FOUND', HttpStatus.NOT_FOUND],
   ['PAYMENT_METHOD_NOT_FOUND', HttpStatus.NOT_FOUND],
   // El alias está bien escrito, pero choca con otro método que ya existe (quizá archivado).

@@ -4,7 +4,12 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { AuthenticatePersonalAccessToken } from '../application/personal-access-tokens.js';
 import type { AccessTokens } from '../ports/access-tokens.js';
-import { AcceptsPersonalAccessToken, AccessTokenGuard } from './access-token.guard.js';
+import { PersonalAccessTokenRequiredError } from '../domain/errors.js';
+import {
+  AcceptsPersonalAccessToken,
+  AccessTokenGuard,
+  RequiresPersonalAccessToken,
+} from './access-token.guard.js';
 
 const USER_ID = 'user-1';
 const PERSONAL_TOKEN = 'sas_pat_cualquier-cosa';
@@ -13,8 +18,10 @@ const PERSONAL_TOKEN = 'sas_pat_cualquier-cosa';
 const HANDLERS = {
   sessionOnly: (): undefined => undefined,
   capture: (): undefined => undefined,
+  captureOnly: (): undefined => undefined,
 };
 AcceptsPersonalAccessToken('captures:write')(HANDLERS.capture);
+RequiresPersonalAccessToken('captures:write')(HANDLERS.captureOnly);
 
 function contextWith(
   authorization: unknown,
@@ -139,6 +146,39 @@ describe('AccessTokenGuard', () => {
       await guard.canActivate(contextWith(`Bearer ${PERSONAL_TOKEN}`).context);
 
       expect(authenticate).toHaveBeenCalledWith(expect.objectContaining({ requiredScope: null }));
+    });
+
+    describe('on a route only for personal tokens', () => {
+      it('lets a personal token with the scope through', async () => {
+        const { guard, authenticate } = guardWith(USER_ID);
+        const { context, request } = contextWith(`Bearer ${PERSONAL_TOKEN}`, 'captureOnly');
+
+        await expect(guard.canActivate(context)).resolves.toBe(true);
+
+        expect(authenticate).toHaveBeenCalledWith(
+          expect.objectContaining({ requiredScope: 'captures:write' }),
+        );
+        expect(request.userId).toBe(USER_ID);
+      });
+
+      // Se sabe quién es, pero esa ruta es del teléfono: 403, como un token sin el scope.
+      it('refuses a valid session', async () => {
+        const { guard } = guardWith(USER_ID);
+        const { context, request } = contextWith('Bearer un-token', 'captureOnly');
+
+        await expect(guard.canActivate(context)).rejects.toBeInstanceOf(
+          PersonalAccessTokenRequiredError,
+        );
+        expect(request.userId).toBeUndefined();
+      });
+
+      it('still answers 401 to a session that is not valid', async () => {
+        const { guard } = guardWith(null);
+
+        await expect(
+          guard.canActivate(contextWith('Bearer un-token', 'captureOnly').context),
+        ).rejects.toBeInstanceOf(UnauthorizedException);
+      });
     });
 
     it('lets the rejection of a personal token through untouched', async () => {

@@ -4,9 +4,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
   AUTH_RATE_LIMIT,
+  CAPTURE_RATE_LIMIT,
+  CaptureRateLimit,
   DEFAULT_RATE_LIMIT,
+  RATE_LIMIT_BUCKET,
   rateLimitFrom,
-  STRICT_RATE_LIMIT,
   StrictRateLimit,
 } from './rate-limits.js';
 
@@ -16,6 +18,16 @@ class Strict {
   @Get()
   costly(): undefined {
     // Una ruta cara, como las de /auth.
+    return undefined;
+  }
+}
+
+@Controller()
+@CaptureRateLimit()
+class Captures {
+  @Get()
+  fromThePhone(): undefined {
+    // La ruta a la que mandan capturas el atajo y la macro.
     return undefined;
   }
 }
@@ -32,6 +44,10 @@ class Ordinary {
 describe('rate limits', () => {
   it('is stricter where every request costs a password hash', () => {
     expect(AUTH_RATE_LIMIT).toBeLessThan(DEFAULT_RATE_LIMIT);
+  });
+
+  it('lets a phone send 30 captures a minute (decision 15 of H7)', () => {
+    expect(CAPTURE_RATE_LIMIT).toBe(30);
   });
 
   it('takes the limit from the environment', () => {
@@ -51,16 +67,17 @@ describe('rate limits', () => {
   });
 });
 
-describe('StrictRateLimit', () => {
+describe('rate limit buckets', () => {
   const reflector = new Reflector();
 
   // Se marca el destino real de la petición, no su URL: una ruta con `..` puede parecer otra
   // cosa mirando el texto, pero acaba en el controller que le toca.
   it('marks the controller it decorates', () => {
-    expect(reflector.get(STRICT_RATE_LIMIT, Strict)).toBe(true);
+    expect(reflector.get(RATE_LIMIT_BUCKET, Strict)).toBe('auth');
+    expect(reflector.get(RATE_LIMIT_BUCKET, Captures)).toBe('captures');
   });
 
   it('leaves the rest unmarked', () => {
-    expect(reflector.get(STRICT_RATE_LIMIT, Ordinary)).toBeUndefined();
+    expect(reflector.get(RATE_LIMIT_BUCKET, Ordinary)).toBeUndefined();
   });
 });

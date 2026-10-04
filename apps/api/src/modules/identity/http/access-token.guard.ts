@@ -1,4 +1,5 @@
 import {
+  applyDecorators,
   type CanActivate,
   createParamDecorator,
   type ExecutionContext,
@@ -11,12 +12,14 @@ import { Reflector } from '@nestjs/core';
 import type { PersonalAccessTokenScope } from '@sol-a-sol/domain';
 
 import { AuthenticatePersonalAccessToken } from '../application/personal-access-tokens.js';
+import { PersonalAccessTokenRequiredError } from '../domain/errors.js';
 import { looksLikePersonalAccessToken } from '../infrastructure/personal-access-token-value.js';
 import { ACCESS_TOKENS, type AccessTokens } from '../ports/access-tokens.js';
 
 const BEARER = 'Bearer ';
 
 const ACCEPTED_SCOPE = Symbol('acceptedPersonalAccessTokenScope');
+const ONLY_PERSONAL_ACCESS_TOKEN = Symbol('onlyPersonalAccessToken');
 
 /**
  * Deja entrar a esa ruta con un **token personal** que tenga ese scope, además de con una sesión.
@@ -27,6 +30,13 @@ const ACCEPTED_SCOPE = Symbol('acceptedPersonalAccessTokenScope');
  */
 export const AcceptsPersonalAccessToken = (scope: PersonalAccessTokenScope) =>
   SetMetadata(ACCEPTED_SCOPE, scope);
+
+/**
+ * Como `@AcceptsPersonalAccessToken`, pero **solo** con token personal: una sesión válida recibe
+ * **403**. Para las rutas del teléfono (`POST /captures`), que la web nunca usa.
+ */
+export const RequiresPersonalAccessToken = (scope: PersonalAccessTokenScope) =>
+  applyDecorators(AcceptsPersonalAccessToken(scope), SetMetadata(ONLY_PERSONAL_ACCESS_TOKEN, true));
 
 /** Dónde queda el `userId` una vez comprobado el token. */
 interface AuthenticatedRequest {
@@ -60,7 +70,8 @@ export class AccessTokenGuard implements CanActivate {
 
     if (token === undefined) throw new UnauthorizedException();
 
-    const userId = looksLikePersonalAccessToken(token)
+    const personal = looksLikePersonalAccessToken(token);
+    const userId = personal
       ? await this.personalAccessTokens.execute({
           token,
           requiredScope: this.acceptedScope(context),
@@ -69,10 +80,22 @@ export class AccessTokenGuard implements CanActivate {
         })
       : await this.tokens.verify(token);
     if (userId === null) throw new UnauthorizedException();
+    if (!personal && this.onlyPersonalAccessToken(context)) {
+      throw new PersonalAccessTokenRequiredError();
+    }
 
     request.userId = userId;
 
     return true;
+  }
+
+  private onlyPersonalAccessToken(context: ExecutionContext): boolean {
+    return (
+      this.reflector.getAllAndOverride<boolean | undefined>(ONLY_PERSONAL_ACCESS_TOKEN, [
+        context.getHandler(),
+        context.getClass(),
+      ]) === true
+    );
   }
 
   private acceptedScope(context: ExecutionContext): PersonalAccessTokenScope | null {

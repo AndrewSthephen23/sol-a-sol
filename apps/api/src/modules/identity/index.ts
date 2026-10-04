@@ -7,6 +7,7 @@ export {
   AcceptsPersonalAccessToken,
   AccessTokenGuard,
   CurrentUser,
+  RequiresPersonalAccessToken,
 } from './http/access-token.guard.js';
 export { USER_REGISTERED, type UserRegistered } from './domain/events.js';
 export { ListAccountIds } from './application/list-account-ids.js';

@@ -53,6 +53,7 @@ describe('GET /openapi.json', () => {
     process.env.FEATURE_REPORTS = 'true';
     process.env.FEATURE_CREDIT_CARDS = 'true';
     process.env.FEATURE_GOALS = 'true';
+    process.env.FEATURE_CAPTURE = 'true';
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     configureApp(app);
@@ -68,6 +69,7 @@ describe('GET /openapi.json', () => {
     delete process.env.FEATURE_REPORTS;
     delete process.env.FEATURE_CREDIT_CARDS;
     delete process.env.FEATURE_GOALS;
+    delete process.env.FEATURE_CAPTURE;
     await app.close();
   });
 
@@ -232,6 +234,27 @@ describe('GET /openapi.json', () => {
           `/${API_PREFIX}/goals/{id}/contributions/{contributionId}`,
         ]),
       );
+    });
+
+    it('leaves the captures out while they are off', async () => {
+      process.env.FEATURE_CAPTURE = 'false';
+
+      const response = await request(server).get(DOCUMENT).expect(200);
+
+      process.env.FEATURE_CAPTURE = 'true';
+      expect(JSON.stringify(response.body)).not.toContain('/captures');
+    });
+
+    // La ruta del teléfono va con el token personal, no con el de una sesión.
+    it('documents the captures with the personal token while they are on', async () => {
+      const response = await request(server).get(DOCUMENT).expect(200);
+      const { paths } = response.body as {
+        paths: Record<string, { post?: { security?: unknown } }>;
+      };
+
+      expect(paths[`/${API_PREFIX}/captures`]?.post?.security).toEqual([
+        { personalAccessToken: [] },
+      ]);
     });
 
     it('documents the credit cards while they are on', async () => {

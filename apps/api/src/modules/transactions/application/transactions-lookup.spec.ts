@@ -183,6 +183,38 @@ describe('TransactionsLookup', () => {
     });
   });
 
+  describe('liveTransactionsOn', () => {
+    it('gives the live ones of the account on that day, with their merchant', async () => {
+      const kept = await spend(ANA, '2026-09-10', 'food', Money.of('25.90', 'PEN'), 'TAMBO');
+      const gone = await spend(ANA, '2026-09-10', 'food', Money.of('1', 'PEN'));
+      await transactions.softDelete(ANA, gone.id, new Date());
+      await spend(ANA, '2026-09-11', 'food', Money.of('2', 'PEN'));
+      await spend(BRUNO, '2026-09-10', 'food', Money.of('3', 'PEN'));
+
+      const found = await lookup.liveTransactionsOn(ANA, LocalDate.parse('2026-09-10'));
+
+      expect(
+        found.map((entry) => [
+          entry.id,
+          entry.date.toString(),
+          entry.amount.toFixed(),
+          entry.merchant,
+          entry.description,
+        ]),
+      ).toEqual([[kept.id, '2026-09-10', '25.90', 'TAMBO', 'Gasto']]);
+    });
+
+    it('goes through every page of a busy day', async () => {
+      for (let count = 0; count < 120; count++) {
+        await spend(ANA, '2026-09-10', 'food', Money.of('1', 'PEN'));
+      }
+
+      await expect(
+        lookup.liveTransactionsOn(ANA, LocalDate.parse('2026-09-10')),
+      ).resolves.toHaveLength(120);
+    });
+  });
+
   describe('liveTransactions', () => {
     it('gives the live ones of the account, once each, and nothing else', async () => {
       const kept = await spend(ANA, '2026-09-10', 'food', Money.of('25.50', 'PEN'));
