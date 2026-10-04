@@ -404,3 +404,15 @@ export {
   transactionFromCapture,
   type TransactionFromCapture,
 } from './capture/capture-confirmation.js';
+export {
+  assertInInbox,
+  type CaptureCorrection,
+  type CaptureFields,
+  CaptureNotDiscardedError,
+  correctCapture,
+  discardCapture,
+  discardedPurgeCutoff,
+  DISCARDED_RETENTION_DAYS,
+  type DiscardState,
+  restoreCapture,
+} from './capture/capture-inbox.js';

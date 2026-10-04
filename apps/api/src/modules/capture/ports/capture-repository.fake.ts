@@ -1,5 +1,7 @@
 import {
   type Capture,
+  type CaptureChanges,
+  type CapturePosition,
   type CaptureRepository,
   IdempotencyKeyTakenError,
   type NewCapture,
@@ -8,8 +10,12 @@ import {
 interface StoredCapture {
   userId: string;
   capture: Capture;
-  rawPayload: Record<string, string>;
   idempotencyKey: string;
+}
+
+/** El orden de la bandeja: primero la más reciente. */
+function newestFirst(a: CapturePosition, b: CapturePosition): number {
+  return b.occurredAt.getTime() - a.occurredAt.getTime() || b.id.localeCompare(a.id);
 }
 
 /** Capturas en memoria, con la misma clave de idempotencia única por cuenta que la base. */
@@ -36,10 +42,13 @@ export class FakeCaptureRepository implements CaptureRepository {
     }
     const created: Capture = {
       ...fields,
-      id: `capture-${String(this.nextId++)}`,
+      id: `capture-${String(this.nextId++).padStart(3, '0')}`,
+      rawPayload,
+      discardedAt: null,
+      discardedFrom: null,
       createdAt: new Date('2026-10-03T17:00:00.000Z'),
     };
-    this.stored.push({ userId, capture: created, rawPayload, idempotencyKey });
+    this.stored.push({ userId, capture: created, idempotencyKey });
 
     return Promise.resolve({ ...created });
   }
@@ -55,5 +64,53 @@ export class FakeCaptureRepository implements CaptureRepository {
         )
         .map((entry) => ({ ...entry.capture })),
     );
+  }
+
+  find(userId: string, id: string): Promise<Capture | null> {
+    const found = this.stored.find((entry) => entry.userId === userId && entry.capture.id === id);
+    return Promise.resolve(found === undefined ? null : { ...found.capture });
+  }
+
+  list(
+    userId: string,
+    statuses: readonly Capture['status'][],
+    page: { after: CapturePosition | null; limit: number },
+  ): Promise<Capture[]> {
+    const { after } = page;
+    return Promise.resolve(
+      this.stored
+        .filter((entry) => entry.userId === userId && statuses.includes(entry.capture.status))
+        .map((entry) => ({ ...entry.capture }))
+        .toSorted(newestFirst)
+        .filter((capture) => after === null || newestFirst(after, capture) < 0)
+        .slice(0, page.limit),
+    );
+  }
+
+  update(
+    userId: string,
+    id: string,
+    changes: CaptureChanges,
+    expected: readonly Capture['status'][],
+  ): Promise<Capture | null> {
+    const found = this.stored.find((entry) => entry.userId === userId && entry.capture.id === id);
+    if (found === undefined || !expected.includes(found.capture.status)) {
+      return Promise.resolve(null);
+    }
+    found.capture = { ...found.capture, ...changes };
+    return Promise.resolve({ ...found.capture });
+  }
+
+  deleteDiscardedBefore(userId: string, cutoff: Date): Promise<number> {
+    const before = this.stored.length;
+    const kept = this.stored.filter(
+      (entry) =>
+        entry.userId !== userId ||
+        entry.capture.status !== 'DISCARDED' ||
+        entry.capture.discardedAt === null ||
+        entry.capture.discardedAt >= cutoff,
+    );
+    this.stored.splice(0, this.stored.length, ...kept);
+    return Promise.resolve(before - kept.length);
   }
 }

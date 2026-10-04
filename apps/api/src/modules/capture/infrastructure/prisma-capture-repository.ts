@@ -1,10 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import type { Currency, TransactionType } from '@sol-a-sol/domain';
 
+import { Prisma } from '../../../generated/prisma/client.js';
 import { fromDatabaseDate, toDatabaseDate } from '../../../shared/prisma/database-date.js';
 import { PrismaService } from '../../../shared/prisma/prisma.service.js';
 import {
   type Capture,
+  type CaptureChanges,
+  type CapturePosition,
   type CaptureRepository,
   type CaptureSource,
   IdempotencyKeyTakenError,
@@ -14,7 +17,7 @@ import {
 /** Prisma señala la violación de una restricción única con este código. */
 const UNIQUE_VIOLATION = 'P2002';
 
-/** `select` explícito: ni `userId` ni el pedido crudo salen del módulo por aquí. */
+/** `select` explícito: `userId` no sale del módulo. */
 const CAPTURE_FIELDS = {
   id: true,
   source: true,
@@ -30,6 +33,9 @@ const CAPTURE_FIELDS = {
   categoryId: true,
   paymentMethodId: true,
   warnings: true,
+  rawPayload: true,
+  discardedAt: true,
+  discardedFrom: true,
   createdAt: true,
 } as const;
 
@@ -48,6 +54,9 @@ interface CaptureRow {
   categoryId: string | null;
   paymentMethodId: string | null;
   warnings: string[];
+  rawPayload: Prisma.JsonValue;
+  discardedAt: Date | null;
+  discardedFrom: Capture['status'] | null;
   createdAt: Date;
 }
 
@@ -95,6 +104,68 @@ export class PrismaCaptureRepository implements CaptureRepository {
     }
   }
 
+  async find(userId: string, id: string): Promise<Capture | null> {
+    const row = await this.prisma.capture.findFirst({
+      where: { id, userId },
+      select: CAPTURE_FIELDS,
+    });
+
+    return row === null ? null : captureOf(row);
+  }
+
+  async list(
+    userId: string,
+    statuses: readonly Capture['status'][],
+    page: { after: CapturePosition | null; limit: number },
+  ): Promise<Capture[]> {
+    const { after } = page;
+    const rows = await this.prisma.capture.findMany({
+      where: {
+        userId,
+        status: { in: [...statuses] },
+        // Después de la última entregada: más antigua, o del mismo instante con un id menor.
+        ...(after === null
+          ? {}
+          : {
+              OR: [
+                { occurredAt: { lt: after.occurredAt } },
+                { occurredAt: after.occurredAt, id: { lt: after.id } },
+              ],
+            }),
+      },
+      select: CAPTURE_FIELDS,
+      orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
+      take: page.limit,
+    });
+
+    return rows.map(captureOf);
+  }
+
+  async update(
+    userId: string,
+    id: string,
+    changes: CaptureChanges,
+    expected: readonly Capture['status'][],
+  ): Promise<Capture | null> {
+    // `userId` y el estado esperado van en el propio UPDATE: una captura ajena no coincide, y una
+    // que otra petición confirmó o descartó entretanto, tampoco.
+    const { count } = await this.prisma.capture.updateMany({
+      where: { id, userId, status: { in: [...expected] } },
+      data: dataOf(changes),
+    });
+    if (count === 0) return null;
+
+    return this.find(userId, id);
+  }
+
+  async deleteDiscardedBefore(userId: string, cutoff: Date): Promise<number> {
+    const { count } = await this.prisma.capture.deleteMany({
+      where: { userId, status: 'DISCARDED', discardedAt: { lt: cutoff } },
+    });
+
+    return count;
+  }
+
   async listOccurredBetween(userId: string, from: Date, to: Date): Promise<Capture[]> {
     const rows = await this.prisma.capture.findMany({
       where: { userId, occurredAt: { gte: from, lte: to } },
@@ -106,12 +177,41 @@ export class PrismaCaptureRepository implements CaptureRepository {
 }
 
 function captureOf(row: CaptureRow): Capture {
-  const { amount, currency, businessDate, ...fields } = row;
+  const { amount, currency, businessDate, rawPayload, discardedFrom, ...fields } = row;
 
   return {
     ...fields,
     businessDate: fromDatabaseDate(businessDate),
     amount: amount === null ? null : { value: amount.toFixed(2), currency },
+    rawPayload: payloadOf(rawPayload),
+    // La base solo admite estos dos (`captures_discarded_from_inbox`).
+    discardedFrom:
+      discardedFrom === 'DUPLICATE' ? 'DUPLICATE' : discardedFrom === null ? null : 'PENDING',
+  };
+}
+
+/** El pedido crudo es un objeto de textos (lo exige la base); se copian solo esos. */
+function payloadOf(value: Prisma.JsonValue): Record<string, string> | null {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return null;
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string',
+    ),
+  );
+}
+
+/** Lo que cambia, en columnas. Solo lo que viene. */
+function dataOf(changes: CaptureChanges): Prisma.CaptureUncheckedUpdateManyInput {
+  const { amount, businessDate, ...fields } = changes;
+
+  return {
+    ...fields,
+    ...(businessDate === undefined ? {} : { businessDate: toDatabaseDate(businessDate) }),
+    ...(amount === undefined
+      ? {}
+      : { amount: amount?.value ?? null, currency: amount?.currency ?? null }),
+    // El pedido crudo se borra al confirmar (decisión 14): la base lo exige con su `CHECK`.
+    ...(fields.status === 'CONFIRMED' ? { rawPayload: Prisma.DbNull } : {}),
   };
 }
 

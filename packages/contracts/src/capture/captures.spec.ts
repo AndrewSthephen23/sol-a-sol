@@ -2,9 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import {
   CAPTURE_RAW_TEXT_MAX_LENGTH,
+  captureParamsSchema,
+  CAPTURES_DEFAULT_LIMIT,
+  CAPTURES_MAX_LIMIT,
   createCaptureRequestSchema,
   IDEMPOTENCY_KEY_MAX_LENGTH,
   idempotencyKeySchema,
+  listCapturesQuerySchema,
+  updateCaptureRequestSchema,
 } from './captures.js';
 
 const SHORTCUT = {
@@ -81,5 +86,73 @@ describe('idempotencyKeySchema', () => {
     ['repeated', ['a', 'b']],
   ])('rejects a key %s', (_label, key) => {
     expect(idempotencyKeySchema.safeParse(key).success).toBe(false);
+  });
+});
+
+describe('listCapturesQuerySchema', () => {
+  it('shows the inbox by default, 50 at a time', () => {
+    expect(listCapturesQuerySchema.parse({})).toEqual({
+      status: 'inbox',
+      limit: CAPTURES_DEFAULT_LIMIT,
+    });
+  });
+
+  it('shows the discarded ones and trims a big limit', () => {
+    expect(listCapturesQuerySchema.parse({ status: 'discarded', limit: '500' })).toEqual({
+      status: 'discarded',
+      limit: CAPTURES_MAX_LIMIT,
+    });
+  });
+
+  it.each([
+    ['the confirmed ones, which are transactions already', { status: 'confirmed' }],
+    ['a limit of zero', { limit: '0' }],
+    ['a limit that is not a number', { limit: 'diez' }],
+    ['an empty cursor', { cursor: '' }],
+  ])('rejects %s', (_label, query) => {
+    expect(listCapturesQuerySchema.safeParse(query).success).toBe(false);
+  });
+});
+
+describe('updateCaptureRequestSchema', () => {
+  it('accepts every field, and null to clear', () => {
+    const body = {
+      type: 'INCOME',
+      date: '2026-10-01',
+      amount: '30.00',
+      currency: null,
+      categoryId: null,
+      paymentMethodId: '01999999-9999-7999-8999-000000000001',
+      merchant: null,
+      description: 'Pago',
+    };
+
+    expect(updateCaptureRequestSchema.parse(body)).toEqual(body);
+  });
+
+  it('leaves the rules to the domain: a zero amount has the right shape', () => {
+    expect(updateCaptureRequestSchema.safeParse({ amount: '0.00' }).success).toBe(true);
+  });
+
+  it.each([
+    ['nothing to change', {}],
+    ['a status, which changes by confirming or discarding', { status: 'CONFIRMED' }],
+    ['an unknown type', { type: 'GASTO' }],
+    ['a date with a time', { date: '2026-10-01T10:00:00Z' }],
+    ['a number as the amount', { amount: 30 }],
+    ['a category that is not a UUID', { categoryId: 'viveres' }],
+    ['a merchant too long', { merchant: 'x'.repeat(121) }],
+    ['a userId', { userId: '01999999-9999-7999-8999-000000000001' }],
+  ])('rejects %s', (_label, body) => {
+    expect(updateCaptureRequestSchema.safeParse(body).success).toBe(false);
+  });
+});
+
+describe('captureParamsSchema', () => {
+  it('accepts a UUID and rejects anything else', () => {
+    expect(
+      captureParamsSchema.safeParse({ id: '01999999-9999-7999-8999-000000000001' }).success,
+    ).toBe(true);
+    expect(captureParamsSchema.safeParse({ id: '1' }).success).toBe(false);
   });
 });

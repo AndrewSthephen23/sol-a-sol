@@ -68,6 +68,10 @@ const STATUS_BY_DOMAIN_CODE = new Map<string, number>([
   ['GOAL_CONTRIBUTION_NOT_FOUND', HttpStatus.NOT_FOUND],
   // La transacción ya aporta a una meta: se deshace ese aporte, no se enlaza otra vez.
   ['GOAL_TRANSACTION_ALREADY_LINKED', HttpStatus.CONFLICT],
+  ['CAPTURE_NOT_FOUND', HttpStatus.NOT_FOUND],
+  // La captura existe, pero otra petición (u otra pestaña) ya la confirmó o la descartó.
+  ['CAPTURE_NOT_PENDING', HttpStatus.CONFLICT],
+  ['CAPTURE_NOT_DISCARDED', HttpStatus.CONFLICT],
 ]);
 
 /** Una regla de negocio rechazó una petición bien formada: contenido no procesable. */

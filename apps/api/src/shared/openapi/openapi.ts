@@ -1,6 +1,9 @@
 import {
   changePasswordRequestSchema,
   createCaptureRequestSchema,
+  CAPTURES_DEFAULT_LIMIT,
+  CAPTURES_MAX_LIMIT,
+  updateCaptureRequestSchema,
   createCategoryRequestSchema,
   createCreditCardRequestSchema,
   createGoalContributionRequestSchema,
@@ -2474,8 +2477,53 @@ const CAPTURE_SCHEMA = schemaOf(
   }),
 );
 
+const INBOX_CAPTURE_SCHEMA = schemaOf(
+  z.object({
+    id: z.uuid(),
+    source: z.enum(['IOS_SHORTCUT', 'ANDROID_AUTOMATION']),
+    status: z
+      .enum(['PENDING', 'DUPLICATE', 'DISCARDED'])
+      .describe('Por revisar, duplicada (se puede confirmar igual) o descartada.'),
+    parsed: z.boolean().describe('Si tiene monto.'),
+    type: z.enum(['INCOME', 'FIXED_EXPENSE', 'VARIABLE_EXPENSE', 'SAVING', 'INVESTMENT', 'DEBT']),
+    amount: z.string().nullable().describe('String decimal, mayor que cero.'),
+    currency: z.enum(['PEN', 'USD']).nullable().describe('Nula: se elige antes de confirmar.'),
+    merchant: z.string().nullable(),
+    cardLast4: z.string().nullable(),
+    date: z.iso.date(),
+    occurredAt: z.iso.datetime(),
+    categoryId: z.uuid().nullable(),
+    paymentMethodId: z.uuid().nullable(),
+    description: z.string().nullable(),
+    warnings: z.array(z.string()).describe('Los avisos con que llegó.'),
+    raw: z
+      .record(z.string(), z.string())
+      .nullable()
+      .describe(
+        'El pedido como llegó del teléfono, con las tarjetas tapadas: completo mientras no se ' +
+          'confirme.',
+      ),
+    discardedAt: z.iso.datetime().nullable().describe('Se borra del todo 90 días después.'),
+  }),
+);
+
 function capturePaths(): Record<string, unknown> {
   const capture = { content: { 'application/json': { schema: CAPTURE_SCHEMA } } };
+  const inboxCapture = { content: { 'application/json': { schema: INBOX_CAPTURE_SCHEMA } } };
+  const unauthorized = problem('Falta el token de acceso o no vale.');
+  const forbidden = problem('Llegó un token personal: la bandeja solo se revisa desde una sesión.');
+  const ID_PARAMETER = {
+    name: 'id',
+    in: 'path',
+    required: true,
+    schema: { type: 'string', format: 'uuid' },
+  };
+  const notFound = problem(
+    'La captura no existe o es de otra cuenta (`CAPTURE_NOT_FOUND`); o el módulo está apagado.',
+  );
+  const notPending = problem(
+    'Ya se confirmó o se descartó, quizá desde otra pestaña (`CAPTURE_NOT_PENDING`).',
+  );
 
   return {
     [`/${API_PREFIX}/captures`]: {
@@ -2518,6 +2566,139 @@ function capturePaths(): Record<string, unknown> {
               'demasiado largo; o la cabecera `Idempotency-Key` no vale. No se guarda nada.',
           ),
           '429': problem('Más de 30 capturas en un minuto desde la misma IP.'),
+        },
+      },
+      get: {
+        tags: ['capture'],
+        summary: 'La bandeja: las capturas por revisar, o las descartadas.',
+        description:
+          '`status=inbox` (por defecto): por revisar, con las duplicadas marcadas. ' +
+          '`status=discarded`: las descartadas, que se borran del todo a los 90 días. Las ' +
+          'confirmadas no se listan: ya son transacciones. Primero la más reciente; paginación ' +
+          'por cursor.',
+        security: [{ accessToken: [] }],
+        parameters: [
+          {
+            name: 'status',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['inbox', 'discarded'], default: 'inbox' },
+          },
+          {
+            name: 'cursor',
+            in: 'query',
+            required: false,
+            description: 'El `nextCursor` de la página anterior, tal cual.',
+            schema: { type: 'string', maxLength: CURSOR_MAX_LENGTH },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            description: `Por defecto ${String(CAPTURES_DEFAULT_LIMIT)}; más de ${String(CAPTURES_MAX_LIMIT)} se recorta.`,
+            schema: { type: 'integer', minimum: 1, default: CAPTURES_DEFAULT_LIMIT },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Una página de la bandeja.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['items', 'nextCursor'],
+                  properties: {
+                    items: { type: 'array', items: INBOX_CAPTURE_SCHEMA },
+                    nextCursor: { type: 'string', nullable: true },
+                  },
+                },
+              },
+            },
+          },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem('El módulo está apagado.'),
+          '422': problem('El filtro, el límite o el cursor (`INVALID_CURSOR`) no valen.'),
+        },
+      },
+    },
+    [`/${API_PREFIX}/captures/{id}`]: {
+      get: {
+        tags: ['capture'],
+        summary: 'Una captura, con el pedido crudo mientras no se confirme.',
+        security: [{ accessToken: [] }],
+        parameters: [ID_PARAMETER],
+        responses: {
+          '200': { description: 'La captura.', ...inboxCapture },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': notFound,
+          '422': problem('El id no es un UUID.'),
+        },
+      },
+      patch: {
+        tags: ['capture'],
+        summary: 'Corrige una captura antes de confirmarla.',
+        description:
+          'Solo cambia lo que llega; `null` lo borra. Si cambia el tipo sin categoría, la que ' +
+          'había se limpia. Una categoría o un método nuevos tienen que ser de la cuenta y estar ' +
+          'activos; si el monto no tiene moneda y el método elegido tiene una sola, la toma. La ' +
+          'marca de duplicada se queda.',
+        security: [{ accessToken: [] }],
+        parameters: [ID_PARAMETER],
+        requestBody: jsonBody(updateCaptureRequestSchema),
+        responses: {
+          '200': { description: 'La captura corregida.', ...inboxCapture },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': problem(
+            'La captura (`CAPTURE_NOT_FOUND`), la categoría (`CATEGORY_NOT_FOUND`) o el método ' +
+              '(`PAYMENT_METHOD_NOT_FOUND`) no existen o son de otra cuenta; o el módulo está ' +
+              'apagado.',
+          ),
+          '409': notPending,
+          '422': problem(
+            'El cuerpo no tiene la forma esperada; el monto no es positivo ' +
+              '(`TRANSACTION_AMOUNT_NOT_POSITIVE`) o tiene más de 2 decimales ' +
+              '(`INVALID_AMOUNT`); la fecha es futura (`TRANSACTION_DATE_IN_FUTURE`); la ' +
+              'categoría es de otro tipo (`CATEGORY_TYPE_MISMATCH`) o está archivada ' +
+              '(`CATEGORY_ARCHIVED`); o el método está archivado (`PAYMENT_METHOD_ARCHIVED`).',
+          ),
+        },
+      },
+    },
+    [`/${API_PREFIX}/captures/{id}/discard`]: {
+      post: {
+        tags: ['capture'],
+        summary: 'Descarta una captura de la bandeja.',
+        description:
+          'Se puede deshacer (`/restore`); se borra del todo 90 días después, con su texto crudo.',
+        security: [{ accessToken: [] }],
+        parameters: [ID_PARAMETER],
+        responses: {
+          '200': { description: 'La captura descartada.', ...inboxCapture },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': notFound,
+          '409': notPending,
+          '422': problem('El id no es un UUID.'),
+        },
+      },
+    },
+    [`/${API_PREFIX}/captures/{id}/restore`]: {
+      post: {
+        tags: ['capture'],
+        summary: 'Deshace un descarte: la captura vuelve como estaba.',
+        description: 'Por revisar o duplicada, según de dónde se descartó.',
+        security: [{ accessToken: [] }],
+        parameters: [ID_PARAMETER],
+        responses: {
+          '200': { description: 'La captura, de vuelta en la bandeja.', ...inboxCapture },
+          '401': unauthorized,
+          '403': forbidden,
+          '404': notFound,
+          '409': problem('La captura no está descartada (`CAPTURE_NOT_DISCARDED`).'),
+          '422': problem('El id no es un UUID.'),
         },
       },
     },
