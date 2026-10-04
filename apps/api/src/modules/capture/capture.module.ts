@@ -11,6 +11,15 @@ import {
 } from '../transactions/index.js';
 import { ConfirmCapture, ConfirmCaptures } from './application/confirm.js';
 import {
+  CreateCategorizationRule,
+  DeleteCategorizationRule,
+  FollowCategoryMerge,
+  ListCategorizationRules,
+  UpdateCategorizationRule,
+} from './application/rules.js';
+import { CategorizationRulesController } from './http/categorization-rules.controller.js';
+import { CaptureCategoryMergedListener } from './infrastructure/category-merged.listener.js';
+import {
   CorrectCapture,
   DiscardCapture,
   GetCapture,
@@ -46,7 +55,7 @@ import { CAPTURE_TRANSACTIONS_WRITER } from './ports/transactions-writer.js';
  */
 @Module({
   imports: [PrismaModule, IdentityModule, CatalogModule, TransactionsModule],
-  controllers: [CapturesController, InboxController],
+  controllers: [CapturesController, InboxController, CategorizationRulesController],
   providers: [
     ReceiveCapture,
     ListCaptures,
@@ -56,6 +65,12 @@ import { CAPTURE_TRANSACTIONS_WRITER } from './ports/transactions-writer.js';
     RestoreCapture,
     ConfirmCapture,
     ConfirmCaptures,
+    ListCategorizationRules,
+    CreateCategorizationRule,
+    UpdateCategorizationRule,
+    DeleteCategorizationRule,
+    FollowCategoryMerge,
+    CaptureCategoryMergedListener,
     PurgeDiscardedCaptures,
     DiscardedCapturesPurgeJob,
     { provide: CAPTURE_REPOSITORY, useClass: PrismaCaptureRepository },

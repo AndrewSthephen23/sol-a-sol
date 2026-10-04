@@ -93,22 +93,26 @@ La base exige por su cuenta, aunque alguien se salte la aplicación:
 ## Eventos de dominio
 
 - **Emite:** nada. `CaptureReceived` (plan) **no se creó** porque nadie lo escucharía (decidido el 2026-10-04), igual que `GoalContributionAdded` en H6: llega con las notificaciones de H8, si hace falta. El contador de la bandeja se calcula al consultar.
-- **Escucha:** `catalog.category.merged`, para que capturas y reglas sigan a la categoría fusionada (tareas 07 y 08).
+- **Escucha:** `catalog.category.merged` (ADR-0005; decidido el 2026-10-04): las reglas y las capturas **sin confirmar** de la categoría origen pasan a la destino. Si no, la regla dejaría de sugerir y la captura no se podría confirmar, porque la origen queda archivada. Las confirmadas no se tocan: su transacción sigue a la fusión por su lado. Si falla, se registra y la fusión sigue; volver a fusionar las mueve.
 
 ## Endpoints
 
 Bajo `/api/v1`, con `@RequiresFeature('capture')`: **404** y fuera de OpenAPI con el flag apagado. La bandeja y las reglas llegan con las tareas 07 y 08, solo con sesión.
 
-| Método  | Ruta                     | Qué hace                                                                                                                                                                     |
-| ------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST`  | `/captures`              | Recibe una captura del teléfono y la deja en la bandeja: `201` con lo que se entendió (`parsed`, `warnings`), o `200` con la original si la clave de idempotencia ya existía |
-| `GET`   | `/captures`              | La bandeja: `status=inbox` (por revisar, con las duplicadas marcadas; por defecto) o `status=discarded`. Primero la más reciente; cursor y `limit` (50, máximo 100)          |
-| `GET`   | `/captures/{id}`         | Una captura, con el pedido crudo mientras no se confirme                                                                                                                     |
-| `PATCH` | `/captures/{id}`         | Corrige una captura de la bandeja                                                                                                                                            |
-| `POST`  | `/captures/{id}/confirm` | La confirma: se crea su transacción. Con `rememberCategory`, recuerda la categoría para su comercio                                                                          |
-| `POST`  | `/captures/confirm`      | Confirma varias (hasta 50), cada una por su lado                                                                                                                             |
-| `POST`  | `/captures/{id}/discard` | La descarta, recordando de dónde vino                                                                                                                                        |
-| `POST`  | `/captures/{id}/restore` | «Deshacer»: vuelve a la bandeja como estaba                                                                                                                                  |
+| Método   | Ruta                         | Qué hace                                                                                                                                                                     |
+| -------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST`   | `/captures`                  | Recibe una captura del teléfono y la deja en la bandeja: `201` con lo que se entendió (`parsed`, `warnings`), o `200` con la original si la clave de idempotencia ya existía |
+| `GET`    | `/captures`                  | La bandeja: `status=inbox` (por revisar, con las duplicadas marcadas; por defecto) o `status=discarded`. Primero la más reciente; cursor y `limit` (50, máximo 100)          |
+| `GET`    | `/captures/{id}`             | Una captura, con el pedido crudo mientras no se confirme                                                                                                                     |
+| `PATCH`  | `/captures/{id}`             | Corrige una captura de la bandeja                                                                                                                                            |
+| `POST`   | `/captures/{id}/confirm`     | La confirma: se crea su transacción. Con `rememberCategory`, recuerda la categoría para su comercio                                                                          |
+| `POST`   | `/captures/confirm`          | Confirma varias (hasta 50), cada una por su lado                                                                                                                             |
+| `POST`   | `/captures/{id}/discard`     | La descarta, recordando de dónde vino                                                                                                                                        |
+| `POST`   | `/captures/{id}/restore`     | «Deshacer»: vuelve a la bandeja como estaba                                                                                                                                  |
+| `GET`    | `/categorization-rules`      | Las reglas de la cuenta, primero la de mayor prioridad                                                                                                                       |
+| `POST`   | `/categorization-rules`      | Crea una regla (`pattern`, `categoryId`, `priority`)                                                                                                                         |
+| `PATCH`  | `/categorization-rules/{id}` | Cambia el patrón, la categoría o la prioridad                                                                                                                                |
+| `DELETE` | `/categorization-rules/{id}` | Borra una regla                                                                                                                                                              |
 
 ### `POST /captures`
 
@@ -133,6 +137,7 @@ Solo desde una **sesión**: un token personal recibe 403 en todas sus rutas (el 
 - **Confirmar varias** (decisión 10): **cada una por su lado**. La respuesta dice cuáles se confirmaron (con su transacción) y, de las otras, el `code` de su error. Un error inesperado corta, y las ya confirmadas quedan confirmadas.
 - **«Recordar para este comercio»** (decisión 13): con la casilla marcada, crea la regla del comercio (prioridad 0) o, si ya hay una con ese patrón sin tildes ni mayúsculas, le cambia la categoría. **Sin comercio, 422** `CAPTURE_MERCHANT_MISSING` y no se confirma.
 - `CaptureConfirmed` **no se creó**, como `CaptureReceived`: nadie lo escucharía.
+- **Reglas** (decisión 12; decidido el 2026-10-04): solo desde una sesión. La categoría, de la cuenta (404 si no) y **activa** (422), de cualquier tipo: se sugiere solo a capturas de su tipo. Un patrón que la cuenta ya tiene, sin tildes ni mayúsculas, responde **409** `RULE_PATTERN_TAKEN`: se edita esa. Al **crear o cambiar** una regla, las capturas de la bandeja **sin categoría** a las que aplique toman la suya (pesan todas las reglas, como al recibir); las que ya tienen una, sugerida o elegida, no se tocan. Borrar una regla no quita lo que ya sugirió. Una regla cuya categoría se archiva después se queda, pero no sugiere mientras esté archivada.
 - **Borrado a los 90 días** (decisiones 11 y 14): una **tarea diaria dentro de la API** (`@nestjs/schedule`, a las 4:30 de Lima) borra del todo las descartadas hace más de 90 días, con su texto crudo, cuenta por cuenta. Se cumple aunque nadie abra la bandeja. Con el módulo apagado no hace nada; si falla, lo intenta al día siguiente.
 
 ## Estado

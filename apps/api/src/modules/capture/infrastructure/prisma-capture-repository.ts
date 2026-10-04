@@ -160,6 +160,26 @@ export class PrismaCaptureRepository implements CaptureRepository {
     return this.find(userId, id);
   }
 
+  async listUncategorizedInInbox(userId: string): Promise<Capture[]> {
+    const rows = await this.prisma.capture.findMany({
+      where: { userId, categoryId: null, status: { in: ['PENDING', 'DUPLICATE'] } },
+      select: CAPTURE_FIELDS,
+    });
+
+    return rows.map(captureOf);
+  }
+
+  async reassignCategory(userId: string, fromId: string, intoId: string): Promise<number> {
+    // La clave foránea `(category_id, user_id, type)` vuelve a exigir que la destino sea de la
+    // cuenta y del mismo tipo, como en `transactions`.
+    const { count } = await this.prisma.capture.updateMany({
+      where: { userId, categoryId: fromId, status: { not: 'CONFIRMED' } },
+      data: { categoryId: intoId },
+    });
+
+    return count;
+  }
+
   async deleteDiscardedBefore(userId: string, cutoff: Date): Promise<number> {
     const { count } = await this.prisma.capture.deleteMany({
       where: { userId, status: 'DISCARDED', discardedAt: { lt: cutoff } },

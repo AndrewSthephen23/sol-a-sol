@@ -168,3 +168,12 @@ export {
   type UpdateCaptureRequest,
   updateCaptureRequestSchema,
 } from './capture/captures.js';
+export {
+  type CategorizationRuleParams,
+  categorizationRuleParamsSchema,
+  type CreateCategorizationRuleRequest,
+  createCategorizationRuleRequestSchema,
+  RULE_PATTERN_MAX_LENGTH,
+  type UpdateCategorizationRuleRequest,
+  updateCategorizationRuleRequestSchema,
+} from './capture/categorization-rules.js';

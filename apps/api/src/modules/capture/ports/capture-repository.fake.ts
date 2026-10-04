@@ -114,4 +114,26 @@ export class FakeCaptureRepository implements CaptureRepository {
     this.stored.splice(0, this.stored.length, ...kept);
     return Promise.resolve(before - kept.length);
   }
+
+  listUncategorizedInInbox(userId: string): Promise<Capture[]> {
+    return Promise.resolve(
+      this.stored
+        .filter(
+          ({ userId: owner, capture }) =>
+            owner === userId &&
+            capture.categoryId === null &&
+            (capture.status === 'PENDING' || capture.status === 'DUPLICATE'),
+        )
+        .map(({ capture }) => ({ ...capture })),
+    );
+  }
+
+  reassignCategory(userId: string, fromId: string, intoId: string): Promise<number> {
+    const moved = this.stored.filter(
+      ({ userId: owner, capture }) =>
+        owner === userId && capture.categoryId === fromId && capture.status !== 'CONFIRMED',
+    );
+    for (const entry of moved) entry.capture = { ...entry.capture, categoryId: intoId };
+    return Promise.resolve(moved.length);
+  }
 }

@@ -36,6 +36,24 @@ export class CaptureMerchantMissingError extends DomainError {
   }
 }
 
+/** No existe **o es de otra cuenta**. */
+export class CategorizationRuleNotFoundError extends DomainError {
+  readonly code = 'RULE_NOT_FOUND';
+
+  constructor() {
+    super('The categorization rule does not exist.');
+  }
+}
+
+/** La cuenta ya tiene una regla con ese patrón, sin tildes ni mayúsculas (2026-10-04). */
+export class CategorizationRulePatternTakenError extends DomainError {
+  readonly code = 'RULE_PATTERN_TAKEN';
+
+  constructor() {
+    super('The account already has a rule with that pattern: edit that one.');
+  }
+}
+
 export class InvalidCaptureCursorError extends DomainError {
   readonly code = 'INVALID_CURSOR';
 

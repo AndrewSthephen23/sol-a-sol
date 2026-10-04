@@ -106,6 +106,15 @@ export interface CaptureRepository {
     expected: readonly Capture['status'][],
   ): Promise<Capture | null>;
 
+  /** Las de la bandeja (por revisar y duplicadas) que todavía no tienen categoría. */
+  listUncategorizedInInbox(userId: string): Promise<Capture[]>;
+
+  /**
+   * Las capturas sin confirmar de una categoría fusionada pasan a la destino (ADR-0005). Las
+   * confirmadas no: ya son una transacción, que sigue a la fusión por su lado. Cuántas.
+   */
+  reassignCategory(userId: string, fromId: string, intoId: string): Promise<number>;
+
   /** Borra del todo las descartadas de la cuenta antes de ese instante. Cuántas borró. */
   deleteDiscardedBefore(userId: string, cutoff: Date): Promise<number>;
 }

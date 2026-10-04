@@ -7459,6 +7459,337 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/categorization-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Las reglas de categorización, primero la de mayor prioridad. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Las reglas de la cuenta. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** @description Como se escribió. Aplica si el comercio (o, sin comercio, el texto de la notificación) lo contiene, sin tildes ni mayúsculas. */
+                            pattern: string;
+                            /**
+                             * Format: uuid
+                             * @description De cualquier tipo: se sugiere solo a capturas de ese tipo.
+                             */
+                            categoryId: string;
+                            /** @description Cero o más. Si aplican dos, gana la mayor; luego, el patrón más largo. */
+                            priority: number;
+                        }[];
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: las reglas solo se gestionan desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Crea una regla de categorización.
+         * @description La categoría, de la cuenta y activa; la prioridad, 0 por defecto. Después, las capturas de la bandeja **sin categoría** a las que aplique toman la suya; las que ya tienen una no se tocan.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        pattern: string;
+                        /** Format: uuid */
+                        categoryId: string;
+                        /** @default 0 */
+                        priority: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description La regla creada. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** @description Como se escribió. Aplica si el comercio (o, sin comercio, el texto de la notificación) lo contiene, sin tildes ni mayúsculas. */
+                            pattern: string;
+                            /**
+                             * Format: uuid
+                             * @description De cualquier tipo: se sugiere solo a capturas de ese tipo.
+                             */
+                            categoryId: string;
+                            /** @description Cero o más. Si aplican dos, gana la mayor; luego, el patrón más largo. */
+                            priority: number;
+                        };
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: las reglas solo se gestionan desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description La categoría no existe o es de otra cuenta (`CATEGORY_NOT_FOUND`); o el módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description La cuenta ya tiene una regla con ese patrón, sin tildes ni mayúsculas (`RULE_PATTERN_TAKEN`). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El cuerpo no tiene la forma esperada, o la categoría está archivada (`CATEGORY_ARCHIVED`). */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/categorization-rules/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Borra una regla.
+         * @description Lo que ya sugirió se queda en sus capturas.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Borrada. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: las reglas solo se gestionan desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description La regla no existe o es de otra cuenta (`RULE_NOT_FOUND`); o el módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El id no es un UUID. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /**
+         * Cambia el patrón, la categoría o la prioridad de una regla.
+         * @description Solo cambia lo que llega. Después, las capturas de la bandeja **sin categoría** a las que aplique toman la suya; las que ya tienen una no se tocan.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        pattern?: string;
+                        /** Format: uuid */
+                        categoryId?: string;
+                        priority?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description La regla como quedó. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** @description Como se escribió. Aplica si el comercio (o, sin comercio, el texto de la notificación) lo contiene, sin tildes ni mayúsculas. */
+                            pattern: string;
+                            /**
+                             * Format: uuid
+                             * @description De cualquier tipo: se sugiere solo a capturas de ese tipo.
+                             */
+                            categoryId: string;
+                            /** @description Cero o más. Si aplican dos, gana la mayor; luego, el patrón más largo. */
+                            priority: number;
+                        };
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: las reglas solo se gestionan desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description La regla (`RULE_NOT_FOUND`) o la categoría (`CATEGORY_NOT_FOUND`) no existen o son de otra cuenta; o el módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description La cuenta ya tiene una regla con ese patrón, sin tildes ni mayúsculas (`RULE_PATTERN_TAKEN`). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El id no es un UUID, el cuerpo no tiene la forma esperada, o la categoría nueva está archivada (`CATEGORY_ARCHIVED`). */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
