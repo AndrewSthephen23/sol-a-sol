@@ -2,6 +2,7 @@ import { parseAmount } from '../money/parse-amount.js';
 import { type Money } from '../money/money.js';
 import { type TransactionType } from '../transactions/transaction-policy.js';
 import { type CaptureAmount, type CaptureDomainWarning } from './capture-amount.js';
+import { cleanText } from './clean-text.js';
 
 /**
  * Lo que entendió el parser de la notificación (`parseNotification` de
@@ -59,9 +60,9 @@ export function readCaptureRequest(request: CaptureRequest): CaptureReading {
   return {
     type: notification?.kind === 'INCOME' ? 'INCOME' : 'VARIABLE_EXPENSE',
     amount,
-    merchant: clean(request.merchant) ?? clean(notification?.merchant ?? null),
+    merchant: cleanText(request.merchant) ?? cleanText(notification?.merchant ?? null),
     cardLast4: lastFourOf(request.card) ?? notification?.cardLast4 ?? null,
-    cardText: clean(request.card),
+    cardText: cleanText(request.card),
     warnings,
   };
 }
@@ -74,7 +75,7 @@ function readAmountField(
   text: string | null,
   warn: (warning: CaptureDomainWarning) => void,
 ): CaptureAmount | null {
-  const cleaned = clean(text);
+  const cleaned = cleanText(text);
   if (cleaned === null) return null;
   const amount = readAmountText(cleaned);
   if (amount === null) warn('INVALID_AMOUNT');
@@ -117,9 +118,4 @@ function lastFourOf(card: string | null): string | null {
   const groups = new Set(card?.match(LAST4) ?? []);
   const [only] = groups;
   return groups.size === 1 && only !== undefined ? only : null;
-}
-
-function clean(text: string | null): string | null {
-  const trimmed = text?.trim() ?? '';
-  return trimmed === '' ? null : trimmed;
 }

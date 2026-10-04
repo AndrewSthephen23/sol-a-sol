@@ -80,7 +80,7 @@ describe('ReceiveCapture', () => {
   it('keeps the request as it arrived', async () => {
     await receive.execute(ANA, { ...SHORTCUT, rawText: '' });
 
-    expect(captures.stored[0]?.rawPayload).toEqual({
+    expect(captures.stored[0]?.capture.rawPayload).toEqual({
       source: 'IOS_SHORTCUT',
       occurredAt: '2026-10-03T11:30:00-05:00',
       amountText: '25.90',
@@ -97,7 +97,7 @@ describe('ReceiveCapture', () => {
       amount: { value: '12.50', currency: 'PEN' },
       warnings: ['UNKNOWN_SOURCE'],
     });
-    expect(captures.stored[0]?.rawPayload.rawText).toBe(AUTOMATION.rawText);
+    expect(captures.stored[0]?.capture.rawPayload?.rawText).toBe(AUTOMATION.rawText);
   });
 
   it('saves a capture it does not understand at all, with its warnings', async () => {
@@ -132,8 +132,8 @@ describe('ReceiveCapture', () => {
       rawText: 'Compra con 4111111111114242',
     });
 
-    expect(JSON.stringify(captures.stored[0]?.rawPayload)).not.toMatch(/\d{13}|4111 1111/u);
-    expect(captures.stored[0]?.rawPayload.card).toBe('••••4242');
+    expect(JSON.stringify(captures.stored[0]?.capture.rawPayload)).not.toMatch(/\d{13}|4111 1111/u);
+    expect(captures.stored[0]?.capture.rawPayload?.card).toBe('••••4242');
     expect(capture.cardLast4).toBe('4242');
     expect(capture.paymentMethodId).toBe('visa');
     expect(capture.warnings).toContain('CARD_NUMBER_MASKED');

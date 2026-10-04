@@ -742,6 +742,9 @@ model Capture {
   /// Cuándo se descartó: está si y solo si la captura está descartada (`CHECK`). A los 90 días se
   /// borra del todo.
   discardedAt     DateTime?       @map("discarded_at") @db.Timestamptz(3)
+  /// De dónde se descartó (`PENDING` o `DUPLICATE`): está si y solo si la captura está descartada
+  /// (`CHECK`). «Deshacer» la devuelve como estaba (decidido el 2026-10-04).
+  discardedFrom   CaptureStatus?  @map("discarded_from")
   createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
   /// Directo al usuario: borrar la cuenta borra sus capturas.

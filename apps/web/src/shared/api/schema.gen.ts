@@ -6376,7 +6376,118 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * La bandeja: las capturas por revisar, o las descartadas.
+         * @description `status=inbox` (por defecto): por revisar, con las duplicadas marcadas. `status=discarded`: las descartadas, que se borran del todo a los 90 días. Las confirmadas no se listan: ya son transacciones. Primero la más reciente; paginación por cursor.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    status?: "inbox" | "discarded";
+                    /** @description El `nextCursor` de la página anterior, tal cual. */
+                    cursor?: string;
+                    /** @description Por defecto 50; más de 100 se recorta. */
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Una página de la bandeja. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: {
+                                /** Format: uuid */
+                                id: string;
+                                /** @enum {string} */
+                                source: "IOS_SHORTCUT" | "ANDROID_AUTOMATION";
+                                /**
+                                 * @description Por revisar, duplicada (se puede confirmar igual) o descartada.
+                                 * @enum {string}
+                                 */
+                                status: "PENDING" | "DUPLICATE" | "DISCARDED";
+                                /** @description Si tiene monto. */
+                                parsed: boolean;
+                                /** @enum {string} */
+                                type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
+                                /** @description String decimal, mayor que cero. */
+                                amount: string | null;
+                                /**
+                                 * @description Nula: se elige antes de confirmar.
+                                 * @enum {string|null}
+                                 */
+                                currency: "PEN" | "USD" | null;
+                                merchant: string | null;
+                                cardLast4: string | null;
+                                /** Format: date */
+                                date: string;
+                                /** Format: date-time */
+                                occurredAt: string;
+                                /** Format: uuid */
+                                categoryId: string | null;
+                                /** Format: uuid */
+                                paymentMethodId: string | null;
+                                description: string | null;
+                                /** @description Los avisos con que llegó. */
+                                warnings: string[];
+                                /** @description El pedido como llegó del teléfono, con las tarjetas tapadas: completo mientras no se confirme. */
+                                raw: {
+                                    [key: string]: string;
+                                } | null;
+                                /**
+                                 * Format: date-time
+                                 * @description Se borra del todo 90 días después.
+                                 */
+                                discardedAt: string | null;
+                            }[];
+                            nextCursor: string | null;
+                        };
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: la bandeja solo se revisa desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El filtro, el límite o el cursor (`INVALID_CURSOR`) no valen. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
         put?: never;
         /**
          * Recibe una captura del teléfono y la deja en la bandeja.
@@ -6561,6 +6672,512 @@ export interface paths {
                 };
                 /** @description Más de 30 capturas en un minuto desde la misma IP. */
                 429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/captures/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Una captura, con el pedido crudo mientras no se confirme. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description La captura. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            source: "IOS_SHORTCUT" | "ANDROID_AUTOMATION";
+                            /**
+                             * @description Por revisar, duplicada (se puede confirmar igual) o descartada.
+                             * @enum {string}
+                             */
+                            status: "PENDING" | "DUPLICATE" | "DISCARDED";
+                            /** @description Si tiene monto. */
+                            parsed: boolean;
+                            /** @enum {string} */
+                            type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
+                            /** @description String decimal, mayor que cero. */
+                            amount: string | null;
+                            /**
+                             * @description Nula: se elige antes de confirmar.
+                             * @enum {string|null}
+                             */
+                            currency: "PEN" | "USD" | null;
+                            merchant: string | null;
+                            cardLast4: string | null;
+                            /** Format: date */
+                            date: string;
+                            /** Format: date-time */
+                            occurredAt: string;
+                            /** Format: uuid */
+                            categoryId: string | null;
+                            /** Format: uuid */
+                            paymentMethodId: string | null;
+                            description: string | null;
+                            /** @description Los avisos con que llegó. */
+                            warnings: string[];
+                            /** @description El pedido como llegó del teléfono, con las tarjetas tapadas: completo mientras no se confirme. */
+                            raw: {
+                                [key: string]: string;
+                            } | null;
+                            /**
+                             * Format: date-time
+                             * @description Se borra del todo 90 días después.
+                             */
+                            discardedAt: string | null;
+                        };
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: la bandeja solo se revisa desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description La captura no existe o es de otra cuenta (`CAPTURE_NOT_FOUND`); o el módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El id no es un UUID. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Corrige una captura antes de confirmarla.
+         * @description Solo cambia lo que llega; `null` lo borra. Si cambia el tipo sin categoría, la que había se limpia. Una categoría o un método nuevos tienen que ser de la cuenta y estar activos; si el monto no tiene moneda y el método elegido tiene una sola, la toma. La marca de duplicada se queda.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        type?: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
+                        /** Format: date */
+                        date?: string;
+                        amount?: string | null;
+                        /** @enum {string|null} */
+                        currency?: "PEN" | "USD" | null;
+                        /** Format: uuid */
+                        categoryId?: string | null;
+                        /** Format: uuid */
+                        paymentMethodId?: string | null;
+                        merchant?: string | null;
+                        description?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description La captura corregida. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            source: "IOS_SHORTCUT" | "ANDROID_AUTOMATION";
+                            /**
+                             * @description Por revisar, duplicada (se puede confirmar igual) o descartada.
+                             * @enum {string}
+                             */
+                            status: "PENDING" | "DUPLICATE" | "DISCARDED";
+                            /** @description Si tiene monto. */
+                            parsed: boolean;
+                            /** @enum {string} */
+                            type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
+                            /** @description String decimal, mayor que cero. */
+                            amount: string | null;
+                            /**
+                             * @description Nula: se elige antes de confirmar.
+                             * @enum {string|null}
+                             */
+                            currency: "PEN" | "USD" | null;
+                            merchant: string | null;
+                            cardLast4: string | null;
+                            /** Format: date */
+                            date: string;
+                            /** Format: date-time */
+                            occurredAt: string;
+                            /** Format: uuid */
+                            categoryId: string | null;
+                            /** Format: uuid */
+                            paymentMethodId: string | null;
+                            description: string | null;
+                            /** @description Los avisos con que llegó. */
+                            warnings: string[];
+                            /** @description El pedido como llegó del teléfono, con las tarjetas tapadas: completo mientras no se confirme. */
+                            raw: {
+                                [key: string]: string;
+                            } | null;
+                            /**
+                             * Format: date-time
+                             * @description Se borra del todo 90 días después.
+                             */
+                            discardedAt: string | null;
+                        };
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: la bandeja solo se revisa desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description La captura (`CAPTURE_NOT_FOUND`), la categoría (`CATEGORY_NOT_FOUND`) o el método (`PAYMENT_METHOD_NOT_FOUND`) no existen o son de otra cuenta; o el módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Ya se confirmó o se descartó, quizá desde otra pestaña (`CAPTURE_NOT_PENDING`). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El cuerpo no tiene la forma esperada; el monto no es positivo (`TRANSACTION_AMOUNT_NOT_POSITIVE`) o tiene más de 2 decimales (`INVALID_AMOUNT`); la fecha es futura (`TRANSACTION_DATE_IN_FUTURE`); la categoría es de otro tipo (`CATEGORY_TYPE_MISMATCH`) o está archivada (`CATEGORY_ARCHIVED`); o el método está archivado (`PAYMENT_METHOD_ARCHIVED`). */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/captures/{id}/discard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Descarta una captura de la bandeja.
+         * @description Se puede deshacer (`/restore`); se borra del todo 90 días después, con su texto crudo.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description La captura descartada. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            source: "IOS_SHORTCUT" | "ANDROID_AUTOMATION";
+                            /**
+                             * @description Por revisar, duplicada (se puede confirmar igual) o descartada.
+                             * @enum {string}
+                             */
+                            status: "PENDING" | "DUPLICATE" | "DISCARDED";
+                            /** @description Si tiene monto. */
+                            parsed: boolean;
+                            /** @enum {string} */
+                            type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
+                            /** @description String decimal, mayor que cero. */
+                            amount: string | null;
+                            /**
+                             * @description Nula: se elige antes de confirmar.
+                             * @enum {string|null}
+                             */
+                            currency: "PEN" | "USD" | null;
+                            merchant: string | null;
+                            cardLast4: string | null;
+                            /** Format: date */
+                            date: string;
+                            /** Format: date-time */
+                            occurredAt: string;
+                            /** Format: uuid */
+                            categoryId: string | null;
+                            /** Format: uuid */
+                            paymentMethodId: string | null;
+                            description: string | null;
+                            /** @description Los avisos con que llegó. */
+                            warnings: string[];
+                            /** @description El pedido como llegó del teléfono, con las tarjetas tapadas: completo mientras no se confirme. */
+                            raw: {
+                                [key: string]: string;
+                            } | null;
+                            /**
+                             * Format: date-time
+                             * @description Se borra del todo 90 días después.
+                             */
+                            discardedAt: string | null;
+                        };
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: la bandeja solo se revisa desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description La captura no existe o es de otra cuenta (`CAPTURE_NOT_FOUND`); o el módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Ya se confirmó o se descartó, quizá desde otra pestaña (`CAPTURE_NOT_PENDING`). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El id no es un UUID. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/captures/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Deshace un descarte: la captura vuelve como estaba.
+         * @description Por revisar o duplicada, según de dónde se descartó.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description La captura, de vuelta en la bandeja. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            source: "IOS_SHORTCUT" | "ANDROID_AUTOMATION";
+                            /**
+                             * @description Por revisar, duplicada (se puede confirmar igual) o descartada.
+                             * @enum {string}
+                             */
+                            status: "PENDING" | "DUPLICATE" | "DISCARDED";
+                            /** @description Si tiene monto. */
+                            parsed: boolean;
+                            /** @enum {string} */
+                            type: "INCOME" | "FIXED_EXPENSE" | "VARIABLE_EXPENSE" | "SAVING" | "INVESTMENT" | "DEBT";
+                            /** @description String decimal, mayor que cero. */
+                            amount: string | null;
+                            /**
+                             * @description Nula: se elige antes de confirmar.
+                             * @enum {string|null}
+                             */
+                            currency: "PEN" | "USD" | null;
+                            merchant: string | null;
+                            cardLast4: string | null;
+                            /** Format: date */
+                            date: string;
+                            /** Format: date-time */
+                            occurredAt: string;
+                            /** Format: uuid */
+                            categoryId: string | null;
+                            /** Format: uuid */
+                            paymentMethodId: string | null;
+                            description: string | null;
+                            /** @description Los avisos con que llegó. */
+                            warnings: string[];
+                            /** @description El pedido como llegó del teléfono, con las tarjetas tapadas: completo mientras no se confirme. */
+                            raw: {
+                                [key: string]: string;
+                            } | null;
+                            /**
+                             * Format: date-time
+                             * @description Se borra del todo 90 días después.
+                             */
+                            discardedAt: string | null;
+                        };
+                    };
+                };
+                /** @description Falta el token de acceso o no vale. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Llegó un token personal: la bandeja solo se revisa desde una sesión. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description La captura no existe o es de otra cuenta (`CAPTURE_NOT_FOUND`); o el módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description La captura no está descartada (`CAPTURE_NOT_DISCARDED`). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El id no es un UUID. */
+                422: {
                     headers: {
                         [name: string]: unknown;
                     };

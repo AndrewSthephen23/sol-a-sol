@@ -17,6 +17,18 @@ export interface CaptureCatalogCategory {
   archived: boolean;
 }
 
+/** Lo que hace falta para usar una categoría elegida en la bandeja. */
+export interface CaptureCategoryReference {
+  type: TransactionType;
+  archived: boolean;
+}
+
+/** Lo que hace falta para usar un método elegido en la bandeja. */
+export interface CapturePaymentMethodReference {
+  currency: Currency | null;
+  archived: boolean;
+}
+
 /**
  * Los métodos de pago y categorías de la cuenta, sin conocer las tablas de `catalog`. Lo cumple
  * `CatalogLookup`, de su API pública. **Exige el `userId`**.
@@ -26,6 +38,10 @@ export interface CaptureCatalogReader {
   allPaymentMethods(userId: string): Promise<CaptureCatalogPaymentMethod[]>;
   /** Todas, archivadas incluidas. */
   allCategories(userId: string): Promise<CaptureCatalogCategory[]>;
+  /** `null` si no existe **o es de otra cuenta**. */
+  category(userId: string, id: string): Promise<CaptureCategoryReference | null>;
+  /** `null` si no existe **o es de otra cuenta**. */
+  paymentMethod(userId: string, id: string): Promise<CapturePaymentMethodReference | null>;
 }
 
 export const CAPTURE_CATALOG_READER = Symbol('CaptureCatalogReader');

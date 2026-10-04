@@ -9,6 +9,8 @@ const FAKE_HASH = 'fake';
 const LOOKS = { color: '#1E88E5', icon: 'utensils' };
 /** Un pedido como el que manda el atajo, inventado con la forma de uno real. */
 const RAW = { source: 'IOS_SHORTCUT', amountText: 'S/ 25.90', merchant: 'TAMBO', card: '4242' };
+/** Una captura descartada desde la bandeja, con su fecha y de dónde vino. */
+const DISCARDED = { status: 'DISCARDED', discardedAt: new Date(), discardedFrom: 'PENDING' };
 
 describe('captures and categorization_rules tables', () => {
   let prisma: PrismaService;
@@ -231,24 +233,49 @@ describe('captures and categorization_rules tables', () => {
       await expect(create).rejects.toThrow(/captures_confirmed_has_transaction/u);
     });
 
-    it('stores a discarded capture with the moment it was discarded', async () => {
-      const owner = await createOwner('captura-descartada@example.com');
+    it.each(['PENDING', 'DUPLICATE'])(
+      'stores a discarded capture with the moment it was discarded, from %s',
+      async (discardedFrom) => {
+        const owner = await createOwner(`captura-descartada-${discardedFrom}@example.com`);
+
+        await expect(
+          createCapture(owner.user.id, { ...DISCARDED, discardedFrom }),
+        ).resolves.toMatchObject({ status: 'DISCARDED', discardedFrom, rawPayload: RAW });
+      },
+    );
+
+    it.each([
+      ['a discarded capture without its date', 'DISCARDED', null, 'PENDING'],
+      ['a pending capture with a discard date', 'PENDING', new Date(), null],
+    ])('refuses %s', async (label, status, discardedAt, discardedFrom) => {
+      const owner = await createOwner(`captura-descarte-${label.replaceAll(' ', '-')}@example.com`);
 
       await expect(
-        createCapture(owner.user.id, { status: 'DISCARDED', discardedAt: new Date() }),
-      ).resolves.toMatchObject({ status: 'DISCARDED', rawPayload: RAW });
+        createCapture(owner.user.id, { status, discardedAt, discardedFrom }),
+      ).rejects.toThrow(/captures_discarded_has_date/u);
     });
 
     it.each([
-      ['a discarded capture without its date', 'DISCARDED', null],
-      ['a pending capture with a discard date', 'PENDING', new Date()],
-    ])('refuses %s', async (label, status, discardedAt) => {
-      const owner = await createOwner(`captura-descarte-${label.replaceAll(' ', '-')}@example.com`);
+      ['a discarded capture without its origin', 'DISCARDED', new Date(), null],
+      ['a pending capture with an origin', 'PENDING', null, 'PENDING'],
+    ])('refuses %s', async (label, status, discardedAt, discardedFrom) => {
+      const owner = await createOwner(`captura-origen-${label.replaceAll(' ', '-')}@example.com`);
 
-      await expect(createCapture(owner.user.id, { status, discardedAt })).rejects.toThrow(
-        /captures_discarded_has_date/u,
-      );
+      await expect(
+        createCapture(owner.user.id, { status, discardedAt, discardedFrom }),
+      ).rejects.toThrow(/captures_discarded_has_origin/u);
     });
+
+    it.each(['CONFIRMED', 'DISCARDED'])(
+      'refuses a capture discarded from %s, which never was in the inbox',
+      async (discardedFrom) => {
+        const owner = await createOwner(`captura-origen-${discardedFrom}@example.com`);
+
+        await expect(createCapture(owner.user.id, { ...DISCARDED, discardedFrom })).rejects.toThrow(
+          /captures_discarded_from_inbox/u,
+        );
+      },
+    );
 
     it('refuses a category of another type, even skipping the application', async () => {
       const owner = await createOwner('captura-categoria-otro-tipo@example.com');
@@ -431,7 +458,7 @@ describe('captures and categorization_rules tables', () => {
       where: { id: owner.expense.id },
       data: { captureId: capture.id },
     });
-    await createCapture(owner.user.id, { status: 'DISCARDED', discardedAt: new Date() });
+    await createCapture(owner.user.id, DISCARDED);
     await prisma.categorizationRule.create({
       data: {
         userId: owner.user.id,

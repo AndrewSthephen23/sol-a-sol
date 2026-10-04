@@ -8,6 +8,7 @@ import {
 } from '../transactions/transaction-policy.js';
 import { type CaptureAmount } from './capture-amount.js';
 import { type CaptureStatus } from './capture-duplicates.js';
+import { cleanText } from './clean-text.js';
 
 export class CaptureNotPendingError extends DomainError {
   readonly code = 'CAPTURE_NOT_PENDING';
@@ -93,8 +94,8 @@ export function transactionFromCapture(
   if (capture.amount === null) throw new CaptureAmountMissingError();
   if (capture.amount.currency === null) throw new CaptureCurrencyMissingError();
   if (capture.categoryId === null) throw new CaptureCategoryMissingError();
-  const merchant = clean(capture.merchant);
-  const description = clean(capture.description) ?? merchant;
+  const merchant = cleanText(capture.merchant);
+  const description = cleanText(capture.description) ?? merchant;
   if (description === null) throw new CaptureDescriptionMissingError();
 
   const amount = Money.of(capture.amount.value, capture.amount.currency);
@@ -111,9 +112,4 @@ export function transactionFromCapture(
     description,
     source: capture.source,
   };
-}
-
-function clean(text: string | null): string | null {
-  const trimmed = text?.trim() ?? '';
-  return trimmed === '' ? null : trimmed;
 }

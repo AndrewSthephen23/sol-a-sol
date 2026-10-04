@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 
 import { EventsModule } from './shared/events/events.module.js';
 import { FeatureFlagsModule } from './shared/feature-flags/feature-flags.module.js';
@@ -24,6 +25,8 @@ import { CaptureModule } from './modules/capture/capture.module.js';
     PrismaModule,
     TimeModule,
     EventsModule,
+    // Tareas periódicas dentro de la API: el borrado diario de las capturas descartadas.
+    ScheduleModule.forRoot(),
     FeatureFlagsModule,
     HealthModule,
     OpenApiModule,

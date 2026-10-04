@@ -99,9 +99,14 @@ La base exige por su cuenta, aunque alguien se salte la aplicación:
 
 Bajo `/api/v1`, con `@RequiresFeature('capture')`: **404** y fuera de OpenAPI con el flag apagado. La bandeja y las reglas llegan con las tareas 07 y 08, solo con sesión.
 
-| Método | Ruta        | Qué hace                                                                                                                                                                     |
-| ------ | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST` | `/captures` | Recibe una captura del teléfono y la deja en la bandeja: `201` con lo que se entendió (`parsed`, `warnings`), o `200` con la original si la clave de idempotencia ya existía |
+| Método  | Ruta                     | Qué hace                                                                                                                                                                     |
+| ------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST`  | `/captures`              | Recibe una captura del teléfono y la deja en la bandeja: `201` con lo que se entendió (`parsed`, `warnings`), o `200` con la original si la clave de idempotencia ya existía |
+| `GET`   | `/captures`              | La bandeja: `status=inbox` (por revisar, con las duplicadas marcadas; por defecto) o `status=discarded`. Primero la más reciente; cursor y `limit` (50, máximo 100)          |
+| `GET`   | `/captures/{id}`         | Una captura, con el pedido crudo mientras no se confirme                                                                                                                     |
+| `PATCH` | `/captures/{id}`         | Corrige una captura de la bandeja                                                                                                                                            |
+| `POST`  | `/captures/{id}/discard` | La descarta, recordando de dónde vino                                                                                                                                        |
+| `POST`  | `/captures/{id}/restore` | «Deshacer»: vuelve a la bandeja como estaba                                                                                                                                  |
 
 ### `POST /captures`
 
@@ -113,6 +118,15 @@ Decidido con el autor el **2026-10-04**:
 - **Tope de caudal:** 30 por minuto **por IP**, contadas antes de mirar el token (frena también a quien prueba tokens al azar). Cupo propio: no gasta el del resto de la API. `CAPTURE_RATE_LIMIT_PER_MINUTE` lo cambia.
 - **Los números de tarjeta se tapan** en todos los campos antes de guardar el pedido crudo. El texto de la notificación **nunca** va a los logs.
 - La respuesta trae lo entendido, **sin el texto crudo**.
+
+### La bandeja
+
+Solo desde una **sesión**: un token personal recibe 403 en todas sus rutas (el teléfono solo crea capturas). Una captura ajena responde **404**, igual que una que no existe. Decidido con el autor el **2026-10-04**:
+
+- **Qué se ve:** por revisar (con las duplicadas marcadas) y, en su filtro, las descartadas. **Las confirmadas no se listan**: ya son transacciones, y su texto crudo se borró al confirmar. **Primero la más reciente.**
+- **Corregir** (decisión 10): todo, y `null` lo borra. Si cambia el tipo sin categoría, la que había se limpia. Una categoría o un método **nuevos** tienen que ser de la cuenta (404 si no) y estar activos, y la categoría del tipo de la captura (422); la fecha, hasta hoy, y el monto, positivo con 2 decimales, como en una transacción. Si el monto no tiene moneda y el método elegido tiene una sola, la toma (decisión 3). **La marca de duplicada se queda**: dice cómo llegó. Una confirmada o descartada no se corrige (**409** `CAPTURE_NOT_PENDING`).
+- **Descartar y deshacer** (decisión 11): la descartada recuerda de dónde vino (`discarded_from`) y **vuelve como estaba**, por revisar o duplicada. Descartar dos veces, o deshacer una que no está descartada, responde **409**. Si otra pestaña cambió la captura entretanto, la base no la toca (el estado esperado va en el `UPDATE`).
+- **Borrado a los 90 días** (decisiones 11 y 14): una **tarea diaria dentro de la API** (`@nestjs/schedule`, a las 4:30 de Lima) borra del todo las descartadas hace más de 90 días, con su texto crudo, cuenta por cuenta. Se cumple aunque nadie abra la bandeja. Con el módulo apagado no hace nada; si falla, lo intenta al día siguiente.
 
 ## Estado
 

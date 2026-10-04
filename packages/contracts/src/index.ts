@@ -154,4 +154,12 @@ export {
   createCaptureRequestSchema,
   IDEMPOTENCY_KEY_MAX_LENGTH,
   idempotencyKeySchema,
+  type CaptureParams,
+  captureParamsSchema,
+  CAPTURES_DEFAULT_LIMIT,
+  CAPTURES_MAX_LIMIT,
+  type ListCapturesQuery,
+  listCapturesQuerySchema,
+  type UpdateCaptureRequest,
+  updateCaptureRequestSchema,
 } from './capture/captures.js';

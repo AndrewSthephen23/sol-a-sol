@@ -105,6 +105,83 @@ describe('capture repositories', () => {
     expect(found.map((capture) => capture.id)).toEqual([atStart.id]);
   });
 
+  /** Descartada hace mucho, directo en la base. */
+  function discard(id: string) {
+    return prisma.capture.update({
+      where: { id },
+      data: {
+        status: 'DISCARDED',
+        discardedAt: new Date('2026-01-01T00:00:00.000Z'),
+        discardedFrom: 'PENDING',
+      },
+    });
+  }
+
+  it('finds a capture only in its own account', async () => {
+    const created = await captures.create(ana, CAPTURE);
+
+    await expect(captures.find(ana, created.id)).resolves.toMatchObject({
+      id: created.id,
+      rawPayload: CAPTURE.rawPayload,
+      discardedFrom: null,
+    });
+    await expect(captures.find(bruno, created.id)).resolves.toBeNull();
+  });
+
+  it('lists a page of the account in those statuses, newest first', async () => {
+    const older = await captures.create(ana, { ...CAPTURE, idempotencyKey: 'a' });
+    const newer = await captures.create(ana, {
+      ...CAPTURE,
+      idempotencyKey: 'b',
+      status: 'DUPLICATE',
+      occurredAt: new Date(AT.getTime() + 60_000),
+    });
+    const discarded = await captures.create(ana, { ...CAPTURE, idempotencyKey: 'c' });
+    await discard(discarded.id);
+    await captures.create(bruno, { ...CAPTURE, idempotencyKey: 'd' });
+
+    const first = await captures.list(ana, ['PENDING', 'DUPLICATE'], { after: null, limit: 1 });
+    const second = await captures.list(ana, ['PENDING', 'DUPLICATE'], {
+      after: { occurredAt: newer.occurredAt, id: newer.id },
+      limit: 5,
+    });
+
+    expect(first.map(({ id }) => id)).toEqual([newer.id]);
+    expect(second.map(({ id }) => id)).toEqual([older.id]);
+  });
+
+  it('updates a capture only in its own account and in the expected status', async () => {
+    const created = await captures.create(ana, CAPTURE);
+
+    await expect(
+      captures.update(bruno, created.id, { merchant: 'Ajeno' }, ['PENDING']),
+    ).resolves.toBeNull();
+    // El UPDATE mismo filtra por cuenta: no basta con que la respuesta salga vacía.
+    await expect(captures.find(ana, created.id)).resolves.toMatchObject({ merchant: 'Tambo' });
+    await expect(
+      captures.update(ana, created.id, { merchant: 'Otro' }, ['DUPLICATE']),
+    ).resolves.toBeNull();
+    await expect(
+      captures.update(
+        ana,
+        created.id,
+        { merchant: 'Wong', amount: { value: '30.00', currency: 'USD' } },
+        ['PENDING'],
+      ),
+    ).resolves.toMatchObject({ merchant: 'Wong', amount: { value: '30.00', currency: 'USD' } });
+  });
+
+  it('deletes the old discarded captures only in its own account', async () => {
+    const mine = await captures.create(ana, { ...CAPTURE, idempotencyKey: 'a' });
+    const theirs = await captures.create(bruno, { ...CAPTURE, idempotencyKey: 'b' });
+    await discard(mine.id);
+    await discard(theirs.id);
+
+    await expect(captures.deleteDiscardedBefore(ana, AT)).resolves.toBe(1);
+
+    await expect(captures.find(bruno, theirs.id)).resolves.not.toBeNull();
+  });
+
   it('lists only the rules of the account', async () => {
     const category = await prisma.category.create({
       data: {
