@@ -86,13 +86,13 @@ export class ReceiveCapture {
     request: CaptureRequestBody,
     idempotencyKey?: string,
   ): Promise<ReceivedCapture> {
-    const { payload, masked } = maskedPayload(request);
+    const { payload, masked, last4 } = maskedPayload(request);
     const key = idempotencyKey ?? automaticKey(payload);
 
     const existing = await this.captures.findByIdempotencyKey(userId, key);
     if (existing !== null) return { capture: existing, created: false };
 
-    const draft = await this.interpret(userId, payload, masked);
+    const draft = await this.interpret(userId, payload, { masked, last4 });
     try {
       const capture = await this.captures.create(userId, {
         ...draft,
@@ -112,7 +112,7 @@ export class ReceiveCapture {
   private async interpret(
     userId: string,
     payload: Record<string, string>,
-    masked: boolean,
+    { masked, last4 }: { masked: boolean; last4: string | null },
   ): Promise<CaptureDraft> {
     const rawText = payload.rawText ?? null;
     const notification = rawText === null ? null : parseNotification(rawText);
@@ -135,7 +135,8 @@ export class ReceiveCapture {
       businessDate: date,
       amount: reading.amount,
       merchant: reading.merchant,
-      cardLast4: reading.cardLast4,
+      // Un número completo ya se tapó antes de leer el texto: sus últimos 4 vienen de ahí.
+      cardLast4: reading.cardLast4 ?? last4,
       description: null,
       categoryId: null,
       paymentMethodId: null,
@@ -209,12 +210,17 @@ export class ReceiveCapture {
   }
 }
 
-/** El pedido con sus números de tarjeta tapados, sin los campos vacíos. */
+/**
+ * El pedido con sus números de tarjeta tapados, sin los campos vacíos, y los últimos 4 de lo que
+ * se tapó si todos coinciden.
+ */
 function maskedPayload(request: CaptureRequestBody): {
   payload: Record<string, string>;
   masked: boolean;
+  last4: string | null;
 } {
   const payload: Record<string, string> = {};
+  const endings = new Set<string>();
   let masked = false;
 
   for (const [field, value] of Object.entries(request)) {
@@ -222,8 +228,10 @@ function maskedPayload(request: CaptureRequestBody): {
     const result = maskCardNumbers(value);
     payload[field] = result.text;
     masked ||= result.masked;
+    if (result.last4 !== null) endings.add(result.last4);
   }
-  return { payload, masked };
+  const [only] = endings;
+  return { payload, masked, last4: endings.size === 1 && only !== undefined ? only : null };
 }
 
 /**

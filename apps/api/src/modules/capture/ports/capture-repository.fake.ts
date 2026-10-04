@@ -100,7 +100,12 @@ export class FakeCaptureRepository implements CaptureRepository {
     if (found === undefined || !expected.includes(found.capture.status)) {
       return Promise.resolve(null);
     }
-    found.capture = { ...found.capture, ...changes };
+    found.capture = {
+      ...found.capture,
+      ...changes,
+      // Como la base: el pedido crudo se borra al confirmar (decisión 14).
+      ...(changes.status === 'CONFIRMED' ? { rawPayload: null } : {}),
+    };
     return Promise.resolve({ ...found.capture });
   }
 
