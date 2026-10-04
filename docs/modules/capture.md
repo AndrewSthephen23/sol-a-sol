@@ -53,6 +53,22 @@ Decididas con el autor el **2026-10-03**:
 | `INVALID_AMOUNT`     | El monto no se puede leer (por ejemplo, con más de 2 decimales)   |
 | `CARD_NUMBER_MASKED` | Traía un número de tarjeta completo: quedan solo sus últimos 4    |
 | `OPERATION_REJECTED` | El banco rechazó la operación                                     |
+| `AMOUNT_MISMATCH`    | El campo y la notificación dicen montos distintos: manda el campo |
+| `FUTURE_DATE`        | El instante cae en un día futuro: quedó en hoy                    |
+| `OLD_DATE`           | Pasó hace más de 30 días                                          |
+| `CURRENCY_MISMATCH`  | El monto dice una moneda y el método reconocido tiene otra        |
+
+### Cómo se interpreta una captura
+
+Funciones puras en `@sol-a-sol/domain` (`packages/domain/src/capture/`). Lo que no dicen las 18 decisiones se decidió con el autor el **2026-10-04**:
+
+- **Leer el pedido** (`readCaptureRequest`): mandan los campos y el texto completa lo que falte. Un monto del campo que no se puede leer (o que no es mayor que cero) se avisa con `INVALID_AMOUNT` y se usa el del texto. Si el campo trae el mismo monto sin moneda, la moneda sale del texto; si dice otro monto u otra moneda, manda el campo con `AMOUNT_MISMATCH`. Los últimos 4 salen del campo `card` si trae **un solo** grupo de 4 dígitos; si no, los del texto. Un «te yapearon» o un abono es ingreso; todo lo demás, gasto variable.
+- **Fecha** (`captureBusinessDate`): el día en Lima. Un **día** futuro queda en hoy con `FUTURE_DATE`; unos minutos adelantados dentro del mismo día no avisan. Más de 30 días atrás avisa con `OLD_DATE`; justo 30, no.
+- **Método de pago** (`matchPaymentMethod`): por los últimos 4 si coinciden con uno solo; si no, el texto de la tarjeta **igual** al alias sin tildes ni mayúsculas («BCP» no reconoce «Visa BCP»). Dos candidatos o ninguno: se elige en la bandeja. **Los archivados no cuentan.**
+- **Moneda** (`resolveCaptureCurrency`): la del monto o, si no dice, la del método con una sola moneda. Si el monto dice una y el método otra, se respeta la del monto con `CURRENCY_MISMATCH`.
+- **Categoría sugerida** (`suggestCategory`): solo las reglas cuya categoría es **del mismo tipo** que la captura y no está archivada; las demás se saltan. Mayor prioridad, luego patrón más largo, luego orden alfabético del patrón (para que no dependa del orden de llegada).
+- **Duplicados** (`findDuplicate`): mismo monto, misma moneda y mismo comercio sin tildes ni mayúsculas. Contra **otra captura**, en ±2 minutos **con los bordes** (2:00 sí, 2:01 no), sin contar las descartadas. Contra una **transacción**, que no tiene hora, el **mismo día**; si la transacción no tiene comercio, se compara con su descripción. **Sin comercio, sin monto o sin moneda no se marca nada.** Primero se busca entre las capturas.
+- **Confirmar** (`transactionFromCapture`): una pendiente o una duplicada, con monto, moneda, categoría y descripción; **sin descripción se usa el comercio**. Lo que falta se dice con su error (`CAPTURE_AMOUNT_MISSING`, `CAPTURE_CURRENCY_MISSING`, `CAPTURE_CATEGORY_MISSING`, `CAPTURE_DESCRIPTION_MISSING`); una confirmada o descartada, `CAPTURE_NOT_PENDING`. La fecha y el monto siguen las reglas de toda transacción.
 
 ## Modelo de datos
 
