@@ -157,15 +157,7 @@ describe('transactions table', () => {
     });
   });
 
-  // Sin clave foránea hasta H7, cuando llegue la tabla de capturas.
-  it('accepts a capture id without a captures table yet', async () => {
-    const { user, food } = await createOwner('tx-captura@example.com');
-    const captureId = '01999999-9999-7999-8999-999999999999';
-
-    await expect(
-      lunch(user.id, food.id, { captureId, source: 'IOS_SHORTCUT' }),
-    ).resolves.toMatchObject({ captureId, source: 'IOS_SHORTCUT' });
-  });
+  // La clave foránea de `capture_id` (H7) se prueba en `capture-tables.spec.ts`.
 
   it('rejects a source outside the enum', async () => {
     const { user, food } = await createOwner('tx-origen@example.com');

@@ -43,6 +43,8 @@ model User {
   installmentPlans     InstallmentPlan[]
   savingsGoals         SavingsGoal[]
   goalContributions    GoalContribution[]
+  captures             Capture[]
+  categorizationRules  CategorizationRule[]
 
   @@map("users")
 }
@@ -215,29 +217,33 @@ enum Currency {
 /// restaura la archivada). Ese índice no se puede escribir en Prisma: vive en las migraciones
 /// (`categories_unique_sibling_name`), igual que el `CHECK` del color `#RRGGBB`.
 model Category {
-  id           String          @id @default(uuid(7)) @db.Uuid
-  userId       String          @map("user_id") @db.Uuid
+  id           String               @id @default(uuid(7)) @db.Uuid
+  userId       String               @map("user_id") @db.Uuid
   type         TransactionType
   name         String
   /// Categoría padre. Nulo = categoría de primer nivel.
-  parentId     String?         @map("parent_id") @db.Uuid
+  parentId     String?              @map("parent_id") @db.Uuid
   /// Color en hexadecimal (`#1E88E5`), para gráficos y listas.
   color        String
   /// Nombre del ícono en la web (`utensils`), no una imagen.
   icon         String
-  archivedAt   DateTime?       @map("archived_at") @db.Timestamptz(3)
-  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
-  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parent       Category?       @relation("CategoryHierarchy", fields: [parentId, userId, type], references: [id, userId, type], onDelete: NoAction, onUpdate: NoAction)
-  children     Category[]      @relation("CategoryHierarchy")
+  archivedAt   DateTime?            @map("archived_at") @db.Timestamptz(3)
+  createdAt    DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent       Category?            @relation("CategoryHierarchy", fields: [parentId, userId, type], references: [id, userId, type], onDelete: NoAction, onUpdate: NoAction)
+  children     Category[]           @relation("CategoryHierarchy")
   transactions Transaction[]
   budgetLines  BudgetLine[]
+  captures     Capture[]
+  rules        CategorizationRule[]
 
   /// Destino de la clave foránea compuesta de `parent`. `id` ya es único; esto solo le da a
   /// PostgreSQL el índice que exige para referenciar las tres columnas juntas. Las búsquedas por
   /// `(userId, type)` usan el índice único de nombres, que empieza por esas columnas.
   @@unique([id, userId, type])
+  /// Destino de la clave foránea compuesta de `CategorizationRule.category`, que no lleva tipo.
+  @@unique([id, userId])
   @@map("categories")
 }
 
@@ -279,6 +285,7 @@ model PaymentMethod {
   /// A lo sumo una (`payment_method_id` es único). Prisma la ve como lista porque la clave es
   /// compuesta y solo una de sus columnas es única.
   creditCards  CreditCard[]
+  captures     Capture[]
 
   /// Destino de la clave foránea compuesta de `Transaction.paymentMethod`: `id` ya es único; esto
   /// solo le da a PostgreSQL el índice que exige para referenciar las dos columnas juntas.
@@ -333,9 +340,9 @@ model Transaction {
   /// Dónde se gastó ("TAMBO"), si se sabe.
   merchant          String?
   source            TransactionSource
-  /// Captura del celular de la que salió. Sin relación todavía: la tabla `captures` llega en
-  /// H7, y entonces una migración agrega la clave foránea.
-  captureId         String?            @map("capture_id") @db.Uuid
+  /// Captura del celular de la que salió (H7), de la misma cuenta. Una captura da a lo más una
+  /// transacción.
+  captureId         String?            @unique @map("capture_id") @db.Uuid
   /// Huella (SHA-256) de la fila del CSV de la que salió, si se importó. Única por cuenta: la
   /// misma fila no se importa dos veces, aunque la transacción se corrija después.
   importKey         String?            @map("import_key")
@@ -351,9 +358,13 @@ model Transaction {
   installmentPlans  InstallmentPlan[]
   /// A lo sumo uno (`transaction_id` es único): el aporte a una meta que sigue a esta transacción.
   goalContributions GoalContribution[]
+  /// Sin cascada: una transacción sobrevive a su captura (que se borra solo con la cuenta).
+  capture           Capture?           @relation("TransactionCapture", fields: [captureId, userId], references: [id, userId], onDelete: NoAction, onUpdate: NoAction)
+  /// A lo sumo una (`captures.transaction_id` es único): la captura que la creó, vista desde allá.
+  captures          Capture[]          @relation("CaptureTransaction")
 
-  /// Destino de las claves foráneas compuestas de `TransactionTag`, `InstallmentPlan` y
-  /// `GoalContribution`: `id` ya es único; esto solo le da a PostgreSQL el índice que exige para
+  /// Destino de las claves foráneas compuestas de `TransactionTag`, `InstallmentPlan`,
+  /// `GoalContribution` y `Capture`: `id` ya es único; esto solo le da a PostgreSQL el índice que exige para
   /// referenciar las dos columnas juntas.
   @@unique([id, userId])
   /// Una fila del CSV entra una sola vez por cuenta; las que no se importaron (nulas) no chocan.
@@ -657,4 +668,133 @@ model GoalContribution {
 
   @@index([goalId])
   @@map("goal_contributions")
+}
+
+/// Desde dónde llegó una captura (H7): el atajo de iPhone o la automatización de Android. Son los
+/// mismos valores que `TransactionSource`, sin `MANUAL` ni `IMPORT`, que nunca pasan por la bandeja.
+enum CaptureSource {
+  IOS_SHORTCUT
+  ANDROID_AUTOMATION
+
+  @@map("capture_source")
+}
+
+/// En qué punto de la bandeja está una captura (plan, 6.3).
+enum CaptureStatus {
+  /// Por revisar.
+  PENDING
+  /// Se creó su transacción (`transaction_id`).
+  CONFIRMED
+  /// Se descartó; se borra del todo a los 90 días (decisión 11 de H7).
+  DISCARDED
+  /// Mismo monto y comercio que otra captura o transacción en ±2 minutos (decisión 6). Se marca en
+  /// la bandeja y se puede confirmar igual.
+  DUPLICATE
+
+  @@map("capture_status")
+}
+
+/// Lo que mandó el teléfono, esperando revisión en la bandeja (decisiones de H7, 2026-10-03).
+/// **Toda captura pasa por la bandeja** (decisión 9): nunca crea una transacción sola.
+///
+/// Los campos son **lo que se entendió** (del pedido y del texto de la notificación) y lo que se
+/// corrigió después: la bandeja los cambia todos (decisión 10) y se confirma cuando están
+/// completos. Lo que no se entendió queda nulo, con su aviso en `warnings`.
+///
+/// `raw_payload` es el pedido tal cual llegó: se ve completo mientras la captura está por revisar
+/// y **se borra al confirmar** (decisión 14). Nunca guarda un número de tarjeta completo: si llega
+/// uno, se enmascara antes de guardar.
+model Capture {
+  id              String          @id @default(uuid(7)) @db.Uuid
+  userId          String          @map("user_id") @db.Uuid
+  source          CaptureSource
+  /// El pedido tal cual. Nulo solo en una confirmada, y obligatorio en las demás (`CHECK`).
+  rawPayload      Json?           @map("raw_payload")
+  /// El instante que mandó el teléfono (UTC), sin corregir.
+  occurredAt      DateTime        @map("occurred_at") @db.Timestamptz(3)
+  /// El día de `occurredAt` en Lima (decisión 5), para filtrar por fecha de negocio sin
+  /// recalcular. Un instante futuro queda en hoy, con aviso.
+  businessDate    DateTime        @map("business_date") @db.Date
+  /// Gasto variable por defecto; un abono o un «te yapearon», ingreso (decisión 8).
+  type            TransactionType @default(VARIABLE_EXPENSE)
+  /// Mayor que cero si existe (`CHECK`). Puede ir sin moneda: la de un método bimoneda o no
+  /// reconocido se elige en la bandeja (decisión 3). Nunca se suponen soles.
+  amount          Decimal?        @db.Decimal(18, 2)
+  currency        Currency?
+  merchant        String?
+  /// Últimos 4 dígitos de la tarjeta o cuenta, si la notificación los trae (`CHECK`).
+  cardLast4       String?         @map("card_last4")
+  description     String?
+  /// La que sugirió una regla o la que se eligió en la bandeja. Del mismo tipo que la captura
+  /// (decidido el 2026-10-03): cambiar el tipo la limpia.
+  categoryId      String?         @map("category_id") @db.Uuid
+  paymentMethodId String?         @map("payment_method_id") @db.Uuid
+  /// La transacción que salió al confirmarla: está si y solo si la captura está confirmada
+  /// (`CHECK`). Una transacción sale de una sola captura.
+  transactionId   String?         @unique @map("transaction_id") @db.Uuid
+  /// La `Idempotency-Key` del teléfono o, sin ella, la que arma la API (decisión 7). Única por
+  /// cuenta: un reintento no crea otra captura.
+  idempotencyKey  String          @map("idempotency_key")
+  /// Códigos estables de lo que no se entendió o hay que mirar (monto ambiguo, fecha futura,
+  /// operación rechazada…).
+  warnings        String[]        @default([])
+  status          CaptureStatus   @default(PENDING)
+  /// Cuándo se descartó: está si y solo si la captura está descartada (`CHECK`). A los 90 días se
+  /// borra del todo.
+  discardedAt     DateTime?       @map("discarded_at") @db.Timestamptz(3)
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  /// Directo al usuario: borrar la cuenta borra sus capturas.
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Categoría, método y transacción de la misma cuenta (claves compuestas), y la categoría del
+  /// mismo tipo, como en `transactions`. Sin cascada: se archivan, no se borran.
+  category        Category?       @relation(fields: [categoryId, userId, type], references: [id, userId, type], onDelete: NoAction, onUpdate: NoAction)
+  paymentMethod   PaymentMethod?  @relation(fields: [paymentMethodId, userId], references: [id, userId], onDelete: NoAction, onUpdate: NoAction)
+  transaction     Transaction?    @relation("CaptureTransaction", fields: [transactionId, userId], references: [id, userId], onDelete: NoAction, onUpdate: NoAction)
+  /// A lo sumo una (`transactions.capture_id` es único): la otra punta del mismo enlace.
+  transactions    Transaction[]   @relation("TransactionCapture")
+
+  /// Un reintento con la misma clave devuelve la captura original (plan, 6.3).
+  @@unique([userId, idempotencyKey])
+  /// Destino de la clave foránea compuesta de `Transaction.capture`.
+  @@unique([id, userId])
+  /// La bandeja (por revisar, descartadas) y las pendientes de un mes en el resumen.
+  @@index([userId, status, businessDate])
+  /// Para seguir una fusión de categorías y comprobar si un método tiene capturas sin recorrer la
+  /// tabla.
+  @@index([categoryId])
+  @@index([paymentMethodId])
+  @@map("captures")
+}
+
+/// Regla de categorización: si el comercio de una captura contiene `pattern`, se sugiere
+/// `category` (decisiones 12 y 13 de H7, 2026-10-03).
+///
+/// **Todas se comparan igual** (decidido el 2026-10-03): contra el comercio y, si la captura no
+/// trae comercio, contra el texto de la notificación; «contiene», sin tildes ni mayúsculas. Si
+/// aplican dos, gana la de mayor `priority`; empatadas, la de patrón más largo.
+///
+/// **Una regla por patrón y cuenta** (decidido el 2026-10-03): «Tambo» y «TAMBO» son la misma, y
+/// «Recordar para este comercio» actualiza la que ya existe.
+model CategorizationRule {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  /// Como lo escribió el usuario. No vacío (`CHECK`).
+  pattern    String
+  /// `searchKey(pattern)`: minúsculas y sin tildes, como `tags.name_key`. Con esto se compara.
+  patternKey String   @map("pattern_key")
+  categoryId String   @map("category_id") @db.Uuid
+  /// Cero o más, 0 por defecto; gana la mayor (decidido el 2026-10-03).
+  priority   Int      @default(0)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  /// Directo al usuario: borrar la cuenta borra sus reglas.
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// De la misma cuenta (clave compuesta). Sin tipo: la regla no tiene uno propio, es el de su
+  /// categoría.
+  category   Category @relation(fields: [categoryId, userId], references: [id, userId], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([userId, patternKey])
+  @@index([categoryId])
+  @@map("categorization_rules")
 }
