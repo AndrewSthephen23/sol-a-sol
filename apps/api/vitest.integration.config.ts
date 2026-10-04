@@ -15,6 +15,7 @@ export default defineConfig({
       // antes de levantar su aplicación.
       RATE_LIMIT_PER_MINUTE: '100000',
       AUTH_RATE_LIMIT_PER_MINUTE: '100000',
+      CAPTURE_RATE_LIMIT_PER_MINUTE: '100000',
       // Los logs de las pruebas estorban; los errores de verdad siguen saliendo por el filtro.
       LOG_LEVEL: 'silent',
     },

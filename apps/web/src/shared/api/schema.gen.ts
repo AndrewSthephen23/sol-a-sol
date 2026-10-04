@@ -6369,6 +6369,213 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/captures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Recibe una captura del teléfono y la deja en la bandeja.
+         * @description Para el atajo de iPhone (monto, comercio y tarjeta) o la automatización de Android (el texto de la notificación). **Siempre guarda** un pedido bien formado, aunque no lo entienda: lo que falte se completa en la bandeja. Los números de tarjeta se tapan antes de guardar. Solo con token personal y el scope `captures:write`; tope de 30 por minuto.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description Opcional. Un reintento con la misma clave devuelve la captura original (200) aunque el cuerpo cambie. Sin ella, la clave sale de todo el pedido. */
+                    "Idempotency-Key"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        source: "IOS_SHORTCUT" | "ANDROID_AUTOMATION";
+                        /** Format: date-time */
+                        occurredAt: string;
+                        amountText?: string | null;
+                        merchant?: string | null;
+                        card?: string | null;
+                        rawText?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description La clave ya existía: la captura que se guardó antes. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            source: "IOS_SHORTCUT" | "ANDROID_AUTOMATION";
+                            /**
+                             * @description Toda captura nueva entra a la bandeja: `DUPLICATE` si el mismo monto y comercio ya llegaron en ±2 minutos o están registrados ese día. Se puede confirmar igual.
+                             * @enum {string}
+                             */
+                            status: "PENDING" | "DUPLICATE";
+                            /** @description Si se entendió al menos el monto. */
+                            parsed: boolean;
+                            /**
+                             * @description Gasto por defecto; ingreso si lo dice.
+                             * @enum {string}
+                             */
+                            type: "VARIABLE_EXPENSE" | "INCOME";
+                            /** @description String decimal, mayor que cero. Nulo si no se entendió. */
+                            amount: string | null;
+                            /**
+                             * @description Nula si el monto no la dice y el método no tiene una sola: se elige en la bandeja.
+                             * @enum {string|null}
+                             */
+                            currency: "PEN" | "USD" | null;
+                            merchant: string | null;
+                            /** @description Solo los últimos 4: nunca el número completo. */
+                            cardLast4: string | null;
+                            /**
+                             * Format: date
+                             * @description El día en Lima en que pasó; uno futuro queda en hoy.
+                             */
+                            date: string;
+                            /**
+                             * Format: date-time
+                             * @description El instante que mandó el teléfono, en UTC.
+                             */
+                            occurredAt: string;
+                            /**
+                             * Format: uuid
+                             * @description La que sugirió una regla, si alguna aplicó.
+                             */
+                            categoryId: string | null;
+                            /**
+                             * Format: uuid
+                             * @description El método reconocido, si uno solo coincidió.
+                             */
+                            paymentMethodId: string | null;
+                            /** @description Códigos estables de lo que hay que mirar: `UNKNOWN_SOURCE`, `AMOUNT_NOT_FOUND`, `AMBIGUOUS_AMOUNT`, `INVALID_AMOUNT`, `AMOUNT_MISMATCH`, `CARD_NUMBER_MASKED`, `OPERATION_REJECTED`, `FUTURE_DATE`, `OLD_DATE`, `CURRENCY_MISMATCH`, `PARSER_FAILED`, `PROCESSING_FAILED`. */
+                            warnings: string[];
+                        };
+                    };
+                };
+                /** @description La captura guardada, con lo que se entendió. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            source: "IOS_SHORTCUT" | "ANDROID_AUTOMATION";
+                            /**
+                             * @description Toda captura nueva entra a la bandeja: `DUPLICATE` si el mismo monto y comercio ya llegaron en ±2 minutos o están registrados ese día. Se puede confirmar igual.
+                             * @enum {string}
+                             */
+                            status: "PENDING" | "DUPLICATE";
+                            /** @description Si se entendió al menos el monto. */
+                            parsed: boolean;
+                            /**
+                             * @description Gasto por defecto; ingreso si lo dice.
+                             * @enum {string}
+                             */
+                            type: "VARIABLE_EXPENSE" | "INCOME";
+                            /** @description String decimal, mayor que cero. Nulo si no se entendió. */
+                            amount: string | null;
+                            /**
+                             * @description Nula si el monto no la dice y el método no tiene una sola: se elige en la bandeja.
+                             * @enum {string|null}
+                             */
+                            currency: "PEN" | "USD" | null;
+                            merchant: string | null;
+                            /** @description Solo los últimos 4: nunca el número completo. */
+                            cardLast4: string | null;
+                            /**
+                             * Format: date
+                             * @description El día en Lima en que pasó; uno futuro queda en hoy.
+                             */
+                            date: string;
+                            /**
+                             * Format: date-time
+                             * @description El instante que mandó el teléfono, en UTC.
+                             */
+                            occurredAt: string;
+                            /**
+                             * Format: uuid
+                             * @description La que sugirió una regla, si alguna aplicó.
+                             */
+                            categoryId: string | null;
+                            /**
+                             * Format: uuid
+                             * @description El método reconocido, si uno solo coincidió.
+                             */
+                            paymentMethodId: string | null;
+                            /** @description Códigos estables de lo que hay que mirar: `UNKNOWN_SOURCE`, `AMOUNT_NOT_FOUND`, `AMBIGUOUS_AMOUNT`, `INVALID_AMOUNT`, `AMOUNT_MISMATCH`, `CARD_NUMBER_MASKED`, `OPERATION_REJECTED`, `FUTURE_DATE`, `OLD_DATE`, `CURRENCY_MISMATCH`, `PARSER_FAILED`, `PROCESSING_FAILED`. */
+                            warnings: string[];
+                        };
+                    };
+                };
+                /** @description Falta el token personal, no vale, está revocado o caducó. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El token no tiene el scope `captures:write` (`INSUFFICIENT_TOKEN_SCOPE`), o llegó una sesión: esta ruta es solo del teléfono (`PERSONAL_ACCESS_TOKEN_REQUIRED`). */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description El módulo está apagado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Falta `source` u `occurredAt`, el instante no trae zona, sobra un campo o alguno es demasiado largo; o la cabecera `Idempotency-Key` no vale. No se guarda nada. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Más de 30 capturas en un minuto desde la misma IP. */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {

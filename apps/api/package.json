@@ -29,6 +29,7 @@
     "@nestjs/throttler": "6.7.0",
     "@prisma/adapter-pg": "7.10.0",
     "@prisma/client": "7.10.0",
+    "@sol-a-sol/capture-parsers": "workspace:*",
     "@sol-a-sol/contracts": "workspace:*",
     "@sol-a-sol/domain": "workspace:*",
     "argon2": "0.45.1",

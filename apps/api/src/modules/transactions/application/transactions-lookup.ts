@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { LocalDate, Money, TransactionType } from '@sol-a-sol/domain';
 
 import {
+  type PagePosition,
   TRANSACTION_REPOSITORY,
   type TransactionRepository,
 } from '../ports/transaction-repository.js';
@@ -57,6 +58,18 @@ export interface TransactionReference {
   paymentMethodId: string | null;
   description: string;
 }
+
+/** Una transacción vigente de un día, con su comercio: para buscar duplicados (las capturas). */
+export interface DayTransaction {
+  id: string;
+  date: LocalDate;
+  amount: Money;
+  merchant: string | null;
+  description: string;
+}
+
+/** Cuántas se leen por vuelta al juntar las de un día. */
+const DAY_PAGE_SIZE = 100;
 
 /**
  * Lecturas que `transactions` ofrece a otros módulos por su API pública (`index.ts`), para que el
@@ -117,6 +130,35 @@ export class TransactionsLookup {
         count,
       })),
     ];
+  }
+
+  /**
+   * Las vigentes de la cuenta en ese día, todas. Para saber si una captura del teléfono ya se
+   * registró a mano (`capture`): las transacciones no tienen hora, así que se compara el día.
+   */
+  async liveTransactionsOn(userId: string, date: LocalDate): Promise<DayTransaction[]> {
+    const found: DayTransaction[] = [];
+    let after: PagePosition | null = null;
+
+    for (;;) {
+      const page = await this.transactions.list(
+        userId,
+        { from: date, to: date },
+        { after, limit: DAY_PAGE_SIZE },
+      );
+      found.push(
+        ...page.map(({ id, amount, merchant, description }) => ({
+          id,
+          date,
+          amount,
+          merchant,
+          description,
+        })),
+      );
+      const last = page.at(-1);
+      if (page.length < DAY_PAGE_SIZE || last === undefined) return found;
+      after = { date: last.date, id: last.id };
+    }
   }
 
   /**

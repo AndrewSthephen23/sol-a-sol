@@ -1,5 +1,6 @@
 import {
   changePasswordRequestSchema,
+  createCaptureRequestSchema,
   createCategoryRequestSchema,
   createCreditCardRequestSchema,
   createGoalContributionRequestSchema,
@@ -2434,6 +2435,95 @@ function goalsPaths(): Record<string, unknown> {
   };
 }
 
+const CAPTURE_SCHEMA = schemaOf(
+  z.object({
+    id: z.uuid(),
+    source: z.enum(['IOS_SHORTCUT', 'ANDROID_AUTOMATION']),
+    status: z
+      .enum(['PENDING', 'DUPLICATE'])
+      .describe(
+        'Toda captura nueva entra a la bandeja: `DUPLICATE` si el mismo monto y comercio ya ' +
+          'llegaron en ±2 minutos o están registrados ese día. Se puede confirmar igual.',
+      ),
+    parsed: z.boolean().describe('Si se entendió al menos el monto.'),
+    type: z.enum(['VARIABLE_EXPENSE', 'INCOME']).describe('Gasto por defecto; ingreso si lo dice.'),
+    amount: z
+      .string()
+      .nullable()
+      .describe('String decimal, mayor que cero. Nulo si no se entendió.'),
+    currency: z
+      .enum(['PEN', 'USD'])
+      .nullable()
+      .describe(
+        'Nula si el monto no la dice y el método no tiene una sola: se elige en la bandeja.',
+      ),
+    merchant: z.string().nullable(),
+    cardLast4: z.string().nullable().describe('Solo los últimos 4: nunca el número completo.'),
+    date: z.iso.date().describe('El día en Lima en que pasó; uno futuro queda en hoy.'),
+    occurredAt: z.iso.datetime().describe('El instante que mandó el teléfono, en UTC.'),
+    categoryId: z.uuid().nullable().describe('La que sugirió una regla, si alguna aplicó.'),
+    paymentMethodId: z.uuid().nullable().describe('El método reconocido, si uno solo coincidió.'),
+    warnings: z
+      .array(z.string())
+      .describe(
+        'Códigos estables de lo que hay que mirar: `UNKNOWN_SOURCE`, `AMOUNT_NOT_FOUND`, ' +
+          '`AMBIGUOUS_AMOUNT`, `INVALID_AMOUNT`, `AMOUNT_MISMATCH`, `CARD_NUMBER_MASKED`, ' +
+          '`OPERATION_REJECTED`, `FUTURE_DATE`, `OLD_DATE`, `CURRENCY_MISMATCH`, ' +
+          '`PARSER_FAILED`, `PROCESSING_FAILED`.',
+      ),
+  }),
+);
+
+function capturePaths(): Record<string, unknown> {
+  const capture = { content: { 'application/json': { schema: CAPTURE_SCHEMA } } };
+
+  return {
+    [`/${API_PREFIX}/captures`]: {
+      post: {
+        tags: ['capture'],
+        summary: 'Recibe una captura del teléfono y la deja en la bandeja.',
+        description:
+          'Para el atajo de iPhone (monto, comercio y tarjeta) o la automatización de Android ' +
+          '(el texto de la notificación). **Siempre guarda** un pedido bien formado, aunque no ' +
+          'lo entienda: lo que falte se completa en la bandeja. Los números de tarjeta se tapan ' +
+          'antes de guardar. Solo con token personal y el scope `captures:write`; tope de 30 ' +
+          'por minuto.',
+        security: [{ personalAccessToken: [] }],
+        parameters: [
+          {
+            name: 'Idempotency-Key',
+            in: 'header',
+            required: false,
+            description:
+              'Opcional. Un reintento con la misma clave devuelve la captura original (200) ' +
+              'aunque el cuerpo cambie. Sin ella, la clave sale de todo el pedido.',
+            schema: { type: 'string', maxLength: 200 },
+          },
+        ],
+        requestBody: jsonBody(createCaptureRequestSchema),
+        responses: {
+          '200': {
+            description: 'La clave ya existía: la captura que se guardó antes.',
+            ...capture,
+          },
+          '201': { description: 'La captura guardada, con lo que se entendió.', ...capture },
+          '401': problem('Falta el token personal, no vale, está revocado o caducó.'),
+          '403': problem(
+            'El token no tiene el scope `captures:write` (`INSUFFICIENT_TOKEN_SCOPE`), o llegó ' +
+              'una sesión: esta ruta es solo del teléfono (`PERSONAL_ACCESS_TOKEN_REQUIRED`).',
+          ),
+          '404': problem('El módulo está apagado.'),
+          '422': problem(
+            'Falta `source` u `occurredAt`, el instante no trae zona, sobra un campo o alguno es ' +
+              'demasiado largo; o la cabecera `Idempotency-Key` no vale. No se guarda nada.',
+          ),
+          '429': problem('Más de 30 capturas en un minuto desde la misma IP.'),
+        },
+      },
+    },
+  };
+}
+
 /** Rutas que aporta cada módulo de negocio, para omitirlas cuando su flag está apagado. */
 const PATHS_BY_MODULE: Partial<
   Record<
@@ -2448,6 +2538,7 @@ const PATHS_BY_MODULE: Partial<
   reports: reportsPaths,
   'credit-cards': creditCardsPaths,
   goals: goalsPaths,
+  capture: capturePaths,
 };
 
 export interface OpenApiOptions {

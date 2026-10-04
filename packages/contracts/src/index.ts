@@ -143,3 +143,15 @@ export {
   type UpdateGoalRequest,
   updateGoalRequestSchema,
 } from './goals/goals.js';
+export {
+  CAPTURE_AMOUNT_TEXT_MAX_LENGTH,
+  CAPTURE_CARD_MAX_LENGTH,
+  CAPTURE_MERCHANT_MAX_LENGTH,
+  CAPTURE_RAW_TEXT_MAX_LENGTH,
+  type CaptureSource,
+  captureSourceSchema,
+  type CreateCaptureRequest,
+  createCaptureRequestSchema,
+  IDEMPOTENCY_KEY_MAX_LENGTH,
+  idempotencyKeySchema,
+} from './capture/captures.js';

@@ -139,6 +139,15 @@ export class InsufficientTokenScopeError extends DomainError {
   }
 }
 
+/** Una ruta del teléfono, solo con token personal, recibió una sesión. */
+export class PersonalAccessTokenRequiredError extends DomainError {
+  readonly code = 'PERSONAL_ACCESS_TOKEN_REQUIRED';
+
+  constructor() {
+    super('This route takes only a personal access token, not a session.');
+  }
+}
+
 /** No existe **o es de otra cuenta**: responder distinto confirmaría que el id es de alguien. */
 export class PersonalAccessTokenNotFoundError extends DomainError {
   readonly code = 'PERSONAL_ACCESS_TOKEN_NOT_FOUND';

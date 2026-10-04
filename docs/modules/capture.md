@@ -44,19 +44,20 @@ Decididas con el autor el **2026-10-03**:
 - **Nunca lanza:** sin monto, con montos distintos o ilegible, el monto queda nulo con su aviso. Un parser que falla cae a la lectura genérica con `PARSER_FAILED`.
 - Una operación **rechazada** no es otro tipo: es un gasto o un ingreso con el aviso `OPERATION_REJECTED`.
 
-| Aviso                | Qué significa                                                     |
-| -------------------- | ----------------------------------------------------------------- |
-| `UNKNOWN_SOURCE`     | Ninguna fuente conocida reconoció el texto: se leyó solo el monto |
-| `PARSER_FAILED`      | El parser de la fuente falló (quizás cambió el formato)           |
-| `AMOUNT_NOT_FOUND`   | No hay monto pegado a una moneda                                  |
-| `AMBIGUOUS_AMOUNT`   | Hay montos distintos y no se elige uno                            |
-| `INVALID_AMOUNT`     | El monto no se puede leer (por ejemplo, con más de 2 decimales)   |
-| `CARD_NUMBER_MASKED` | Traía un número de tarjeta completo: quedan solo sus últimos 4    |
-| `OPERATION_REJECTED` | El banco rechazó la operación                                     |
-| `AMOUNT_MISMATCH`    | El campo y la notificación dicen montos distintos: manda el campo |
-| `FUTURE_DATE`        | El instante cae en un día futuro: quedó en hoy                    |
-| `OLD_DATE`           | Pasó hace más de 30 días                                          |
-| `CURRENCY_MISMATCH`  | El monto dice una moneda y el método reconocido tiene otra        |
+| Aviso                | Qué significa                                                             |
+| -------------------- | ------------------------------------------------------------------------- |
+| `UNKNOWN_SOURCE`     | Ninguna fuente conocida reconoció el texto: se leyó solo el monto         |
+| `PARSER_FAILED`      | El parser de la fuente falló (quizás cambió el formato)                   |
+| `AMOUNT_NOT_FOUND`   | No hay monto pegado a una moneda                                          |
+| `AMBIGUOUS_AMOUNT`   | Hay montos distintos y no se elige uno                                    |
+| `INVALID_AMOUNT`     | El monto no se puede leer (por ejemplo, con más de 2 decimales)           |
+| `CARD_NUMBER_MASKED` | Traía un número de tarjeta completo: quedan solo sus últimos 4            |
+| `OPERATION_REJECTED` | El banco rechazó la operación                                             |
+| `AMOUNT_MISMATCH`    | El campo y la notificación dicen montos distintos: manda el campo         |
+| `FUTURE_DATE`        | El instante cae en un día futuro: quedó en hoy                            |
+| `OLD_DATE`           | Pasó hace más de 30 días                                                  |
+| `CURRENCY_MISMATCH`  | El monto dice una moneda y el método reconocido tiene otra                |
+| `PROCESSING_FAILED`  | No se pudo buscar método, reglas o duplicados; la captura se guardó igual |
 
 ### Cómo se interpreta una captura
 
@@ -91,15 +92,27 @@ La base exige por su cuenta, aunque alguien se salte la aplicación:
 
 ## Eventos de dominio
 
-- **Emite:** `CaptureReceived` al recibir una captura (tarea 06).
+- **Emite:** nada. `CaptureReceived` (plan) **no se creó** porque nadie lo escucharía (decidido el 2026-10-04), igual que `GoalContributionAdded` en H6: llega con las notificaciones de H8, si hace falta. El contador de la bandeja se calcula al consultar.
 - **Escucha:** `catalog.category.merged`, para que capturas y reglas sigan a la categoría fusionada (tareas 07 y 08).
 
 ## Endpoints
 
-Llegan con las tareas 06 a 08: `POST /captures` solo con token personal y el scope `captures:write`; la bandeja y las reglas, solo con sesión.
+Bajo `/api/v1`, con `@RequiresFeature('capture')`: **404** y fuera de OpenAPI con el flag apagado. La bandeja y las reglas llegan con las tareas 07 y 08, solo con sesión.
 
-| Método | Ruta | Qué hace |
-| ------ | ---- | -------- |
+| Método | Ruta        | Qué hace                                                                                                                                                                     |
+| ------ | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST` | `/captures` | Recibe una captura del teléfono y la deja en la bandeja: `201` con lo que se entendió (`parsed`, `warnings`), o `200` con la original si la clave de idempotencia ya existía |
+
+### `POST /captures`
+
+Decidido con el autor el **2026-10-04**:
+
+- **Solo con token personal** y el scope `captures:write` (`@RequiresPersonalAccessToken`): una **sesión** válida recibe **403** (`PERSONAL_ACCESS_TOKEN_REQUIRED`); la web nunca crea capturas. Sin token, o con uno revocado, caducado o inventado, **401**. El `userId` sale del token.
+- **Siempre guarda** un pedido bien formado. Solo se rechaza (**422**, sin guardar nada) si falta `source` u `occurredAt`, el instante no trae zona, sobra un campo (un `userId` en el cuerpo, por ejemplo), alguno pasa su largo máximo o la cabecera `Idempotency-Key` no vale. Si falla la búsqueda de método, reglas o duplicados, se guarda igual con `PROCESSING_FAILED`.
+- **Idempotencia:** la misma `Idempotency-Key` responde **200** con la captura original, aunque el cuerpo cambie. Sin ella, la clave sale de **todo el pedido** (fuente, instante en UTC, monto, comercio, tarjeta y texto), así dos notificaciones distintas del mismo segundo no chocan. Otra cuenta puede usar la misma clave. Si dos reintentos llegan a la vez, la base decide y el segundo recibe la del primero.
+- **Tope de caudal:** 30 por minuto **por IP**, contadas antes de mirar el token (frena también a quien prueba tokens al azar). Cupo propio: no gasta el del resto de la API. `CAPTURE_RATE_LIMIT_PER_MINUTE` lo cambia.
+- **Los números de tarjeta se tapan** en todos los campos antes de guardar el pedido crudo. El texto de la notificación **nunca** va a los logs.
+- La respuesta trae lo entendido, **sin el texto crudo**.
 
 ## Estado
 
