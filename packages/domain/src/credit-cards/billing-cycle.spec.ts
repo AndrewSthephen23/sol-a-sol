@@ -116,7 +116,9 @@ describe('computeBillingCycle', () => {
         expect(cycle.end.day).toBe(Math.min(statementDay, cycle.end.lastDayOfMonth().day));
       }
     }
-  });
+    // Recorre 24,800 días: en local tarda poco más de un segundo, pero en CI, con la cobertura y
+    // los demás paquetes a la vez, rozó los 5 s por defecto y falló sin que nada estuviera mal.
+  }, 30_000);
 });
 
 describe('previousBillingCycle and nextBillingCycle', () => {
