@@ -279,6 +279,16 @@ Característica: Resumen del mes
       Cuando veo el cierre de septiembre de 2026
       Entonces en el cierre "Viaje" recibió "S/ 300.00" y llevaba "S/ 300.00"
 
+  Regla: El cierre avisa de las capturas del mes que faltan revisar (decisión 16 de H7)
+
+    Escenario: Dos capturas por revisar, una sin monto
+      Dado que hoy es 15/10/2026 en Lima
+      Y que llega del iPhone un gasto de "S/ 25.90" en "Tambo" a las 12:00 del 20/09/2026
+      Y que llega de Android la notificación "Tienes una notificación nueva" a las 12:00 del 21/09/2026
+      Y que llega del iPhone un gasto de "S/ 99.00" en "Wong" a las 12:00 del 01/10/2026
+      Cuando veo el cierre de septiembre de 2026
+      Entonces el cierre avisa 2 capturas por revisar, por "S/ 25.90"
+
   Regla: Un módulo apagado no aparece en el cierre
 
     Esquema del escenario: Sin <sección>
@@ -293,6 +303,7 @@ Característica: Resumen del mes
         | presupuesto |
         | tarjetas    |
         | metas       |
+        | capturas    |
 
   # --- Resumen anual (H6): el año mes a mes. Reglas del 2026-10-03, ver docs/modules/reports.md.
 

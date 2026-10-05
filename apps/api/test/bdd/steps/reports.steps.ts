@@ -159,11 +159,12 @@ const TYPES_BY_NAME: Readonly<Record<string, string>> = {
 };
 
 const SECTIONS: Readonly<
-  Record<string, { flag: SummarySection; key: 'budget' | 'cards' | 'goals' }>
+  Record<string, { flag: SummarySection; key: 'budget' | 'cards' | 'goals' | 'captures' }>
 > = {
   presupuesto: { flag: 'budgeting', key: 'budget' },
   tarjetas: { flag: 'credit-cards', key: 'cards' },
   metas: { flag: 'goals', key: 'goals' },
+  capturas: { flag: 'capture', key: 'captures' },
 };
 
 Given(
@@ -187,7 +188,7 @@ Given(
 );
 
 Given(
-  /^que el módulo de (presupuesto|tarjetas|metas) está apagado$/u,
+  /^que el módulo de (presupuesto|tarjetas|metas|capturas) está apagado$/u,
   function (this: TransactionsWorld, section: string) {
     this.reportFlags.turnOff(SECTIONS[section]?.flag ?? 'budgeting');
   },
@@ -386,7 +387,7 @@ Then(
 );
 
 Then(
-  /^el cierre no tiene (presupuesto|tarjetas|metas)$/u,
+  /^el cierre no tiene (presupuesto|tarjetas|metas|capturas)$/u,
   function (this: TransactionsWorld, section: string) {
     const key = SECTIONS[section]?.key ?? 'budget';
     assert.equal(key in closed(this).summary, false, `The summary has ${key}.`);
@@ -490,5 +491,16 @@ Then(
   /^no hay tasa de ahorro del año en (soles|dólares)$/u,
   function (this: TransactionsWorld, name: string) {
     assert.equal(yearIn(this, name).savingsRate, null);
+  },
+);
+
+Then(
+  'el cierre avisa {int} capturas por revisar, por {string}',
+  function (this: TransactionsWorld, count: number, total: string) {
+    const captures = this.monthlySummary?.summary.captures;
+    assert.ok(captures !== undefined, 'The summary has no captures section.');
+    assert.equal(captures.count, count);
+    assert.equal(captures.totals.length, 1);
+    sameMoney(captures.totals[0] ?? Money.zero('PEN'), total);
   },
 );

@@ -37,7 +37,20 @@ import {
   ListGoalContributions,
 } from '../../src/modules/goals/application/goal-contributions.js';
 import { CaptureLookup } from '../../src/modules/capture/application/capture-lookup.js';
+import { ConfirmCapture } from '../../src/modules/capture/application/confirm.js';
+import {
+  CorrectCapture,
+  DiscardCapture,
+  ListCaptures,
+  RestoreCapture,
+} from '../../src/modules/capture/application/inbox.js';
+import { ReceiveCapture } from '../../src/modules/capture/application/receive-capture.js';
+import { CreateCategorizationRule } from '../../src/modules/capture/application/rules.js';
+import type { Capture } from '../../src/modules/capture/ports/capture-repository.js';
 import { FakeCaptureRepository } from '../../src/modules/capture/ports/capture-repository.fake.js';
+import { FakeCaptureCatalogReader } from '../../src/modules/capture/ports/catalog-reader.fake.js';
+import { FakeCategorizationRuleRepository } from '../../src/modules/capture/ports/categorization-rule-repository.fake.js';
+import { TransactionsRecorder } from '../../src/modules/transactions/application/transactions-recorder.js';
 import type { GoalView } from '../../src/modules/goals/application/goal-views.js';
 import { CreateGoal, ListGoals, UpdateGoal } from '../../src/modules/goals/application/goals.js';
 import { GoalsLookup } from '../../src/modules/goals/application/goals-lookup.js';
@@ -121,6 +134,11 @@ export class TransactionsWorld extends World {
   readonly cardCatalog = new FakeCreditCardCatalogReader();
   readonly goals = new FakeGoalRepository();
   readonly captures = new FakeCaptureRepository();
+  /** Categorías y métodos vistos por `capture`: los mismos ids, con los últimos 4 de una tarjeta. */
+  readonly captureCatalog = new FakeCaptureCatalogReader();
+  readonly rules = new FakeCategorizationRuleRepository();
+  /** La captura de la que habla el escenario: la última que llegó o que se tocó. */
+  capture: Capture | null = null;
   readonly goalContributions = new FakeGoalContributionRepository();
   /** Qué módulos ve encendidos el resumen mensual: todos, salvo que el escenario apague uno. */
   readonly reportFlags = new FakeReportFeatureFlags();
@@ -180,6 +198,13 @@ export class TransactionsWorld extends World {
     this.catalog.withCategory(userId, id, { ...category, name });
     this.budgetCatalog.withCategory(userId, id, category);
     this.reportCatalog.with(userId, id, parentId ?? null, name);
+    const captureCategories = this.captureCatalog.categories;
+    captureCategories.splice(
+      0,
+      captureCategories.length,
+      ...captureCategories.filter((entry) => entry.category.id !== id),
+      { userId, category: { id, type, archived: options.archived ?? false } },
+    );
 
     return id;
   }
@@ -194,10 +219,15 @@ export class TransactionsWorld extends World {
     alias: string,
     currency: Currency | null,
     archived = false,
+    last4: string | null = null,
   ): string {
     const id = `${userId}/method/${alias}`;
     this.methodIds.set(`${userId}/${alias}`, id);
     this.catalog.withPaymentMethod(userId, id, { currency, alias, archived });
+    this.captureCatalog.paymentMethods.push({
+      userId,
+      method: { id, alias, last4, currency, archived },
+    });
 
     return id;
   }
@@ -405,6 +435,49 @@ export class TransactionsWorld extends World {
       this.reportFlags,
       this.clock,
     );
+  }
+
+  // --- La bandeja: escribe transacciones por la API pública de `transactions` ---
+
+  get receiveCapture(): ReceiveCapture {
+    return new ReceiveCapture(
+      this.captures,
+      this.rules,
+      this.captureCatalog,
+      this.transactionsLookup,
+      this.clock,
+    );
+  }
+
+  get listCaptures(): ListCaptures {
+    return new ListCaptures(this.captures);
+  }
+
+  get correctCapture(): CorrectCapture {
+    return new CorrectCapture(this.captures, this.captureCatalog, this.clock);
+  }
+
+  get discardCapture(): DiscardCapture {
+    return new DiscardCapture(this.captures, this.clock);
+  }
+
+  get restoreCapture(): RestoreCapture {
+    return new RestoreCapture(this.captures);
+  }
+
+  get confirmCapture(): ConfirmCapture {
+    const create = new CreateTransaction(this.transactions, this.catalog, this.events, this.clock);
+
+    return new ConfirmCapture(
+      this.captures,
+      this.rules,
+      new TransactionsRecorder(create, this.transactions),
+      this.clock,
+    );
+  }
+
+  get createRule(): CreateCategorizationRule {
+    return new CreateCategorizationRule(this.rules, this.captures, this.captureCatalog);
   }
 
   get annualSummaryUseCase(): GetAnnualSummary {

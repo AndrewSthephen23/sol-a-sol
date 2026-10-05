@@ -139,6 +139,28 @@ describe('ReceiveCapture', () => {
     expect(capture.warnings).toContain('CARD_NUMBER_MASKED');
   });
 
+  // Lo destapó el escenario Gherkin: el texto se tapa antes de leerlo, y el parser ya no veía el
+  // número completo.
+  it('keeps the last 4 of a full card number that came only in the text', async () => {
+    const { capture } = await receive.execute(ANA, {
+      source: 'ANDROID_AUTOMATION',
+      occurredAt: '2026-10-03T11:30:00-05:00',
+      rawText: 'Compra de S/ 50.00 con 4111 1111 1111 4242',
+    });
+
+    expect(capture).toMatchObject({ cardLast4: '4242', paymentMethodId: 'visa' });
+  });
+
+  it('keeps no last 4 when the masked numbers disagree', async () => {
+    const { capture } = await receive.execute(ANA, {
+      source: 'ANDROID_AUTOMATION',
+      occurredAt: '2026-10-03T11:30:00-05:00',
+      rawText: 'De 4111111111111111 a 5500000000004444 por S/ 50.00',
+    });
+
+    expect(capture.cardLast4).toBeNull();
+  });
+
   it('warns once when a card number came in a field and not in the text', async () => {
     const { capture } = await receive.execute(ANA, { ...SHORTCUT, card: '4111111111114242' });
 

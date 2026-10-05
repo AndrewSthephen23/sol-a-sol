@@ -163,4 +163,4 @@ Solo desde una **sesión**: un token personal recibe 403 en todas sus rutas (el 
 ## Estado
 
 - Feature flag: `FEATURE_CAPTURE` (apagado hasta cumplir la Definition of Done)
-- Escenarios: [`features/capture/`](../../features/capture/)
+- Escenarios: [`features/capture/capture.feature`](../../features/capture/capture.feature), sin `@pendiente`, contra los casos de uso con fakes (`apps/api/test/bdd/steps/capture.steps.ts`), con el parser real; y la regla de capturas pendientes en `features/reports/reports.feature`. Comprobados rompiendo cada regla (2026-10-04).
