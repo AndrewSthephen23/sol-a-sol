@@ -45,7 +45,7 @@
     "zod": "4.6.5"
   },
   "devDependencies": {
-    "@cucumber/cucumber": "13.2.1",
+    "@cucumber/cucumber": "13.3.0",
     "@nestjs/cli": "12.0.1",
     "@nestjs/testing": "12.0.2",
     "@sol-a-sol/config": "workspace:*",
