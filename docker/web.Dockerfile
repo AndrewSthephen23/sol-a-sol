@@ -6,7 +6,7 @@
 # ---------------------------------------------------------------------------
 # base: pnpm (vía corepack, versión de `packageManager`) y usuario sin privilegios
 # ---------------------------------------------------------------------------
-FROM node:24.21.0-trixie-slim@sha256:db3ae80f5d8df06e04dabdf7b44cbf008d32de168205fa0294444aabbc08c590 AS base
+FROM node:24.22.0-trixie-slim@sha256:7f486cabe892bff8fef04c0f7da8dba84a560be3e4e2740b7a86afc57ebec315 AS base
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
     TURBO_TELEMETRY_DISABLED=1 \
     NEXT_TELEMETRY_DISABLED=1
@@ -49,7 +49,7 @@ RUN pnpm turbo run build --filter=@sol-a-sol/web
 # ---------------------------------------------------------------------------
 # runtime: servidor standalone de Next.js. Archivos de root salvo la caché de Next.
 # ---------------------------------------------------------------------------
-FROM node:24.21.0-trixie-slim@sha256:db3ae80f5d8df06e04dabdf7b44cbf008d32de168205fa0294444aabbc08c590 AS runtime
+FROM node:24.22.0-trixie-slim@sha256:7f486cabe892bff8fef04c0f7da8dba84a560be3e4e2740b7a86afc57ebec315 AS runtime
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \
