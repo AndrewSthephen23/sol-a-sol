@@ -6,7 +6,7 @@
 # ---------------------------------------------------------------------------
 # base: pnpm (vía corepack, versión de `packageManager`) y usuario sin privilegios
 # ---------------------------------------------------------------------------
-FROM node:24.21.0-trixie-slim@sha256:db3ae80f5d8df06e04dabdf7b44cbf008d32de168205fa0294444aabbc08c590 AS base
+FROM node:24.22.2-trixie-slim@sha256:54f84b4cf8432b21aaffd5d3ce8d41e12cea0d10d33c09d2f3c9879d49d6b446 AS base
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
     TURBO_TELEMETRY_DISABLED=1 \
     NEXT_TELEMETRY_DISABLED=1
@@ -64,7 +64,7 @@ CMD ["pnpm", "exec", "prisma", "migrate", "deploy"]
 # ---------------------------------------------------------------------------
 # runtime: imagen final mínima. Archivos de root (solo lectura para `node`).
 # ---------------------------------------------------------------------------
-FROM node:24.21.0-trixie-slim@sha256:db3ae80f5d8df06e04dabdf7b44cbf008d32de168205fa0294444aabbc08c590 AS runtime
+FROM node:24.22.2-trixie-slim@sha256:54f84b4cf8432b21aaffd5d3ce8d41e12cea0d10d33c09d2f3c9879d49d6b446 AS runtime
 ENV NODE_ENV=production \
     PORT=3001
 # `image.source` es lo que hace que GHCR vincule el paquete publicado con este repositorio
